@@ -1,0 +1,6 @@
+@MipymeAsistencia.WebApi_HostAddress = http://localhost:5244
+
+GET {{MipymeAsistencia.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
