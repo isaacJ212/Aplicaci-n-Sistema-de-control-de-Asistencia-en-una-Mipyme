@@ -4,13 +4,12 @@ namespace MipymeAsistencia.Application.Common.DTOs;
 /// Envuelve todas las respuestas de la API con un formato consistente:
 /// código de estado HTTP, mensaje descriptivo y datos opcionales.
 /// </summary>
-/// <typeparam name="T">Tipo del payload de datos. Usar object cuando no hay datos.</typeparam>
 public sealed class ApiResponse<T>
 {
-    public int StatusCode { get; init; }
-    public bool Success { get; init; }
-    public string Message { get; init; } = string.Empty;
-    public T? Data { get; init; }
+    public int StatusCode { get; set; }
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public T? Data { get; set; }
 
     // ── Fábrica de respuestas exitosas ──────────────────────────────────────
 
@@ -27,6 +26,9 @@ public sealed class ApiResponse<T>
 
     public static ApiResponse<T> Unauthorized(string message)
         => new() { StatusCode = 401, Success = false, Message = message };
+
+    public static ApiResponse<T> NotFound(string message)
+        => new() { StatusCode = 404, Success = false, Message = message };
 
     public static ApiResponse<T> Conflict(string message)
         => new() { StatusCode = 409, Success = false, Message = message };
