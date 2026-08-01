@@ -1,6 +1,7 @@
 using MediatR;
 using MipymeAsistencia.Application.Common.DTOs.Auth;
 using MipymeAsistencia.Application.Common.Interfaces;
+using RefreshTokenEntity = MipymeAsistencia.Domain.Entities.RefreshToken;
 using Microsoft.EntityFrameworkCore;
 
 namespace MipymeAsistencia.Application.Features.Auth.Commands.Login;
@@ -22,25 +23,33 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
             .Include(u => u.Rol)
             .FirstOrDefaultAsync(u => u.Email == request.Email && u.EstadoActivo, cancellationToken);
 
-        if (usuario is null)
-        {
+        if (usuario is null || !BCrypt.Net.BCrypt.Verify(request.Password, usuario.PasswordHash))
             throw new UnauthorizedAccessException("Credenciales inválidas.");
-        }
 
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, usuario.PasswordHash))
+        var rolNombre  = usuario.Rol?.NombreRol ?? "Empleado";
+        var jwt        = _tokenService.GenerateToken(usuario.Email, rolNombre);
+        var expiracion = DateTime.UtcNow.AddMinutes(120);
+
+        // Genera y persiste el Refresh Token en BD (7 días de vida)
+        var refreshTokenValor = _tokenService.GenerateRefreshToken();
+        var refreshToken = new RefreshTokenEntity
         {
-            throw new UnauthorizedAccessException("Credenciales inválidas.");
-        }
+            IdUsuario       = usuario.IdUsuario,
+            Token           = refreshTokenValor,
+            FechaExpiracion = DateTime.UtcNow.AddDays(7),
+            FechaCreacion   = DateTime.UtcNow
+        };
 
-        var token = _tokenService.GenerateToken(usuario.Email, usuario.Rol?.NombreRol ?? "Empleado");
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
         return new LoginResponseDto
         {
-            Token = token,
-            RefreshToken = _tokenService.GenerateRefreshToken(),
-            Expiration = DateTime.UtcNow.AddMinutes(120),
-            Email = usuario.Email,
-            Role = usuario.Rol?.NombreRol ?? "Empleado"
+            Token        = jwt,
+            RefreshToken = refreshTokenValor,
+            Expiration   = expiracion,
+            Email        = usuario.Email,
+            Role         = rolNombre
         };
     }
 }

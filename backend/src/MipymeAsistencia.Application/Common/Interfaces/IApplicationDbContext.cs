@@ -8,6 +8,7 @@ public interface IApplicationDbContext
     DbSet<Usuario> Usuarios { get; }
     DbSet<Rol> Roles { get; }
     DbSet<Empleado> Empleados { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<HistorialAsistencia> HistorialAsistencias { get; }
     DbSet<HistorialPermisoVacacion> HistorialPermisosVacaciones { get; }
     DbSet<HistorialPlanilla> HistorialPlanillas { get; }

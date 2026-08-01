@@ -16,4 +16,5 @@ public class Usuario
     public ICollection<HoraExtra> HorasExtrasAprobadas { get; set; } = new List<HoraExtra>();
     public ICollection<HistorialPermisoVacacion> PermisosAprobados { get; set; } = new List<HistorialPermisoVacacion>();
     public ICollection<EvaluacionDesempeno> EvaluacionesRealizadas { get; set; } = new List<EvaluacionDesempeno>();
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }
