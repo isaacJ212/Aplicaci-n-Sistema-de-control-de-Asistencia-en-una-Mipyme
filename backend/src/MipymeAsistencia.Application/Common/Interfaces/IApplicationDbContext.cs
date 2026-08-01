@@ -5,6 +5,7 @@ namespace MipymeAsistencia.Application.Common.Interfaces;
 
 public interface IApplicationDbContext
 {
+    DbSet<ConfiguracionSede> ConfiguracionesSede { get; }
     DbSet<Usuario> Usuarios { get; }
     DbSet<Rol> Roles { get; }
     DbSet<Empleado> Empleados { get; }
