@@ -1,9 +1,10 @@
+using MipymeAsistencia.Application.Common.Interfaces;
 using MipymeAsistencia.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MipymeAsistencia.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
