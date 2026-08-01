@@ -35,6 +35,21 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
+
+    // Devuelve ApiResponse consistente cuando el token falta o es inválido
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = async ctx =>
+        {
+            ctx.HandleResponse();
+            ctx.Response.StatusCode  = 401;
+            ctx.Response.ContentType = "application/json";
+            var body = System.Text.Json.JsonSerializer.Serialize(
+                new { statusCode = 401, success = false, message = "No autorizado. Token requerido.", data = (object?)null },
+                new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+            await ctx.Response.WriteAsync(body);
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
@@ -50,6 +65,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Middleware global de excepciones — debe ser el primero en el pipeline
+app.UseMiddleware<MipymeAsistencia.WebApi.Middleware.ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,8 +1,12 @@
+using System.Security.Claims;
 using MediatR;
 using MipymeAsistencia.Application.Common.DTOs;
 using MipymeAsistencia.Application.Common.DTOs.Auth;
 using MipymeAsistencia.Application.Features.Auth.Commands.Login;
+using MipymeAsistencia.Application.Features.Auth.Commands.Logout;
+using MipymeAsistencia.Application.Features.Auth.Commands.RefreshToken;
 using MipymeAsistencia.Application.Features.Auth.Commands.Register;
+using MipymeAsistencia.Application.Features.Auth.Queries.GetCurrentUser;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,82 +23,88 @@ public class AuthController : ControllerBase
         _mediator = mediator;
     }
 
-    /// <summary>
-    /// Autentica un usuario y devuelve el JWT junto con el refresh token.
-    /// </summary>
+    /// <summary>Autentica un usuario y devuelve JWT + refresh token.</summary>
     [HttpPost("login")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        var data = await _mediator.Send(new LoginCommand
         {
-            var error = ApiResponse<object>.BadRequest("Email y password son obligatorios.");
-            return BadRequest(error);
-        }
+            Email    = request.Email,
+            Password = request.Password
+        });
 
-        try
-        {
-            var data = await _mediator.Send(new LoginCommand
-            {
-                Email    = request.Email,
-                Password = request.Password
-            });
-
-            var response = ApiResponse<LoginResponseDto>.Ok(data, "Inicio de sesión exitoso.");
-            return Ok(response);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            var error = ApiResponse<object>.Unauthorized(ex.Message);
-            return Unauthorized(error);
-        }
-        catch (Exception)
-        {
-            var error = ApiResponse<object>.InternalError();
-            return StatusCode(StatusCodes.Status500InternalServerError, error);
-        }
+        return Ok(ApiResponse<LoginResponseDto>.Ok(data, "Inicio de sesión exitoso."));
     }
 
-    /// <summary>
-    /// Registra un nuevo usuario y devuelve sus datos (sin información sensible).
-    /// </summary>
+    /// <summary>Registra un nuevo usuario y devuelve sus datos sin información sensible.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<RegisterResponseDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        var data = await _mediator.Send(new RegisterCommand
         {
-            var error = ApiResponse<object>.BadRequest("Email y password son obligatorios.");
-            return BadRequest(error);
-        }
+            Email    = request.Email,
+            Password = request.Password,
+            Role     = request.Role
+        });
 
-        try
-        {
-            var data = await _mediator.Send(new RegisterCommand
-            {
-                Email    = request.Email,
-                Password = request.Password,
-                Role     = request.Role
-            });
+        return StatusCode(
+            StatusCodes.Status201Created,
+            ApiResponse<RegisterResponseDto>.Created(data, "Usuario registrado correctamente."));
+    }
 
-            var response = ApiResponse<RegisterResponseDto>.Created(data, "Usuario registrado correctamente.");
-            return StatusCode(StatusCodes.Status201Created, response);
-        }
-        catch (InvalidOperationException ex)
+    /// <summary>Renueva el JWT usando un refresh token válido (rotación de tokens).</summary>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto request)
+    {
+        var data = await _mediator.Send(new RefreshTokenCommand
         {
-            var error = ApiResponse<object>.Conflict(ex.Message);
-            return Conflict(error);
-        }
-        catch (Exception)
-        {
-            var error = ApiResponse<object>.InternalError();
-            return StatusCode(StatusCodes.Status500InternalServerError, error);
-        }
+            RefreshToken = request.RefreshToken
+        });
+
+        return Ok(ApiResponse<LoginResponseDto>.Ok(data, "Token renovado correctamente."));
+    }
+
+    /// <summary>Devuelve los datos del usuario autenticado extraídos del JWT.</summary>
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<CurrentUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Me()
+    {
+        // El email viene del claim del JWT validado por el middleware de autenticación
+        var email = User.FindFirstValue(ClaimTypes.Email)
+                    ?? User.FindFirstValue("sub");
+
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized(ApiResponse<object>.Unauthorized("Token inválido."));
+
+        var data = await _mediator.Send(new GetCurrentUserQuery { Email = email });
+
+        return Ok(ApiResponse<CurrentUserDto>.Ok(data, "Usuario autenticado."));
+    }
+
+    /// <summary>Revoca el refresh token para cerrar sesión del dispositivo actual.</summary>
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Logout([FromBody] LogoutRequestDto request)
+    {
+        await _mediator.Send(new LogoutCommand { RefreshToken = request.RefreshToken });
+
+        return Ok(ApiResponse<object>.Ok(null!, "Sesión cerrada correctamente."));
     }
 }
