@@ -485,6 +485,57 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.ToTable("horas_extras", (string)null);
                 });
 
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<int>("IdRefreshToken")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_refresh_token");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdRefreshToken"));
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_creacion")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<DateTime>("FechaExpiracion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_expiracion");
+
+                    b.Property<bool>("FueRevocado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("fue_revocado");
+
+                    b.Property<bool>("FueUtilizado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("fue_utilizado");
+
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("token");
+
+                    b.HasKey("IdRefreshToken");
+
+                    b.HasIndex("IdUsuario");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("refresh_tokens", (string)null);
+                });
+
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Rol", b =>
                 {
                     b.Property<int>("IdRol")
@@ -713,6 +764,17 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.Navigation("UsuarioAprobador");
                 });
 
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("MipymeAsistencia.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Usuario", b =>
                 {
                     b.HasOne("MipymeAsistencia.Domain.Entities.Rol", "Rol")
@@ -764,6 +826,8 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.Navigation("HorasExtrasAprobadas");
 
                     b.Navigation("PermisosAprobados");
+
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }
