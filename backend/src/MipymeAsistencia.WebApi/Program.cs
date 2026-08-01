@@ -48,6 +48,15 @@ builder.Services.AddAuthentication(options =>
                 new { statusCode = 401, success = false, message = "No autorizado. Token requerido.", data = (object?)null },
                 new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
             await ctx.Response.WriteAsync(body);
+        },
+        OnForbidden = async ctx =>
+        {
+            ctx.Response.StatusCode  = 403;
+            ctx.Response.ContentType = "application/json";
+            var body = System.Text.Json.JsonSerializer.Serialize(
+                new { statusCode = 403, success = false, message = "Acceso denegado. No tienes permisos para esta operación.", data = (object?)null },
+                new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+            await ctx.Response.WriteAsync(body);
         }
     };
 });
