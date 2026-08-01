@@ -1,8 +1,6 @@
 using System.Text;
-using MipymeAsistencia.Application.Features.Auth.Commands.Login;
-using MipymeAsistencia.Application.Features.Auth.Commands.Register;
+using MipymeAsistencia.Application.DependencyInjection;
 using MipymeAsistencia.Infrastructure.DependencyInjection;
-using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -11,10 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Capas de la arquitectura limpia
+builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
-    typeof(LoginCommand).Assembly,
-    typeof(RegisterCommand).Assembly));
 
 var jwtSecret = builder.Configuration["JwtSettings:Secret"] ?? "SuperSecureJwtSecretKeyForMipymeAsistencia123";
 var issuer = builder.Configuration["JwtSettings:Issuer"] ?? "MipymeAsistencia";
@@ -41,6 +39,16 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -50,6 +58,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 

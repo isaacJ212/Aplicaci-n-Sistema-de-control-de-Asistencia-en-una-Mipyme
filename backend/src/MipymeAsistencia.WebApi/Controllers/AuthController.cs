@@ -1,4 +1,5 @@
 using MediatR;
+using MipymeAsistencia.Application.Common.DTOs;
 using MipymeAsistencia.Application.Common.DTOs.Auth;
 using MipymeAsistencia.Application.Features.Auth.Commands.Login;
 using MipymeAsistencia.Application.Features.Auth.Commands.Register;
@@ -18,61 +19,82 @@ public class AuthController : ControllerBase
         _mediator = mediator;
     }
 
+    /// <summary>
+    /// Autentica un usuario y devuelve el JWT junto con el refresh token.
+    /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest(new { message = "Email y password son obligatorios." });
+            var error = ApiResponse<object>.BadRequest("Email y password son obligatorios.");
+            return BadRequest(error);
         }
 
         try
         {
-            var result = await _mediator.Send(new LoginCommand
+            var data = await _mediator.Send(new LoginCommand
             {
-                Email = request.Email,
+                Email    = request.Email,
                 Password = request.Password
             });
 
-            return Ok(result);
+            var response = ApiResponse<LoginResponseDto>.Ok(data, "Inicio de sesión exitoso.");
+            return Ok(response);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { message = ex.Message });
+            var error = ApiResponse<object>.Unauthorized(ex.Message);
+            return Unauthorized(error);
+        }
+        catch (Exception)
+        {
+            var error = ApiResponse<object>.InternalError();
+            return StatusCode(StatusCodes.Status500InternalServerError, error);
         }
     }
 
+    /// <summary>
+    /// Registra un nuevo usuario y devuelve sus datos (sin información sensible).
+    /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<RegisterResponseDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest(new { message = "Email y password son obligatorios." });
+            var error = ApiResponse<object>.BadRequest("Email y password son obligatorios.");
+            return BadRequest(error);
         }
 
         try
         {
-            var result = await _mediator.Send(new RegisterCommand
+            var data = await _mediator.Send(new RegisterCommand
             {
-                Email = request.Email,
+                Email    = request.Email,
                 Password = request.Password,
-                Role = request.Role
+                Role     = request.Role
             });
 
-            return Ok(new { message = "Usuario registrado correctamente.", userId = result });
+            var response = ApiResponse<RegisterResponseDto>.Created(data, "Usuario registrado correctamente.");
+            return StatusCode(StatusCodes.Status201Created, response);
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            var error = ApiResponse<object>.Conflict(ex.Message);
+            return Conflict(error);
+        }
+        catch (Exception)
+        {
+            var error = ApiResponse<object>.InternalError();
+            return StatusCode(StatusCodes.Status500InternalServerError, error);
         }
     }
-}
-
-public class RegisterRequestDto
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string Role { get; set; } = "Empleado";
 }
