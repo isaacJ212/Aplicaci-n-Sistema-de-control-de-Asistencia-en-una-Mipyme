@@ -1,9 +1,10 @@
+using MipymeAsistencia.Application.Common.Interfaces;
 using MipymeAsistencia.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MipymeAsistencia.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
@@ -13,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Rol> Roles => Set<Rol>();
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Empleado> Empleados => Set<Empleado>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<ValidacionQrMarcaje> ValidacionesQrMarcaje => Set<ValidacionQrMarcaje>();
     public DbSet<HistorialAsistencia> HistorialAsistencias => Set<HistorialAsistencia>();
     public DbSet<HoraExtra> HorasExtras => Set<HoraExtra>();
@@ -240,6 +242,30 @@ public class ApplicationDbContext : DbContext
                 .WithMany(x => x.EvaluacionesRealizadas)
                 .HasForeignKey(x => x.IdEvaluador)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("refresh_tokens");
+            entity.HasKey(x => x.IdRefreshToken);
+            entity.Property(x => x.IdRefreshToken).HasColumnName("id_refresh_token");
+            entity.Property(x => x.IdUsuario).HasColumnName("id_usuario");
+            entity.Property(x => x.Token).HasColumnName("token").HasMaxLength(512);
+            entity.Property(x => x.FechaExpiracion).HasColumnName("fecha_expiracion");
+            entity.Property(x => x.FechaCreacion).HasColumnName("fecha_creacion").HasDefaultValueSql("NOW()");
+            entity.Property(x => x.FueUtilizado).HasColumnName("fue_utilizado").HasDefaultValue(false);
+            entity.Property(x => x.FueRevocado).HasColumnName("fue_revocado").HasDefaultValue(false);
+
+            entity.HasIndex(x => x.Token).IsUnique();
+            entity.HasIndex(x => x.IdUsuario);
+
+            entity.HasOne(x => x.Usuario)
+                .WithMany(x => x.RefreshTokens)
+                .HasForeignKey(x => x.IdUsuario)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // EsActivo es una propiedad calculada — no se mapea a columna
+            entity.Ignore(x => x.EsActivo);
         });
 
         base.OnModelCreating(modelBuilder);
