@@ -29,6 +29,8 @@ public class CreateEmpleadoCommandHandler : IRequestHandler<CreateEmpleadoComman
         if (empleadoExiste)
             throw new InvalidOperationException("Ya existe un empleado con ese usuario o cédula.");
 
+        var fechaContratacionUtc = NormalizeToUtc(request.FechaContratacion);
+
         var empleado = new Domain.Entities.Empleado
         {
             IdUsuario = request.IdUsuario,
@@ -38,7 +40,7 @@ public class CreateEmpleadoCommandHandler : IRequestHandler<CreateEmpleadoComman
             Apellidos = request.Apellidos,
             CargoFuncion = request.CargoFuncion,
             Responsabilidades = request.Responsabilidades,
-            FechaContratacion = request.FechaContratacion,
+            FechaContratacion = fechaContratacionUtc,
             SalarioBaseMensual = request.SalarioBaseMensual,
             DiasVacacionesAcumuladas = request.DiasVacacionesAcumuladas
         };
@@ -60,6 +62,16 @@ public class CreateEmpleadoCommandHandler : IRequestHandler<CreateEmpleadoComman
             SalarioBaseMensual = empleado.SalarioBaseMensual,
             DiasVacacionesAcumuladas = empleado.DiasVacacionesAcumuladas,
             Email = (await _context.Usuarios.FirstAsync(u => u.IdUsuario == empleado.IdUsuario, cancellationToken)).Email
+        };
+    }
+
+    private static DateTime NormalizeToUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
         };
     }
 }

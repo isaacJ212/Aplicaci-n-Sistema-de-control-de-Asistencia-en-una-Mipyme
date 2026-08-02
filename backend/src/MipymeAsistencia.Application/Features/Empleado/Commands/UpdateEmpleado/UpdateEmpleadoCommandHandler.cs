@@ -28,13 +28,15 @@ public class UpdateEmpleadoCommandHandler : IRequestHandler<UpdateEmpleadoComman
         if (existeCedula)
             throw new InvalidOperationException("La cédula ya está registrada para otro empleado.");
 
+        var fechaContratacionUtc = NormalizeToUtc(request.FechaContratacion);
+
         empleado.CedulaIdentificacion = request.CedulaIdentificacion;
         empleado.FotoUrl = request.FotoUrl;
         empleado.Nombres = request.Nombres;
         empleado.Apellidos = request.Apellidos;
         empleado.CargoFuncion = request.CargoFuncion;
         empleado.Responsabilidades = request.Responsabilidades;
-        empleado.FechaContratacion = request.FechaContratacion;
+        empleado.FechaContratacion = fechaContratacionUtc;
         empleado.SalarioBaseMensual = request.SalarioBaseMensual;
         empleado.DiasVacacionesAcumuladas = request.DiasVacacionesAcumuladas;
 
@@ -56,6 +58,16 @@ public class UpdateEmpleadoCommandHandler : IRequestHandler<UpdateEmpleadoComman
             FechaContratacion = empleado.FechaContratacion,
             SalarioBaseMensual = empleado.SalarioBaseMensual,
             DiasVacacionesAcumuladas = empleado.DiasVacacionesAcumuladas
+        };
+    }
+
+    private static DateTime NormalizeToUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
         };
     }
 }
