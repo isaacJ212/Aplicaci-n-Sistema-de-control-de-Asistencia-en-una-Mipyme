@@ -3,225 +3,397 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Detalle de Empleado — MipymeAsistencia</title>
+  <title>Expediente — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/css/variables.css" />
-  <link rel="stylesheet" href="../../assets/css/reset.css" />
-  <link rel="stylesheet" href="../../assets/css/components.css" />
-  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <style>
+    /* ── Perfil del empleado ─────────────────────────────── */
+    .perfil-card {
+      background: linear-gradient(135deg, #1E293B 0%, #1D4ED8 100%);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6) var(--space-8);
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+      margin-bottom: var(--space-6);
+      color: #fff;
+      flex-wrap: wrap;
+    }
+    .perfil-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.75rem; font-weight: 700; flex-shrink: 0;
+      border: 3px solid rgba(255,255,255,.3);
+    }
+    .perfil-info { flex: 1; min-width: 200px; }
+    .perfil-nombre { font-size: var(--font-size-2xl); font-weight: 700; }
+    .perfil-cargo  { font-size: var(--font-size-sm); color: rgba(255,255,255,.7); margin-top: 2px; }
+    .perfil-badges { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
+    .perfil-badge {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+      border-radius: var(--radius-full); padding: var(--space-1) var(--space-3);
+      font-size: var(--font-size-xs); font-weight: 500; color: #fff;
+    }
+    .perfil-stats {
+      display: flex; gap: var(--space-8); flex-wrap: wrap;
+    }
+    .perfil-stat { text-align: center; }
+    .perfil-stat-val { font-size: var(--font-size-xl); font-weight: 700; }
+    .perfil-stat-label { font-size: var(--font-size-xs); color: rgba(255,255,255,.6); margin-top: 2px; }
+
+    /* ── Tabs ────────────────────────────────────────────── */
+    .tabs-bar {
+      display: flex; gap: 0;
+      border-bottom: 2px solid var(--color-border);
+      margin-bottom: var(--space-6);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: var(--space-3) var(--space-5);
+      font-size: var(--font-size-sm); font-weight: 500;
+      color: var(--color-text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      white-space: nowrap;
+      transition: color var(--transition), border-color var(--transition);
+      cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .tab-btn:hover { color: var(--color-text); }
+    .tab-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Filas de datos ──────────────────────────────────── */
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-8);
+    }
+    .info-row { padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+    .info-label { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .04em; }
+    .info-value { font-size: var(--font-size-sm); font-weight: 500; color: var(--color-text); }
+    .info-row.full { grid-column: 1 / -1; }
+
+    /* ── Estado badge inline ─────────────────────────────── */
+    .chip {
+      display: inline-flex; align-items: center;
+      padding: 2px var(--space-2); border-radius: var(--radius-full);
+      font-size: .7rem; font-weight: 600;
+    }
+    .chip-green  { background:#DCFCE7; color:#166534; }
+    .chip-yellow { background:#FEF9C3; color:#854D0E; }
+    .chip-red    { background:#FEE2E2; color:#991B1B; }
+    .chip-blue   { background:var(--color-primary-light); color:var(--color-primary-dark); }
+    .chip-gray   { background:var(--color-border); color:var(--color-text-muted); }
+
+    @media (max-width: 640px) {
+      .perfil-card { padding: var(--space-4); gap: var(--space-4); }
+      .perfil-stats { gap: var(--space-4); }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-  <div class="admin-layout">
-    <div id="sidebar-container"></div>
-    <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-title">Detalle / Expediente individual</div>
-        <div class="topbar-right">
-          <span class="topbar-badge" id="page-badge">Cargando...</span>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:var(--space-3)">
+        <a href="/frontend/pages/admin/empleados.html"
+           style="color:var(--color-text-muted);font-size:var(--font-size-sm);display:flex;align-items:center;gap:4px">
+          ← Empleados
+        </a>
+        <span style="color:var(--color-border)">/</span>
+        <span class="topbar-title" id="topbar-nombre">Expediente</span>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="topbar-cedula">—</span>
+      </div>
+    </header>
+
+    <section class="page-content" id="content-area">
+      <!-- Se llena con JS -->
+      <div style="text-align:center;padding:var(--space-12)">
+        <div style="font-size:2rem;margin-bottom:var(--space-4)">⏳</div>
+        <p style="color:var(--color-text-muted)">Cargando expediente...</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }                                         from '/frontend/modules/layout.js';
+import { empleadoApi, asistenciaApi, horasExtrasApi,
+         planillaApi, permisoApi }                                 from '/frontend/modules/api.js';
+import { toast, formatDate, formatCurrency }                       from '/frontend/modules/utils.js';
+
+await initAdminLayout('empleados');
+
+/* ── Obtener id de la URL ─────────────────────────────────── */
+const idEmpleado = Number(new URLSearchParams(location.search).get('id'));
+if (!idEmpleado) {
+  document.getElementById('content-area').innerHTML =
+    `<div class="empty-state"><div class="empty-icon">⚠️</div>
+     <h3>Empleado no especificado</h3>
+     <p>Vuelve a la lista y selecciona un empleado.</p>
+     <a class="btn btn-primary" style="margin-top:var(--space-4)" href="/frontend/pages/admin/empleados.html">← Ir a empleados</a>
+     </div>`;
+}
+
+/* ── Helpers de estado ───────────────────────────────────── */
+function chip(estado) {
+  const m = { 'Aprobado':'green','A Tiempo':'green','Pendiente':'yellow',
+              'Tardanza':'yellow','Rechazado':'red','Ausente':'red',
+              'Admin':'blue','Empleado':'blue' };
+  return `<span class="chip chip-${m[estado]??'gray'}">${estado}</span>`;
+}
+
+/* ── Carga todo en paralelo ──────────────────────────────── */
+try {
+  const [emp, asistencias, horasExtras, permisos, planillas] = await Promise.all([
+    empleadoApi.getById(idEmpleado),
+    asistenciaApi.historial(idEmpleado).catch(() => []),
+    horasExtrasApi.getByEmpleado(idEmpleado).catch(() => []),
+    permisoApi.getMias(idEmpleado).catch(() => []),
+    planillaApi.getByEmpleado(idEmpleado).catch(() => []),
+  ]);
+
+  const asist   = Array.isArray(asistencias)  ? asistencias  : [];
+  const extras  = Array.isArray(horasExtras)  ? horasExtras  : [];
+  const perms   = Array.isArray(permisos)     ? permisos     : [];
+  const plans   = Array.isArray(planillas)    ? planillas    : [];
+
+  /* topbar */
+  const nombreCompleto = `${emp.nombres ?? ''} ${emp.apellidos ?? ''}`.trim();
+  document.getElementById('topbar-nombre').textContent = nombreCompleto;
+  document.getElementById('topbar-cedula').textContent = emp.cedulaIdentificacion ?? '—';
+
+  /* Stats del perfil */
+  const tardanzas  = asist.filter(a => a.estadoAsistencia === 'Tardanza').length;
+  const horasApro  = extras.filter(h => h.estado === 'Aprobado')
+                           .reduce((s, h) => s + (h.cantidadHoras ?? 0), 0);
+
+  /* ── Render completo ─────────────────────────────────── */
+  document.getElementById('content-area').innerHTML = `
+
+    <!-- PERFIL ─────────────────────────────────────────── -->
+    <div class="perfil-card">
+      <div class="perfil-avatar">${(emp.nombres??'?')[0]}${(emp.apellidos??'')[0]}</div>
+      <div class="perfil-info">
+        <div class="perfil-nombre">${nombreCompleto}</div>
+        <div class="perfil-cargo">${emp.cargoFuncion ?? '—'}</div>
+        <div class="perfil-badges">
+          <span class="perfil-badge">📋 ${emp.cedulaIdentificacion ?? '—'}</span>
+          <span class="perfil-badge">📅 Desde ${formatDate(emp.fechaContratacion)}</span>
+          <span class="perfil-badge">💰 ${formatCurrency(emp.salarioBaseMensual)}</span>
         </div>
-      </header>
-
-      <section class="page-content">
-        <div class="page-header">
-          <div class="page-header-text">
-            <h1>Expediente del empleado</h1>
-            <p>Consulta de forma centralizada los datos personales, asistencias, permisos y nómina del trabajador.</p>
-          </div>
-          <a class="btn btn-secondary" href="/frontend/pages/admin/empleados.html">← Volver a empleados</a>
+      </div>
+      <div class="perfil-stats">
+        <div class="perfil-stat">
+          <div class="perfil-stat-val">${asist.length}</div>
+          <div class="perfil-stat-label">Registros asistencia</div>
         </div>
-
-        <div class="card employee-profile-card" id="employee-profile">
-          <div class="employee-avatar" id="employee-avatar">👤</div>
-          <div>
-            <div class="font-bold" id="employee-name">Cargando...</div>
-            <div class="text-muted" id="employee-role">—</div>
-          </div>
+        <div class="perfil-stat">
+          <div class="perfil-stat-val">${tardanzas}</div>
+          <div class="perfil-stat-label">Tardanzas</div>
         </div>
-
-        <div class="detail-grid">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Datos del expediente</div>
-            </div>
-            <div class="detail-list" id="employee-details"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Asistencia reciente</div>
-            </div>
-            <div class="detail-list" id="attendance-list">Cargando...</div>
-          </div>
+        <div class="perfil-stat">
+          <div class="perfil-stat-val">${horasApro}h</div>
+          <div class="perfil-stat-label">H. extras aprobadas</div>
         </div>
-
-        <div class="detail-grid mt-4">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Horas extras</div>
-            </div>
-            <div class="detail-list" id="hours-list">Cargando...</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Permisos y vacaciones</div>
-            </div>
-            <div class="detail-list" id="permissions-list">Cargando...</div>
-          </div>
+        <div class="perfil-stat">
+          <div class="perfil-stat-val">${emp.diasVacacionesAcumuladas ?? 0}</div>
+          <div class="perfil-stat-label">Días vacaciones</div>
         </div>
-
-        <div class="card mt-4">
-          <div class="card-header">
-            <div class="card-title">Planillas</div>
-          </div>
-          <div class="detail-list" id="payroll-list">Cargando...</div>
+        <div class="perfil-stat">
+          <div class="perfil-stat-val">${plans.length}</div>
+          <div class="perfil-stat-label">Planillas</div>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </div>
 
-  <div id="toast-container"></div>
+    <!-- TABS ────────────────────────────────────────────── -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" data-tab="datos">📋 Datos personales</button>
+      <button class="tab-btn" data-tab="asistencia">🕐 Asistencia (${asist.length})</button>
+      <button class="tab-btn" data-tab="extras">⏱ Horas extras (${extras.length})</button>
+      <button class="tab-btn" data-tab="permisos">🌴 Permisos / Vacaciones (${perms.length})</button>
+      <button class="tab-btn" data-tab="planillas">💵 Planillas (${plans.length})</button>
+    </div>
 
-  <script type="module">
-    import { AuthService } from '../../modules/auth.js';
-    import { initAdminLayout } from '../../modules/layout.js';
-    import { empleadoApi, asistenciaApi, horasExtrasApi, planillaApi, permisoApi } from '../../modules/api.js';
-    import { toast, formatDate, formatCurrency } from '../../modules/utils.js';
-
-    if (!AuthService.requireAuth('Admin')) return;
-    initAdminLayout('empleado-detalle');
-
-    const params = new URLSearchParams(window.location.search);
-    const employeeId = Number(params.get('id'));
-
-    const state = {
-      employee: null,
-      attendance: [],
-      hours: [],
-      permissions: [],
-      payroll: []
-    };
-
-    const nameEl = document.getElementById('employee-name');
-    const roleEl = document.getElementById('employee-role');
-    const pageBadge = document.getElementById('page-badge');
-    const detailsEl = document.getElementById('employee-details');
-    const attendanceEl = document.getElementById('attendance-list');
-    const hoursEl = document.getElementById('hours-list');
-    const permissionsEl = document.getElementById('permissions-list');
-    const payrollEl = document.getElementById('payroll-list');
-
-    function renderEmployeeInfo() {
-      if (!state.employee) return;
-      nameEl.textContent = `${state.employee.nombres || ''} ${state.employee.apellidos || ''}`.trim();
-      roleEl.textContent = state.employee.cargoFuncion || 'Sin cargo asignado';
-      pageBadge.textContent = state.employee.cedulaIdentificacion || 'Empleado';
-    }
-
-    function renderDetails() {
-      const emp = state.employee;
-      if (!emp) {
-        detailsEl.innerHTML = '<div class="text-muted">No se encontró información del empleado.</div>';
-        return;
-      }
-      detailsEl.innerHTML = `
-        <div class="detail-row"><span>Correo</span><strong>${emp.email || '—'}</strong></div>
-        <div class="detail-row"><span>Cédula</span><strong>${emp.cedulaIdentificacion || '—'}</strong></div>
-        <div class="detail-row"><span>Cargo</span><strong>${emp.cargoFuncion || '—'}</strong></div>
-        <div class="detail-row"><span>Fecha de contratación</span><strong>${formatDate(emp.fechaContratacion)}</strong></div>
-        <div class="detail-row"><span>Salario base</span><strong>${formatCurrency(emp.salarioBaseMensual)}</strong></div>
-        <div class="detail-row"><span>Días vacaciones</span><strong>${emp.diasVacacionesAcumuladas ?? 0}</strong></div>
-        <div class="detail-row"><span>Responsabilidades</span><strong>${emp.responsabilidades || '—'}</strong></div>
-      `;
-    }
-
-    function renderAttendance() {
-      if (!state.attendance.length) {
-        attendanceEl.innerHTML = '<div class="text-muted">Sin registros de asistencia recientes.</div>';
-        return;
-      }
-      attendanceEl.innerHTML = state.attendance.slice(0, 6).map((item) => `
-        <div class="detail-row">
-          <span>${formatDate(item.fecha)}</span>
-          <strong>${item.estadoAsistencia || 'Sin estado'} · ${item.horaEntrada || '—'}</strong>
+    <!-- TAB: DATOS PERSONALES ───────────────────────────── -->
+    <div id="tab-datos" class="tab-panel active">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Información del expediente</span></div>
+        <div class="info-grid">
+          <div class="info-row"><div class="info-label">Nombres</div><div class="info-value">${emp.nombres ?? '—'}</div></div>
+          <div class="info-row"><div class="info-label">Apellidos</div><div class="info-value">${emp.apellidos ?? '—'}</div></div>
+          <div class="info-row"><div class="info-label">Cédula de identidad</div><div class="info-value">${emp.cedulaIdentificacion ?? '—'}</div></div>
+          <div class="info-row"><div class="info-label">Cargo / Función</div><div class="info-value">${emp.cargoFuncion ?? '—'}</div></div>
+          <div class="info-row"><div class="info-label">Fecha de contratación</div><div class="info-value">${formatDate(emp.fechaContratacion)}</div></div>
+          <div class="info-row"><div class="info-label">Salario base mensual</div><div class="info-value">${formatCurrency(emp.salarioBaseMensual)}</div></div>
+          <div class="info-row"><div class="info-label">Días vacaciones acumuladas</div><div class="info-value">${emp.diasVacacionesAcumuladas ?? 0} días</div></div>
+          <div class="info-row"><div class="info-label">Foto / URL perfil</div><div class="info-value">${emp.fotoUrl ? `<a href="${emp.fotoUrl}" target="_blank">Ver foto</a>` : 'Sin foto'}</div></div>
+          <div class="info-row full"><div class="info-label">Responsabilidades</div><div class="info-value" style="white-space:pre-wrap">${emp.responsabilidades ?? '—'}</div></div>
         </div>
-      `).join('');
-    }
+      </div>
+    </div>
 
-    function renderHours() {
-      if (!state.hours.length) {
-        hoursEl.innerHTML = '<div class="text-muted">Sin horas extras registradas.</div>';
-        return;
-      }
-      hoursEl.innerHTML = state.hours.slice(0, 6).map((item) => `
-        <div class="detail-row">
-          <span>${formatDate(item.fecha)}</span>
-          <strong>${item.cantidadHoras} h · ${item.estado} · ${formatCurrency(item.montoPagar)}</strong>
+    <!-- TAB: ASISTENCIA ─────────────────────────────────── -->
+    <div id="tab-asistencia" class="tab-panel">
+      <div class="card" style="padding:0">
+        <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+          <span class="card-title">Historial completo de asistencia</span>
+          <span style="font-size:var(--font-size-sm);color:var(--color-text-muted)">${asist.length} registros</span>
         </div>
-      `).join('');
-    }
+        ${!asist.length
+          ? `<div class="empty-state"><div class="empty-icon">📭</div><h3>Sin registros de asistencia</h3></div>`
+          : `<div class="table-wrapper" style="border:none;border-radius:0">
+              <table class="data-table">
+                <thead><tr>
+                  <th>Fecha</th><th>Entrada</th><th>Salida</th>
+                  <th>Estado</th><th>Tardanza</th><th>GPS</th>
+                </tr></thead>
+                <tbody>${asist.map(a => `
+                  <tr>
+                    <td>${formatDate(a.fecha)}</td>
+                    <td>${a.horaEntrada ?? '—'}</td>
+                    <td>${a.horaSalida ?? '—'}</td>
+                    <td>${chip(a.estadoAsistencia ?? '—')}</td>
+                    <td>${(a.minutosTardanza ?? 0) > 0 ? `<span class="chip chip-yellow">${a.minutosTardanza} min</span>` : '<span class="chip chip-green">A tiempo</span>'}</td>
+                    <td>${a.estaDentroDelRangoGps ? '<span class="chip chip-green">✓</span>' : '<span class="chip chip-red">✗</span>'}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+        }
+      </div>
+    </div>
 
-    function renderPermissions() {
-      if (!state.permissions.length) {
-        permissionsEl.innerHTML = '<div class="text-muted">Sin solicitudes de permisos o vacaciones.</div>';
-        return;
-      }
-      permissionsEl.innerHTML = state.permissions.slice(0, 6).map((item) => `
-        <div class="detail-row">
-          <span>${item.tipoSolicitud}</span>
-          <strong>${item.estadoSolicitud} · ${formatDate(item.fechaInicio)}</strong>
+    <!-- TAB: HORAS EXTRAS ───────────────────────────────── -->
+    <div id="tab-extras" class="tab-panel">
+      <div class="card" style="padding:0">
+        <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+          <span class="card-title">Historial de horas extras</span>
+          <span style="font-size:var(--font-size-sm);color:var(--color-text-muted)">${extras.length} registros · Total aprobado: ${formatCurrency(extras.filter(h=>h.estado==='Aprobado').reduce((s,h)=>s+(h.montoPagar??0),0))}</span>
         </div>
-      `).join('');
-    }
+        ${!extras.length
+          ? `<div class="empty-state"><div class="empty-icon">📭</div><h3>Sin horas extras registradas</h3></div>`
+          : `<div class="table-wrapper" style="border:none;border-radius:0">
+              <table class="data-table">
+                <thead><tr><th>Fecha</th><th>Horas</th><th>Motivo</th><th>Monto</th><th>Estado</th><th>Aprobado por</th></tr></thead>
+                <tbody>${extras.map(h => `
+                  <tr>
+                    <td>${formatDate(h.fecha)}</td>
+                    <td>${h.cantidadHoras} h</td>
+                    <td style="max-width:200px;white-space:normal">${h.motivo ?? '—'}</td>
+                    <td class="font-medium">${formatCurrency(h.montoPagar)}</td>
+                    <td>${chip(h.estado)}</td>
+                    <td>${h.nombreAprobador ?? '—'}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+        }
+      </div>
+    </div>
 
-    function renderPayroll() {
-      if (!state.payroll.length) {
-        payrollEl.innerHTML = '<div class="text-muted">Sin planillas generadas.</div>';
-        return;
-      }
-      payrollEl.innerHTML = state.payroll.slice(0, 6).map((item) => `
-        <div class="detail-row">
-          <span>${item.periodoMesAnio}</span>
-          <strong>${formatCurrency(item.salarioNeto)}</strong>
+    <!-- TAB: PERMISOS / VACACIONES ──────────────────────── -->
+    <div id="tab-permisos" class="tab-panel">
+      <div class="card" style="padding:0">
+        <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+          <span class="card-title">Solicitudes de permisos y vacaciones</span>
+          <span style="font-size:var(--font-size-sm);color:var(--color-text-muted)">${perms.length} solicitudes</span>
         </div>
-      `).join('');
-    }
+        ${!perms.length
+          ? `<div class="empty-state"><div class="empty-icon">📭</div><h3>Sin solicitudes registradas</h3></div>`
+          : `<div class="table-wrapper" style="border:none;border-radius:0">
+              <table class="data-table">
+                <thead><tr><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Motivo</th><th>Estado</th><th>Respuesta</th></tr></thead>
+                <tbody>${perms.map(p => `
+                  <tr>
+                    <td>${chip(p.tipoSolicitud ?? '—')}</td>
+                    <td>${formatDate(p.fechaInicio)}</td>
+                    <td>${formatDate(p.fechaFin)}</td>
+                    <td>${p.diasSolicitados}</td>
+                    <td style="max-width:180px;white-space:normal">${p.motivo ?? '—'}</td>
+                    <td>${chip(p.estadoSolicitud ?? 'Pendiente')}</td>
+                    <td>${p.fechaRespuesta ? formatDate(p.fechaRespuesta) : '—'}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+        }
+      </div>
+    </div>
 
-    async function loadEmployeeDetail() {
-      if (!employeeId) {
-        toast('No se especificó un empleado.', 'error');
-        return;
-      }
+    <!-- TAB: PLANILLAS ──────────────────────────────────── -->
+    <div id="tab-planillas" class="tab-panel">
+      <div class="card" style="padding:0">
+        <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+          <span class="card-title">Historial de planillas</span>
+          <span style="font-size:var(--font-size-sm);color:var(--color-text-muted)">${plans.length} períodos</span>
+        </div>
+        ${!plans.length
+          ? `<div class="empty-state"><div class="empty-icon">📭</div><h3>Sin planillas generadas</h3></div>`
+          : `<div class="table-wrapper" style="border:none;border-radius:0">
+              <table class="data-table">
+                <thead><tr>
+                  <th>Período</th><th>Salario base</th><th>HH. Extras</th>
+                  <th>Total ingresos</th><th>INSS (7%)</th><th>IR</th>
+                  <th>Total deduc.</th><th>Neto a pagar</th><th>Emitida</th>
+                </tr></thead>
+                <tbody>${plans.map(p => `
+                  <tr>
+                    <td class="font-medium">${p.periodoMesAnio}</td>
+                    <td>${formatCurrency(p.salarioBase)}</td>
+                    <td>${formatCurrency(p.pagoHorasExtras)}</td>
+                    <td class="font-medium">${formatCurrency(p.totalIngresos)}</td>
+                    <td>${formatCurrency(p.inssLaboral)}</td>
+                    <td>${formatCurrency(p.irLaboral)}</td>
+                    <td>${formatCurrency(p.totalDeducciones)}</td>
+                    <td class="font-medium" style="color:var(--color-accent)">${formatCurrency(p.salarioNeto)}</td>
+                    <td>${formatDate(p.fechaEmision)}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+        }
+      </div>
+    </div>
+  `;
 
-      try {
-        const [employeeData, attendanceData, hoursData, permissionsData, payrollData] = await Promise.all([
-          empleadoApi.getById(employeeId),
-          asistenciaApi.historial(employeeId),
-          horasExtrasApi.getByEmpleado(employeeId),
-          permisoApi.getMias(employeeId),
-          planillaApi.getByEmpleado(employeeId)
-        ]);
+  /* ── Lógica de tabs ───────────────────────────────────── */
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    });
+  });
 
-        state.employee = employeeData;
-        state.attendance = Array.isArray(attendanceData) ? attendanceData : [];
-        state.hours = Array.isArray(hoursData) ? hoursData : [];
-        state.permissions = Array.isArray(permissionsData) ? permissionsData : [];
-        state.payroll = Array.isArray(payrollData) ? payrollData : [];
-
-        renderEmployeeInfo();
-        renderDetails();
-        renderAttendance();
-        renderHours();
-        renderPermissions();
-        renderPayroll();
-      } catch (error) {
-        console.error(error);
-        toast(error.message || 'No se pudo cargar el expediente.', 'error');
-      }
-    }
-
-    loadEmployeeDetail();
-  </script>
+} catch (err) {
+  console.error(err);
+  toast(err.message || 'No se pudo cargar el expediente.', 'error');
+  document.getElementById('content-area').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">⚠️</div>
+      <h3>Error al cargar el expediente</h3>
+      <p>${err.message}</p>
+      <a class="btn btn-primary" style="margin-top:var(--space-4)"
+         href="/frontend/pages/admin/empleados.html">← Volver a empleados</a>
+    </div>`;
+}
+</script>
 </body>
 </html>
