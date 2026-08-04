@@ -4,6 +4,7 @@ using MipymeAsistencia.Application.Common.DTOs.Asistencia;
 using MipymeAsistencia.Application.Features.Asistencia.Commands.GenerarQr;
 using MipymeAsistencia.Application.Features.Asistencia.Commands.RegistrarAsistencia;
 using MipymeAsistencia.Application.Features.Asistencia.Commands.ValidarQr;
+using MipymeAsistencia.Application.Features.Asistencia.Queries.GetAllAsistencias;
 using MipymeAsistencia.Application.Features.Asistencia.Queries.GetHistorialAsistencia;
 using MipymeAsistencia.Application.Features.Asistencia.Queries.GetQrActual;
 using Microsoft.AspNetCore.Authorization;
@@ -85,5 +86,31 @@ public class AsistenciaController : ControllerBase
     {
         var data = await _mediator.Send(new GetHistorialAsistenciaQuery { IdEmpleado = idEmpleado });
         return Ok(ApiResponse<List<AsistenciaResponseDto>>.Ok(data, "Historial de asistencia obtenido correctamente."));
+    }
+
+    /// <summary>
+    /// Obtiene todos los registros de asistencia del sistema.
+    /// Filtros opcionales: empleado, rango de fechas y estado.
+    /// Solo accesible por Admin.
+    /// </summary>
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<List<AsistenciaResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int?      idEmpleado       = null,
+        [FromQuery] DateTime? fechaDesde       = null,
+        [FromQuery] DateTime? fechaHasta       = null,
+        [FromQuery] string?   estadoAsistencia = null)
+    {
+        var data = await _mediator.Send(new GetAllAsistenciasQuery
+        {
+            IdEmpleado       = idEmpleado,
+            FechaDesde       = fechaDesde,
+            FechaHasta       = fechaHasta,
+            EstadoAsistencia = estadoAsistencia
+        });
+
+        return Ok(ApiResponse<List<AsistenciaResponseDto>>.Ok(
+            data, $"Se encontraron {data.Count} registros de asistencia."));
     }
 }
