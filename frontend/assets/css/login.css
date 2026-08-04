@@ -1,0 +1,221 @@
+/* ============================================================
+   LOGIN PAGE STYLES
+   ============================================================ */
+
+/* ── Layout ──────────────────────────────────────────────── */
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Panel izquierdo — visual/branding */
+.login-panel-left {
+  background: linear-gradient(145deg, #1E293B 0%, #0F172A 60%, #1D4ED8 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--space-12);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Círculos decorativos de fondo */
+.login-panel-left::before,
+.login-panel-left::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: .12;
+  background: var(--color-primary);
+}
+.login-panel-left::before {
+  width: 480px; height: 480px;
+  top: -120px; right: -160px;
+}
+.login-panel-left::after {
+  width: 300px; height: 300px;
+  bottom: -80px; left: -80px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-12);
+  position: relative;
+  z-index: 1;
+}
+
+.login-brand-icon {
+  width: 48px; height: 48px;
+  background: var(--color-primary);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.login-brand-name {
+  color: #FFFFFF;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.login-brand-sub {
+  color: #94A3B8;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}
+
+.login-hero {
+  position: relative;
+  z-index: 1;
+}
+
+.login-hero-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.2;
+  margin-bottom: var(--space-4);
+}
+
+.login-hero-title span {
+  color: #60A5FA;
+}
+
+.login-hero-desc {
+  color: #94A3B8;
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  max-width: 380px;
+  margin-bottom: var(--space-10);
+}
+
+.login-features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.login-feature-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: #CBD5E1;
+  font-size: var(--font-size-sm);
+}
+
+.login-feature-item .feature-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* Panel derecho — formulario */
+.login-panel-right {
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.login-form-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-form-header {
+  margin-bottom: var(--space-8);
+}
+
+.login-form-header h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.login-form-header p {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Formulario ───────────────────────────────────────────── */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.password-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.forgot-link {
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+}
+
+.forgot-link:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* ── Error global del formulario ──────────────────────────── */
+.login-error-box {
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: #991B1B;
+}
+
+.login-error-box .error-icon { flex-shrink: 0; margin-top: 1px; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+.login-footer {
+  margin-top: var(--space-8);
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-light);
+}
+
+.login-footer a {
+  color: var(--color-text-muted);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-panel-left {
+    display: none;
+  }
+
+  .login-panel-right {
+    min-height: 100vh;
+    padding: var(--space-6);
+    align-items: flex-start;
+    padding-top: var(--space-12);
+  }
+
+  .login-form-container {
+    max-width: 100%;
+  }
+}
