@@ -40,6 +40,8 @@ public class PlanillaResponseDto
     // ── Deducciones laborales ────────────────────────────────────────────────
     public decimal  InssLaboral             { get; set; }   // 7%
     public decimal  IrLaboral               { get; set; }   // tabla progresiva
+    public decimal  DeduccionTardanza       { get; set; }   // descuento por llegadas tardías
+    public int      MinutosTardanzaMes      { get; set; }   // total minutos tardanza en el mes
     public decimal  Embargo                 { get; set; }
     public decimal  Sindicato               { get; set; }
     public decimal  OtrasDeducciones        { get; set; }

@@ -1,10 +1,17 @@
+using System.Security.Cryptography;
 using MediatR;
 using MipymeAsistencia.Application.Common.DTOs.Asistencia;
 using MipymeAsistencia.Application.Common.Interfaces;
+using MipymeAsistencia.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MipymeAsistencia.Application.Features.Asistencia.Queries.GetQrActual;
 
+/// <summary>
+/// Obtiene el QR activo de la sede (ENDPOINT PÚBLICO — kioscos).
+/// Si no existe configuración de sede, la crea con valores por defecto.
+/// Si no hay token QR o expiró (>24h), genera uno nuevo automáticamente.
+/// </summary>
 public class GetQrActualQueryHandler : IRequestHandler<GetQrActualQuery, QrActualResponseDto>
 {
     private readonly IApplicationDbContext _context;
@@ -20,10 +27,33 @@ public class GetQrActualQueryHandler : IRequestHandler<GetQrActualQuery, QrActua
             .FirstOrDefaultAsync(cancellationToken);
 
         if (sede is null)
-            throw new KeyNotFoundException("No existe configuración de sede registrada.");
+        {
+            sede = new ConfiguracionSede
+            {
+                NombreSede = "Sede Principal",
+                LatitudSede = 12.13500m,
+                LongitudSede = -86.28000m,
+                RadioToleranciaMetros = 200,
+                HoraEntradaOficial = new TimeSpan(8, 0, 0),
+                HoraSalidaOficial = new TimeSpan(17, 0, 0),
+                DuracionAlmuerzoMinutos = 60,
+                MinutosTolerancia = 10,
+            };
+            _context.ConfiguracionesSede.Add(sede);
+        }
 
-        if (string.IsNullOrWhiteSpace(sede.TokenQrActual))
-            throw new InvalidOperationException("Todavía no se ha generado un QR activo para la sede.");
+        var ahora = DateTime.UtcNow;
+        var tokenViejoONulo = string.IsNullOrWhiteSpace(sede.TokenQrActual)
+                              || sede.QrUltimaActualizacion is null
+                              || (ahora - sede.QrUltimaActualizacion.Value).TotalHours >= 24;
+
+        if (tokenViejoONulo)
+        {
+            sede.TokenQrActual = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            sede.QrUltimaActualizacion = ahora;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
 
         return new QrActualResponseDto
         {

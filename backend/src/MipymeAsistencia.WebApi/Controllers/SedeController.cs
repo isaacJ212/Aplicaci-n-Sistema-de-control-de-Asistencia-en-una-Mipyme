@@ -22,9 +22,11 @@ public class SedeController : ControllerBase
 
     /// <summary>
     /// Obtiene la configuración actual de la sede.
-    /// Accesible por Admin y Empleado — ambos necesitan conocer horarios y radio GPS.
+    /// Público: kioscos y pantallas públicas necesitan nombre, horarios, radio GPS.
+    /// Empleados y Admin también lo usan (el JWT no es obligatorio).
     /// </summary>
     [HttpGet("configuracion")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<SedeResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -55,7 +57,8 @@ public class SedeController : ControllerBase
             RadioToleranciaMetros   = request.RadioToleranciaMetros,
             HoraEntradaOficial      = request.HoraEntradaOficial,
             HoraSalidaOficial       = request.HoraSalidaOficial,
-            DuracionAlmuerzoMinutos = request.DuracionAlmuerzoMinutos
+            DuracionAlmuerzoMinutos = request.DuracionAlmuerzoMinutos,
+            MinutosTolerancia       = request.MinutosTolerancia
         });
 
         return Ok(ApiResponse<SedeResponseDto>.Ok(data, "Configuración de sede actualizada correctamente."));

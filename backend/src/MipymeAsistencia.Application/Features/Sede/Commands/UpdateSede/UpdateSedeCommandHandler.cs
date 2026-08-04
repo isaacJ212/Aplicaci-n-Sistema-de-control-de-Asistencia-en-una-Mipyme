@@ -33,6 +33,7 @@ public class UpdateSedeCommandHandler : IRequestHandler<UpdateSedeCommand, SedeR
         sede.HoraEntradaOficial      = entrada;
         sede.HoraSalidaOficial       = salida;
         sede.DuracionAlmuerzoMinutos = request.DuracionAlmuerzoMinutos;
+        sede.MinutosTolerancia = request.MinutosTolerancia;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -46,6 +47,7 @@ public class UpdateSedeCommandHandler : IRequestHandler<UpdateSedeCommand, SedeR
             HoraEntradaOficial      = sede.HoraEntradaOficial.ToString(@"hh\:mm"),
             HoraSalidaOficial       = sede.HoraSalidaOficial.ToString(@"hh\:mm"),
             DuracionAlmuerzoMinutos = sede.DuracionAlmuerzoMinutos,
+            MinutosTolerancia = sede.MinutosTolerancia,
             TokenQrActual           = sede.TokenQrActual,
             QrUltimaActualizacion   = sede.QrUltimaActualizacion
         };

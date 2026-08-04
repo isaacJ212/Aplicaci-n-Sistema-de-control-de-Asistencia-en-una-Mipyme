@@ -84,6 +84,23 @@ public class GenerarPlanillaCommandHandler
                           + pagoHorasExtras
                           + request.Incentivos;
 
+        // ── DEDUCCIÓN POR TARDANZA ────────────────────────────────────────────
+        // Valor por minuto = SalarioBase / 240h / 60min
+        // Deducción = valor por minuto × total minutos tardanza del periodo
+        var inicioPeriodo = new DateTime(anio, mes, 1, 0, 0, 0, DateTimeKind.Utc);
+        var finPeriodo    = inicioPeriodo.AddMonths(1).AddTicks(-1);
+
+        var registrosTardanza = await _context.HistorialAsistencias
+            .Where(h => h.IdEmpleado    == request.IdEmpleado &&
+                        h.Fecha         >= inicioPeriodo       &&
+                        h.Fecha         <= finPeriodo           &&
+                        h.MinutosTardanza > 0)
+            .ToListAsync(cancellationToken);
+
+        var totalMinutosTardanza = registrosTardanza.Sum(h => h.MinutosTardanza);
+        var valorPorMinuto       = salarioBase > 0 ? salarioBase / 240m / 60m : 0m;
+        var deduccionTardanza    = Math.Round(valorPorMinuto * totalMinutosTardanza, 2);
+
         // ── INSS LABORAL: 7% sobre total ingresos ─────────────────────────────
         var inssLaboral = Math.Round(totalIngresos * 0.07m, 2);
 
@@ -93,6 +110,7 @@ public class GenerarPlanillaCommandHandler
         // ── TOTAL DEDUCCIONES ─────────────────────────────────────────────────
         var totalDeducciones = inssLaboral
                              + irLaboral
+                             + deduccionTardanza       // ← deducción por llegadas tardías
                              + request.Embargo
                              + request.Sindicato
                              + request.OtrasDeducciones;
@@ -111,19 +129,20 @@ public class GenerarPlanillaCommandHandler
         // ── Persiste la planilla ───────────────────────────────────────────────
         var planilla = new HistorialPlanilla
         {
-            IdEmpleado       = request.IdEmpleado,
-            PeriodoMesAnio   = request.PeriodoMesAnio,
-            SalarioBase      = salarioBase,
-            TotalHorasExtras = totalHorasExtras,
-            PagoHorasExtras  = pagoHorasExtras,
-            SalarioBruto     = totalIngresos,
-            InssLaboral      = inssLaboral,
-            IrLaboral        = irLaboral,
-            OtrasDeducciones = request.OtrasDeducciones + request.Embargo + request.Sindicato,
-            TotalDeducciones = totalDeducciones,
-            SalarioNeto      = salarioNeto,
+            IdEmpleado         = request.IdEmpleado,
+            PeriodoMesAnio     = request.PeriodoMesAnio,
+            SalarioBase        = salarioBase,
+            TotalHorasExtras   = totalHorasExtras,
+            PagoHorasExtras    = pagoHorasExtras,
+            SalarioBruto       = totalIngresos,
+            InssLaboral        = inssLaboral,
+            IrLaboral          = irLaboral,
+            // Otras deducciones incluye tardanza + embargo + sindicato + extras
+            OtrasDeducciones   = deduccionTardanza + request.OtrasDeducciones + request.Embargo + request.Sindicato,
+            TotalDeducciones   = totalDeducciones,
+            SalarioNeto        = salarioNeto,
             AcumuladoAguinaldo = acumuladoAguinaldo,
-            FechaEmision     = DateTime.UtcNow
+            FechaEmision       = DateTime.UtcNow
         };
 
         _context.HistorialPlanillas.Add(planilla);
@@ -144,6 +163,8 @@ public class GenerarPlanillaCommandHandler
             TotalIngresos          = totalIngresos,
             InssLaboral            = inssLaboral,
             IrLaboral              = irLaboral,
+            DeduccionTardanza      = deduccionTardanza,
+            MinutosTardanzaMes     = totalMinutosTardanza,
             Embargo                = request.Embargo,
             Sindicato              = request.Sindicato,
             OtrasDeducciones       = request.OtrasDeducciones,

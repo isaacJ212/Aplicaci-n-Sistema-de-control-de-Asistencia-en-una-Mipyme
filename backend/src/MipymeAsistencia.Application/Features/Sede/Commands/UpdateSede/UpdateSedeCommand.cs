@@ -19,4 +19,5 @@ public class UpdateSedeCommand : IRequest<SedeResponseDto>
     public string HoraSalidaOficial { get; set; } = string.Empty;
 
     public int DuracionAlmuerzoMinutos { get; set; }
+    public int MinutosTolerancia { get; set; }
 }
