@@ -3,12 +3,50 @@ using MipymeAsistencia.Application.DependencyInjection;
 using MipymeAsistencia.Infrastructure.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+// ── Swagger con soporte JWT ───────────────────────────────────────────────────
+// Se expone en todos los entornos (Development y Production/Render)
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title   = "MipymeAsistencia API",
+        Version = "v1",
+        Description = "API de control de asistencia y nómina para Mipymes (Nicaragua)"
+    });
+
+    // Agrega el botón "Authorize" en Swagger UI para enviar el JWT
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name         = "Authorization",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "Bearer",
+        BearerFormat = "JWT",
+        In           = ParameterLocation.Header,
+        Description  = "Ingresa el token JWT. Ejemplo: Bearer eyJhbG..."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id   = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Capas de la arquitectura limpia
 builder.Services.AddApplication();
@@ -78,11 +116,13 @@ var app = builder.Build();
 // Middleware global de excepciones — debe ser el primero en el pipeline
 app.UseMiddleware<MipymeAsistencia.WebApi.Middleware.ExceptionHandlingMiddleware>();
 
-if (app.Environment.IsDevelopment())
+// Swagger activo en todos los entornos (incluye Render/Production)
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MipymeAsistencia API v1");
+    options.RoutePrefix = "swagger";   // accesible en /swagger
+});
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
