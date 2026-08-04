@@ -6,37 +6,433 @@
   <title>Aprobaciones — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/css/variables.css" />
-  <link rel="stylesheet" href="../../assets/css/reset.css" />
-  <link rel="stylesheet" href="../../assets/css/components.css" />
-  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <style>
+    /* Chips de estado */
+    .chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600; }
+    .chip-green  { background:#DCFCE7;color:#166534; }
+    .chip-yellow { background:#FEF9C3;color:#854D0E; }
+    .chip-red    { background:#FEE2E2;color:#991B1B; }
+    .chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
+
+    /* Tabs */
+    .tabs-bar { display:flex;border-bottom:2px solid var(--color-border);margin-bottom:var(--space-5);overflow-x:auto; }
+    .tab-btn {
+      padding:var(--space-3) var(--space-5);font-size:var(--font-size-sm);font-weight:500;
+      color:var(--color-text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;
+      white-space:nowrap;cursor:pointer;background:none;
+      border-top:none;border-left:none;border-right:none;
+      transition:color var(--transition),border-color var(--transition);
+    }
+    .tab-btn:hover { color:var(--color-text); }
+    .tab-btn.active { color:var(--color-primary);border-bottom-color:var(--color-primary); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* Tarjeta de solicitud */
+    .request-card {
+      background:var(--color-surface);border:1px solid var(--color-border);
+      border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);
+      display:flex;align-items:flex-start;gap:var(--space-4);
+      transition:box-shadow var(--transition);
+    }
+    .request-card:hover { box-shadow:var(--shadow-md); }
+    .request-avatar {
+      width:40px;height:40px;border-radius:50%;background:var(--color-primary-light);
+      color:var(--color-primary-dark);display:flex;align-items:center;justify-content:center;
+      font-size:.85rem;font-weight:700;flex-shrink:0;
+    }
+    .request-body { flex:1;min-width:0; }
+    .request-title { font-weight:600;font-size:var(--font-size-sm);margin-bottom:2px; }
+    .request-meta  { font-size:.75rem;color:var(--color-text-muted);margin-bottom:var(--space-2); }
+    .request-motivo {
+      font-size:var(--font-size-sm);color:var(--color-text-muted);
+      background:var(--color-bg);border-radius:var(--radius-md);
+      padding:var(--space-2) var(--space-3);margin-top:var(--space-2);
+      font-style:italic;
+    }
+    .request-actions { display:flex;gap:var(--space-2);flex-shrink:0;align-items:flex-start; }
+    .btn-aprobar  { background:#DCFCE7;color:#166534;border:1px solid #BBF7D0; }
+    .btn-rechazar { background:#FEE2E2;color:#991B1B;border:1px solid #FECACA; }
+    .btn-aprobar:hover  { background:#BBF7D0; }
+    .btn-rechazar:hover { background:#FECACA; }
+
+    .requests-list { display:flex;flex-direction:column;gap:var(--space-3); }
+  </style>
 </head>
 <body>
-  <div class="admin-layout">
-    <div id="sidebar-container"></div>
-    <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-title">Centro de aprobaciones</div>
-        <div class="topbar-right"><span class="topbar-badge">Próximamente</span></div>
-      </header>
-      <section class="page-content">
-        <div class="page-header">
-          <div class="page-header-text">
-            <h1>Aprobaciones</h1>
-            <p>Revisión de horas extra y permisos desde un panel central.</p>
-          </div>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Centro de Aprobaciones</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-pendientes">0 pendientes</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Bandeja de aprobaciones</h1>
+          <p>Gestiona desde aquí las solicitudes de horas extras y permisos/vacaciones del personal.</p>
         </div>
-        <div class="card">
-          <p class="text-muted">La lógica de aprobación se conectará a los módulos de horas extra y permisos ya implementados en la API.</p>
+        <button class="btn btn-secondary" id="btn-refresh">↻ Actualizar</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
+          <div class="stat-value" id="stat-he-pend">—</div>
+          <div class="stat-label">HH. extras pendientes</div>
         </div>
-      </section>
-    </main>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">🌴</div></div>
+          <div class="stat-value" id="stat-perm-pend">—</div>
+          <div class="stat-label">Permisos pendientes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-he-apro">—</div>
+          <div class="stat-label">HH. extras aprobadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">🏖</div></div>
+          <div class="stat-value" id="stat-perm-apro">—</div>
+          <div class="stat-label">Permisos aprobados</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="he">
+          ⏱ Horas Extras <span id="badge-he" class="chip chip-yellow" style="margin-left:6px">0</span>
+        </button>
+        <button class="tab-btn" data-tab="permisos">
+          🌴 Permisos / Vacaciones <span id="badge-permisos" class="chip chip-yellow" style="margin-left:6px">0</span>
+        </button>
+      </div>
+
+      <!-- Panel HH. Extras -->
+      <div id="tab-he" class="tab-panel active">
+        <div id="he-list" class="requests-list">
+          <div style="text-align:center;padding:var(--space-8);color:var(--color-text-muted)">⏳ Cargando...</div>
+        </div>
+      </div>
+
+      <!-- Panel Permisos -->
+      <div id="tab-permisos" class="tab-panel">
+        <div id="permisos-list" class="requests-list">
+          <div style="text-align:center;padding:var(--space-8);color:var(--color-text-muted)">⏳ Cargando...</div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══ MODAL CONFIRMAR ACCIÓN ═══ -->
+<div class="modal-overlay hidden" id="modal-confirm">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="confirm-titulo">Confirmar acción</span>
+      <button class="btn btn-ghost btn-sm" id="confirm-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-mensaje" style="margin-bottom:var(--space-4)"></p>
+      <div class="form-group">
+        <label class="form-label" id="confirm-obs-label">Observaciones (opcional)</label>
+        <textarea class="form-input" id="confirm-obs" rows="3"
+          placeholder="Agrega una nota para el empleado..." style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="confirm-ok">
+        <span id="confirm-ok-text">Confirmar</span>
+      </button>
+    </div>
   </div>
-  <script type="module">
-    import { AuthService } from '../../modules/auth.js';
-    import { initAdminLayout } from '../../modules/layout.js';
-    if (!AuthService.requireAuth('Admin')) return;
-    initAdminLayout('aprobaciones');
-  </script>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }                      from '/frontend/modules/layout.js';
+import { horasExtrasApi, permisoApi }            from '/frontend/modules/api.js';
+import { toast, formatDate, formatCurrency, show, hide } from '/frontend/modules/utils.js';
+
+await initAdminLayout('aprobaciones');
+
+/* ── Estado ─────────────────────────────────────────────── */
+const state = {
+  horasExtras: [],   // todas las HE (para mostrar historial también)
+  permisos:    [],
+  pendingAction: null  // { tipo, id, estado }
+};
+
+/* ── Helpers ─────────────────────────────────────────────── */
+const chip = (estado) => {
+  const m = { 'Aprobado':'green','Pendiente':'yellow','Rechazado':'red' };
+  return `<span class="chip chip-${m[estado]??'blue'}">${estado}</span>`;
+};
+
+const iniciales = (nombre = '') =>
+  nombre.split(' ').slice(0,2).map(p => p[0]).join('').toUpperCase();
+
+/* ── Cargar datos ────────────────────────────────────────── */
+async function cargar() {
+  try {
+    const [hePend, todosPermisos] = await Promise.all([
+      horasExtrasApi.pendientes(),
+      permisoApi.getSolicitudes(),
+    ]);
+
+    state.horasExtras = Array.isArray(hePend)        ? hePend        : [];
+    state.permisos    = Array.isArray(todosPermisos) ? todosPermisos : [];
+
+    actualizarStats();
+    renderHE();
+    renderPermisos();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+/* ── Stats ──────────────────────────────────────────────── */
+function actualizarStats() {
+  const hePend   = state.horasExtras.filter(h => h.estado === 'Pendiente').length;
+  const heApro   = state.horasExtras.filter(h => h.estado === 'Aprobado').length;
+  const permPend = state.permisos.filter(p => p.estadoSolicitud === 'Pendiente').length;
+  const permApro = state.permisos.filter(p => p.estadoSolicitud === 'Aprobado').length;
+  const total    = hePend + permPend;
+
+  document.getElementById('badge-pendientes').textContent = `${total} pendiente${total !== 1 ? 's' : ''}`;
+  document.getElementById('stat-he-pend').textContent     = hePend;
+  document.getElementById('stat-perm-pend').textContent   = permPend;
+  document.getElementById('stat-he-apro').textContent     = heApro;
+  document.getElementById('stat-perm-apro').textContent   = permApro;
+  document.getElementById('badge-he').textContent         = hePend;
+  document.getElementById('badge-permisos').textContent   = permPend;
+}
+
+/* ── Render HH. Extras ──────────────────────────────────── */
+function renderHE() {
+  const el = document.getElementById('he-list');
+
+  // Muestra primero las pendientes y luego el historial
+  const pendientes = state.horasExtras.filter(h => h.estado === 'Pendiente');
+  const resto      = state.horasExtras.filter(h => h.estado !== 'Pendiente');
+
+  if (!state.horasExtras.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>
+      <h3>Sin horas extras registradas</h3></div>`;
+    return;
+  }
+
+  const renderCard = (h) => {
+    const esPendiente = h.estado === 'Pendiente';
+    return `
+    <div class="request-card" data-id="${h.idHoraExtra}">
+      <div class="request-avatar">${iniciales(h.nombreEmpleado)}</div>
+      <div class="request-body">
+        <div class="request-title">${h.nombreEmpleado}</div>
+        <div class="request-meta">
+          📅 ${formatDate(h.fecha)} &nbsp;·&nbsp;
+          ⏱ ${h.cantidadHoras} horas &nbsp;·&nbsp;
+          💰 ${formatCurrency(h.montoPagar)}
+          ${h.nombreAprobador ? `&nbsp;·&nbsp; ✅ ${h.nombreAprobador}` : ''}
+        </div>
+        ${chip(h.estado)}
+        <div class="request-motivo">💬 ${h.motivo ?? '—'}</div>
+      </div>
+      ${esPendiente ? `
+        <div class="request-actions">
+          <button class="btn btn-sm btn-aprobar"
+            data-accion="aprobar-he" data-id="${h.idHoraExtra}" data-nombre="${h.nombreEmpleado}">
+            ✓ Aprobar
+          </button>
+          <button class="btn btn-sm btn-rechazar"
+            data-accion="rechazar-he" data-id="${h.idHoraExtra}" data-nombre="${h.nombreEmpleado}">
+            ✗ Rechazar
+          </button>
+        </div>` : ''}
+    </div>`;
+  };
+
+  let html = '';
+  if (pendientes.length) {
+    html += `<div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-warning);margin-bottom:var(--space-2)">⏳ Pendientes de revisión (${pendientes.length})</div>`;
+    html += pendientes.map(renderCard).join('');
+  }
+  if (resto.length) {
+    html += `<div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted);margin:var(--space-4) 0 var(--space-2)">Historial (${resto.length})</div>`;
+    html += resto.map(renderCard).join('');
+  }
+
+  el.innerHTML = html;
+}
+
+/* ── Render Permisos / Vacaciones ───────────────────────── */
+function renderPermisos() {
+  const el = document.getElementById('permisos-list');
+
+  const pendientes = state.permisos.filter(p => p.estadoSolicitud === 'Pendiente');
+  const resto      = state.permisos.filter(p => p.estadoSolicitud !== 'Pendiente');
+
+  if (!state.permisos.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>
+      <h3>Sin solicitudes registradas</h3></div>`;
+    return;
+  }
+
+  const renderCard = (p) => {
+    const esPendiente = p.estadoSolicitud === 'Pendiente';
+    return `
+    <div class="request-card">
+      <div class="request-avatar">${iniciales(p.nombreEmpleado ?? `E${p.idEmpleado}`)}</div>
+      <div class="request-body">
+        <div class="request-title">${p.nombreEmpleado ?? `Empleado #${p.idEmpleado}`}</div>
+        <div class="request-meta">
+          <span class="chip chip-blue" style="font-size:.65rem">${p.tipoSolicitud}</span>
+          &nbsp;·&nbsp; 📅 ${formatDate(p.fechaInicio)} → ${formatDate(p.fechaFin)}
+          &nbsp;·&nbsp; 🌴 ${p.diasSolicitados} día${p.diasSolicitados !== 1 ? 's' : ''}
+          ${p.fechaRespuesta ? `&nbsp;·&nbsp; ✅ Resp. ${formatDate(p.fechaRespuesta)}` : ''}
+        </div>
+        ${chip(p.estadoSolicitud)}
+        <div class="request-motivo">💬 ${p.motivo ?? '—'}</div>
+      </div>
+      ${esPendiente ? `
+        <div class="request-actions">
+          <button class="btn btn-sm btn-aprobar"
+            data-accion="aprobar-perm" data-id="${p.idSolicitud}"
+            data-nombre="${p.nombreEmpleado ?? `Empleado #${p.idEmpleado}`}">
+            ✓ Aprobar
+          </button>
+          <button class="btn btn-sm btn-rechazar"
+            data-accion="rechazar-perm" data-id="${p.idSolicitud}"
+            data-nombre="${p.nombreEmpleado ?? `Empleado #${p.idEmpleado}`}">
+            ✗ Rechazar
+          </button>
+        </div>` : ''}
+    </div>`;
+  };
+
+  let html = '';
+  if (pendientes.length) {
+    html += `<div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-warning);margin-bottom:var(--space-2)">⏳ Pendientes de revisión (${pendientes.length})</div>`;
+    html += pendientes.map(renderCard).join('');
+  }
+  if (resto.length) {
+    html += `<div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted);margin:var(--space-4) 0 var(--space-2)">Historial (${resto.length})</div>`;
+    html += resto.map(renderCard).join('');
+  }
+
+  el.innerHTML = html;
+}
+
+/* ── Delegar clicks de aprobar / rechazar ───────────────── */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-accion]');
+  if (!btn) return;
+
+  const { accion, id, nombre } = btn.dataset;
+
+  if (accion === 'aprobar-he' || accion === 'rechazar-he') {
+    const estaAprobando = accion === 'aprobar-he';
+    state.pendingAction = { tipo: 'he', id: Number(id), estado: estaAprobando ? 'Aprobado' : 'Rechazado' };
+    document.getElementById('confirm-titulo').textContent =
+      estaAprobando ? '✓ Aprobar hora extra' : '✗ Rechazar hora extra';
+    document.getElementById('confirm-mensaje').innerHTML =
+      `¿Confirmas ${estaAprobando ? '<strong>aprobar</strong>' : '<strong>rechazar</strong>'} las horas extras de <strong>${nombre}</strong>?`;
+    document.getElementById('confirm-ok').className =
+      estaAprobando ? 'btn btn-primary' : 'btn btn-danger';
+    document.getElementById('confirm-ok-text').textContent =
+      estaAprobando ? 'Sí, aprobar' : 'Sí, rechazar';
+    document.getElementById('confirm-obs').value = '';
+    show(document.getElementById('modal-confirm'));
+  }
+
+  if (accion === 'aprobar-perm' || accion === 'rechazar-perm') {
+    const estaAprobando = accion === 'aprobar-perm';
+    state.pendingAction = { tipo: 'perm', id: Number(id), estado: estaAprobando ? 'Aprobado' : 'Rechazado' };
+    document.getElementById('confirm-titulo').textContent =
+      estaAprobando ? '✓ Aprobar permiso' : '✗ Rechazar permiso';
+    document.getElementById('confirm-mensaje').innerHTML =
+      `¿Confirmas ${estaAprobando ? '<strong>aprobar</strong>' : '<strong>rechazar</strong>'} la solicitud de <strong>${nombre}</strong>?`;
+    document.getElementById('confirm-ok').className =
+      estaAprobando ? 'btn btn-primary' : 'btn btn-danger';
+    document.getElementById('confirm-ok-text').textContent =
+      estaAprobando ? 'Sí, aprobar' : 'Sí, rechazar';
+    document.getElementById('confirm-obs').value = '';
+    show(document.getElementById('modal-confirm'));
+  }
+});
+
+/* ── Ejecutar acción confirmada ─────────────────────────── */
+document.getElementById('confirm-ok').addEventListener('click', async () => {
+  if (!state.pendingAction) return;
+
+  const btn = document.getElementById('confirm-ok');
+  const { tipo, id, estado } = state.pendingAction;
+  btn.disabled = true;
+  document.getElementById('confirm-ok-text').textContent = 'Procesando...';
+
+  try {
+    if (tipo === 'he') {
+      await horasExtrasApi.gestionarEstado(id, { estado });
+    } else {
+      await permisoApi.responder(id, {
+        estadoSolicitud: estado,
+        observaciones: document.getElementById('confirm-obs').value.trim() || null,
+      });
+    }
+
+    const msg = estado === 'Aprobado' ? 'Aprobado correctamente.' : 'Rechazado correctamente.';
+    toast(msg, estado === 'Aprobado' ? 'success' : 'info');
+    hide(document.getElementById('modal-confirm'));
+    state.pendingAction = null;
+    cargar();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('confirm-ok-text').textContent = 'Confirmar';
+  }
+});
+
+/* ── Cerrar modal ────────────────────────────────────────── */
+['confirm-close','confirm-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => {
+    hide(document.getElementById('modal-confirm'));
+    state.pendingAction = null;
+  }));
+
+/* ── Tabs ────────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+/* ── Refresh ─────────────────────────────────────────────── */
+document.getElementById('btn-refresh').addEventListener('click', () => {
+  toast('Actualizando...', 'info', 800);
+  cargar();
+});
+
+/* ── Init ───────────────────────────────────────────────── */
+cargar();
+</script>
 </body>
 </html>
