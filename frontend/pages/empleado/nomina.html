@@ -6,11 +6,11 @@
   <title>Mi Nómina — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado.css" />
   <style>
     .recibo {
       background: var(--color-surface); border: 1px solid var(--color-border);
@@ -89,11 +89,11 @@
 </div>
 <div id="toast-container"></div>
 <script type="module">
-import { initEmpleadoLayout }        from '/frontend/modules/layout.js';
+import { initEmpleadoLayout }        from '../../modules/layout.js';
 import { authApi, planillaApi,
-         empleadoApi }                from '/frontend/modules/api.js';
+         empleadoApi }                from '../../modules/api.js';
 import { toast, formatDate,
-         formatCurrency }             from '/frontend/modules/utils.js';
+         formatCurrency }             from '../../modules/utils.js';
 
 await initEmpleadoLayout('nomina');
 

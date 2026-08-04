@@ -3,10 +3,10 @@
  * Conecta con POST /api/auth/login, guarda la sesión y redirige según rol.
  */
 
-import { AuthService }   from '/frontend/modules/auth.js';
-import { authApi }        from '/frontend/modules/api.js';
-import { $, show, hide, isValidEmail, toast } from '/frontend/modules/utils.js';
-import CONFIG             from '/frontend/modules/config.js';
+import { AuthService }   from '/modules/auth.js';
+import { authApi }        from '/modules/api.js';
+import { $, show, hide, isValidEmail, toast } from '/modules/utils.js';
+import CONFIG             from '/modules/config.js';
 
 // ── Si ya hay sesión activa redirige de inmediato ─────────────────────────────
 AuthService.redirectIfAuthenticated();
@@ -128,7 +128,7 @@ form.addEventListener('submit', async (e) => {
 
     // Redirige según el rol
     const dest = CONFIG.REDIRECT_AFTER_LOGIN[data.role]
-              ?? '/frontend/pages/auth/login.html';
+              ?? '/pages/auth/login.html';
 
     setTimeout(() => {
       window.location.href = dest;

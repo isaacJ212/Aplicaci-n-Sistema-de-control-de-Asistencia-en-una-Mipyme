@@ -6,10 +6,10 @@
   <title>Dashboard — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
 </head>
 <body>
 
@@ -82,9 +82,9 @@
 <div id="toast-container"></div>
 
 <script type="module">
-  import { initAdminLayout }           from '/frontend/modules/layout.js';
-  import { empleadoApi, asistenciaApi } from '/frontend/modules/api.js';
-  import { toast, formatDate }          from '/frontend/modules/utils.js';
+  import { initAdminLayout }           from '../../modules/layout.js';
+  import { empleadoApi, asistenciaApi } from '../../modules/api.js';
+  import { toast, formatDate }          from '../../modules/utils.js';
 
   await initAdminLayout('dashboard');
 

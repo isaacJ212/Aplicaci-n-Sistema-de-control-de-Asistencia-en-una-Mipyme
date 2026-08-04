@@ -6,10 +6,10 @@
   <title>Rendimiento — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
   <style>
     /* ── Selector de empleado ─────────────────────────── */
     .selector-empleado {
@@ -144,10 +144,10 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAdminLayout }                                    from '/frontend/modules/layout.js';
+import { initAdminLayout }                                    from '../../modules/layout.js';
 import { empleadoApi, asistenciaApi, horasExtrasApi,
-         planillaApi, permisoApi }                            from '/frontend/modules/api.js';
-import { toast, formatDate, formatCurrency }                  from '/frontend/modules/utils.js';
+         planillaApi, permisoApi }                            from '../../modules/api.js';
+import { toast, formatDate, formatCurrency }                  from '../../modules/utils.js';
 
 await initAdminLayout('rendimiento');
 
@@ -289,7 +289,7 @@ document.getElementById('btn-analizar').addEventListener('click', async () => {
         <div class="card" style="padding:0">
           <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
             <span class="card-title">Asistencia reciente</span>
-            <a href="/frontend/pages/admin/empleado-detalle.html?id=${emp.idEmpleado}"
+            <a href="../../pages/admin/empleado-detalle.html?id=${emp.idEmpleado}"
                style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver expediente →</a>
           </div>
           ${!asist.length

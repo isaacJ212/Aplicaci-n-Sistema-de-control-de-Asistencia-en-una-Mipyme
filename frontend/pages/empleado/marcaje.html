@@ -6,11 +6,11 @@
   <title>Marcar Asistencia — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -149,12 +149,12 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initEmpleadoLayout }        from '/frontend/modules/layout.js';
+import { initEmpleadoLayout }        from '../../modules/layout.js';
 import { asistenciaApi, sedeApi,
-         authApi }                    from '/frontend/modules/api.js';
-import { AuthService }               from '/frontend/modules/auth.js';
+         authApi }                    from '../../modules/api.js';
+import { AuthService }               from '../../modules/auth.js';
 import { toast, formatDate, show,
-         hide, formatCurrency }       from '/frontend/modules/utils.js';
+         hide, formatCurrency }       from '../../modules/utils.js';
 
 await initEmpleadoLayout('marcaje');
 
@@ -199,7 +199,7 @@ async function inicializar() {
 
     /* Si la API /auth/me no devuelve idEmpleado, buscamos por idUsuario */
     if (!state.idEmpleado && me.idUsuario) {
-      const { empleadoApi } = await import('/frontend/modules/api.js');
+      const { empleadoApi } = await import('../../modules/api.js');
       const todos = await empleadoApi.getAll();
       const emp   = (Array.isArray(todos) ? todos : [])
                       .find(e => e.idUsuario === me.idUsuario || e.email === me.email);

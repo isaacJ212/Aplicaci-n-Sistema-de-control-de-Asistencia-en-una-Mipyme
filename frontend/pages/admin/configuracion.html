@@ -6,10 +6,10 @@
   <title>Configuración — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
   <!-- QRCode.js para generar el QR en el navegador -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
@@ -177,9 +177,9 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAdminLayout }     from '/frontend/modules/layout.js';
-import { sedeApi }              from '/frontend/modules/api.js';
-import { toast, show, hide, formatDate } from '/frontend/modules/utils.js';
+import { initAdminLayout }     from '../../modules/layout.js';
+import { sedeApi }              from '../../modules/api.js';
+import { toast, show, hide, formatDate } from '../../modules/utils.js';
 
 await initAdminLayout('configuracion');
 
@@ -300,7 +300,7 @@ function renderSede(s) {
 /* ── Cargar empleados para el select QR ──────────── */
 async function loadEmpleadosQR() {
   try {
-    const { empleadoApi } = await import('/frontend/modules/api.js');
+    const { empleadoApi } = await import('../../modules/api.js');
     const emps = await empleadoApi.getAll();
     const sel = document.getElementById('sel-emp-qr');
     if (!sel) return;
@@ -313,7 +313,7 @@ async function loadEmpleadosQR() {
 
 /* ── Generar QR de empleado ──────────────────────── */
 async function generarQR() {
-  const { asistenciaApi } = await import('/frontend/modules/api.js');
+  const { asistenciaApi } = await import('../../modules/api.js');
   const sel = document.getElementById('sel-emp-qr');
   const id  = sel?.value;
   if (!id) { toast('Selecciona un empleado.', 'warning'); return; }

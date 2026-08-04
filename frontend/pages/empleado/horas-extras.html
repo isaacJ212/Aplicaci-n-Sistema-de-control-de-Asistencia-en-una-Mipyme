@@ -6,11 +6,11 @@
   <title>Horas Extras — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado.css" />
 </head>
 <body>
 <div class="admin-layout">
@@ -123,9 +123,9 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initEmpleadoLayout }        from '/frontend/modules/layout.js';
-import { authApi, horasExtrasApi }    from '/frontend/modules/api.js';
-import { toast, formatDate, formatCurrency, show, hide } from '/frontend/modules/utils.js';
+import { initEmpleadoLayout }        from '../../modules/layout.js';
+import { authApi, horasExtrasApi }    from '../../modules/api.js';
+import { toast, formatDate, formatCurrency, show, hide } from '../../modules/utils.js';
 
 await initEmpleadoLayout('horas-extras');
 
