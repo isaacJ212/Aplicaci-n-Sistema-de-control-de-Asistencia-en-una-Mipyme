@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planillas — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <style>
+    .chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600; }
+    .chip-green  { background:#DCFCE7;color:#166534; }
+    .chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
+    .desglose-grid {
+      display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);
+      margin-bottom:var(--space-4);
+    }
+    .desglose-item {
+      background:var(--color-bg);border:1px solid var(--color-border);
+      border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);
+    }
+    .desglose-label { font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:2px; }
+    .desglose-value { font-size:var(--font-size-base);font-weight:600;color:var(--color-text); }
+    .desglose-value.accent { color:var(--color-accent); }
+    .desglose-value.danger { color:var(--color-danger); }
+    @media(max-width:640px){ .desglose-grid{grid-template-columns:1fr 1fr;} }
+  </style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Gestión y Cierre de Planillas</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-count">0 planillas</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Planillas mensuales</h1>
+          <p>Genera, consulta y cierra la nómina de cada empleado. Los cálculos aplican INSS 7%, IR Ley 822 y prestaciones sociales de Nicaragua.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-generar">＋ Generar planilla</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">📄</div></div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Planillas generadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">💰</div></div>
+          <div class="stat-value" id="stat-neto">—</div>
+          <div class="stat-label">Total neto pagado</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">🏦</div></div>
+          <div class="stat-value" id="stat-inss">—</div>
+          <div class="stat-label">Total INSS laboral</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">📅</div></div>
+          <div class="stat-value" id="stat-periodos">—</div>
+          <div class="stat-label">Períodos distintos</div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4)">
+        <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="margin:0;min-width:180px">
+            <label class="form-label">Filtrar por período</label>
+            <input type="month" class="form-input" id="filtro-periodo" />
+          </div>
+          <div class="form-group" style="margin:0;min-width:220px">
+            <label class="form-label">Filtrar por empleado</label>
+            <select class="form-input" id="filtro-empleado">
+              <option value="">Todos los empleados</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary" id="btn-filtrar">Filtrar</button>
+          <button class="btn btn-ghost btn-sm" id="btn-limpiar">✕ Limpiar</button>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card" style="padding:0">
+        <div class="table-wrapper" style="border:none;border-radius:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>Período</th>
+                <th>Salario base</th>
+                <th>HH. Extras</th>
+                <th>Total ingresos</th>
+                <th>INSS (7%)</th>
+                <th>IR</th>
+                <th>Total deduc.</th>
+                <th style="color:var(--color-accent)">Neto a pagar</th>
+                <th>Emitida</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-planillas">
+              <tr><td colspan="11"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando planillas...</h3></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══ MODAL GENERAR PLANILLA ═══ -->
+<div class="modal-overlay hidden" id="modal-generar">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Generar planilla mensual</span>
+      <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--color-primary-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--font-size-sm);color:var(--color-primary-dark);margin-bottom:var(--space-5)">
+        💡 El sistema suma automáticamente las <strong>horas extras aprobadas</strong> del período seleccionado.
+      </div>
+      <form id="form-planilla" novalidate>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Empleado *</label>
+            <select class="form-input" id="gen-empleado">
+              <option value="">Selecciona un empleado...</option>
+            </select>
+            <span class="form-error hidden" id="err-gen-empleado"></span>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Período (mes) *</label>
+            <input type="month" class="form-input" id="gen-periodo" />
+            <span class="form-error hidden" id="err-gen-periodo"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Comisiones (C$)</label>
+            <input type="number" class="form-input" id="gen-comisiones" min="0" step="0.01" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Incentivos (C$)</label>
+            <input type="number" class="form-input" id="gen-incentivos" min="0" step="0.01" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Embargo (C$)</label>
+            <input type="number" class="form-input" id="gen-embargo" min="0" step="0.01" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sindicato (C$)</label>
+            <input type="number" class="form-input" id="gen-sindicato" min="0" step="0.01" value="0" />
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Otras deducciones (C$)</label>
+            <input type="number" class="form-input" id="gen-otras" min="0" step="0.01" value="0" />
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save">
+        <span id="save-text">Generar planilla</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL DESGLOSE ═══ -->
+<div class="modal-overlay hidden" id="modal-desglose">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <span class="modal-title" id="desglose-titulo">Desglose de planilla</span>
+      <button class="btn btn-ghost btn-sm" id="desglose-close">✕</button>
+    </div>
+    <div class="modal-body" id="desglose-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="desglose-cerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }               from '/frontend/modules/layout.js';
+import { planillaApi, empleadoApi }       from '/frontend/modules/api.js';
+import { toast, formatDate, formatCurrency, show, hide } from '/frontend/modules/utils.js';
+
+await initAdminLayout('planillas');
+
+const tbody      = document.getElementById('tbody-planillas');
+const badgeCount = document.getElementById('badge-count');
+const modalGen   = document.getElementById('modal-generar');
+const modalDesg  = document.getElementById('modal-desglose');
+
+/* ── Estado ─────────────────────────────────────────────── */
+const state = { planillas: [], empleados: [] };
+
+/* ── Cargar empleados para los selects ──────────────────── */
+async function cargarEmpleados() {
+  try {
+    const data = await empleadoApi.getAll();
+    state.empleados = Array.isArray(data) ? data : [];
+
+    const opts = state.empleados.map(e =>
+      `<option value="${e.idEmpleado}">${e.nombres} ${e.apellidos}</option>`).join('');
+
+    document.getElementById('filtro-empleado').innerHTML =
+      '<option value="">Todos los empleados</option>' + opts;
+    document.getElementById('gen-empleado').innerHTML =
+      '<option value="">Selecciona un empleado...</option>' + opts;
+  } catch { /* silencioso */ }
+}
+
+/* ── Cargar planillas ───────────────────────────────────── */
+async function cargar(periodo = '', idEmpleado = '') {
+  tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
+  try {
+    let params = [];
+    if (periodo)    params.push(`periodo=${encodeURIComponent(periodo)}`);
+    if (idEmpleado) params.push(`idEmpleado=${idEmpleado}`);
+
+    const data = await planillaApi.getAll(params.length ? `?${params.join('&')}` : '');
+    state.planillas = Array.isArray(data) ? data : [];
+    renderStats();
+    renderTabla();
+  } catch (err) {
+    toast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">⚠️</div><h3>${err.message}</h3></div></td></tr>`;
+  }
+}
+
+/* ── Stats ──────────────────────────────────────────────── */
+function renderStats() {
+  const total  = state.planillas.length;
+  const neto   = state.planillas.reduce((s, p) => s + (p.salarioNeto   ?? 0), 0);
+  const inss   = state.planillas.reduce((s, p) => s + (p.inssLaboral   ?? 0), 0);
+  const periodos = new Set(state.planillas.map(p => p.periodoMesAnio)).size;
+
+  badgeCount.textContent                                   = `${total} planilla${total !== 1 ? 's' : ''}`;
+  document.getElementById('stat-total').textContent       = total;
+  document.getElementById('stat-neto').textContent        = formatCurrency(neto);
+  document.getElementById('stat-inss').textContent        = formatCurrency(inss);
+  document.getElementById('stat-periodos').textContent    = periodos;
+}
+
+/* ── Tabla ──────────────────────────────────────────────── */
+function renderTabla() {
+  if (!state.planillas.length) {
+    tbody.innerHTML = `<tr><td colspan="11">
+      <div class="empty-state">
+        <div class="empty-icon">📄</div>
+        <h3>Sin planillas para mostrar</h3>
+        <p>Usa los filtros o genera una nueva planilla.</p>
+      </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = state.planillas.map(p => `
+    <tr>
+      <td>
+        <div class="font-medium">${p.nombreEmpleado}</div>
+        <div style="font-size:.75rem;color:var(--color-text-muted)">${p.cargoEmpleado ?? ''}</div>
+      </td>
+      <td><span class="chip chip-blue">${p.periodoMesAnio}</span></td>
+      <td>${formatCurrency(p.salarioBase)}</td>
+      <td>${formatCurrency(p.pagoHorasExtras)}</td>
+      <td class="font-medium">${formatCurrency(p.totalIngresos)}</td>
+      <td>${formatCurrency(p.inssLaboral)}</td>
+      <td>${formatCurrency(p.irLaboral)}</td>
+      <td>${formatCurrency(p.totalDeducciones)}</td>
+      <td class="font-medium" style="color:var(--color-accent)">${formatCurrency(p.salarioNeto)}</td>
+      <td>${formatDate(p.fechaEmision)}</td>
+      <td>
+        <button class="btn-icon" title="Ver desglose completo"
+                data-accion="desglose" data-id="${p.idPlanilla}">🔍</button>
+      </td>
+    </tr>`).join('');
+}
+
+/* ── Desglose completo ──────────────────────────────────── */
+tbody.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-accion="desglose"]');
+  if (!btn) return;
+  const plan = state.planillas.find(p => p.idPlanilla === Number(btn.dataset.id));
+  if (!plan) return;
+
+  document.getElementById('desglose-titulo').textContent =
+    `Desglose — ${plan.nombreEmpleado} · ${plan.periodoMesAnio}`;
+
+  document.getElementById('desglose-body').innerHTML = `
+    <div class="desglose-grid">
+      <div class="desglose-item"><div class="desglose-label">Empleado</div>
+        <div class="desglose-value">${plan.nombreEmpleado}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Cargo</div>
+        <div class="desglose-value">${plan.cargoEmpleado ?? '—'}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Período</div>
+        <div class="desglose-value">${plan.periodoMesAnio}</div></div>
+    </div>
+
+    <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--space-3)">Ingresos</p>
+    <div class="desglose-grid">
+      <div class="desglose-item"><div class="desglose-label">Salario básico</div>
+        <div class="desglose-value">${formatCurrency(plan.salarioBase)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Comisiones</div>
+        <div class="desglose-value">${formatCurrency(plan.comisiones)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Horas extras pagadas</div>
+        <div class="desglose-value">${formatCurrency(plan.pagoHorasExtras)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Incentivos</div>
+        <div class="desglose-value">${formatCurrency(plan.incentivos)}</div></div>
+      <div class="desglose-item" style="grid-column:1/-1">
+        <div class="desglose-label">Total ingresos</div>
+        <div class="desglose-value" style="font-size:1.1rem">${formatCurrency(plan.totalIngresos)}</div>
+      </div>
+    </div>
+
+    <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--space-3);margin-top:var(--space-4)">Deducciones laborales (cargo al empleado)</p>
+    <div class="desglose-grid">
+      <div class="desglose-item"><div class="desglose-label">INSS laboral (7%)</div>
+        <div class="desglose-value danger">- ${formatCurrency(plan.inssLaboral)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">IR (Ley 822 LCT)</div>
+        <div class="desglose-value danger">- ${formatCurrency(plan.irLaboral)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Embargo</div>
+        <div class="desglose-value danger">- ${formatCurrency(plan.embargo)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Sindicato</div>
+        <div class="desglose-value danger">- ${formatCurrency(plan.sindicato)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Otras deducciones</div>
+        <div class="desglose-value danger">- ${formatCurrency(plan.otrasDeducciones)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Total deducciones</div>
+        <div class="desglose-value danger" style="font-size:1.1rem">- ${formatCurrency(plan.totalDeducciones)}</div></div>
+    </div>
+
+    <div style="background:var(--color-accent);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);margin-top:var(--space-4);display:flex;justify-content:space-between;align-items:center">
+      <span style="color:#fff;font-weight:600;font-size:var(--font-size-base)">💰 Neto a pagar</span>
+      <span style="color:#fff;font-weight:700;font-size:var(--font-size-xl)">${formatCurrency(plan.salarioNeto)}</span>
+    </div>
+
+    <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--space-3);margin-top:var(--space-4)">Aportes patronales (cargo a la empresa)</p>
+    <div class="desglose-grid">
+      <div class="desglose-item"><div class="desglose-label">INSS patronal (21.5%)</div>
+        <div class="desglose-value">${formatCurrency(plan.inssPatronal)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">INATEC (2%)</div>
+        <div class="desglose-value">${formatCurrency(plan.inatec)}</div></div>
+    </div>
+
+    <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--space-3);margin-top:var(--space-4)">Provisión prestaciones sociales (mensual)</p>
+    <div class="desglose-grid">
+      <div class="desglose-item"><div class="desglose-label">Vacaciones (sal/30×2.5)</div>
+        <div class="desglose-value">${formatCurrency(plan.acumuladoVacaciones)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Aguinaldo (sal/30×2.5)</div>
+        <div class="desglose-value">${formatCurrency(plan.acumuladoAguinaldo)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Indemnización (sal/30×2.5)</div>
+        <div class="desglose-value">${formatCurrency(plan.acumuladoIndemnizacion)}</div></div>
+    </div>
+
+    <div style="text-align:right;margin-top:var(--space-4);font-size:var(--font-size-xs);color:var(--color-text-muted)">
+      Emitida el ${formatDate(plan.fechaEmision)}
+    </div>
+  `;
+
+  show(modalDesg);
+});
+
+/* ── Generar planilla ───────────────────────────────────── */
+document.getElementById('btn-generar').addEventListener('click', () => {
+  // Default: período actual
+  const hoy = new Date();
+  document.getElementById('gen-periodo').value =
+    `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+  show(modalGen);
+});
+
+document.getElementById('modal-save').addEventListener('click', async () => {
+  const idEmp  = document.getElementById('gen-empleado').value;
+  const periodo = document.getElementById('gen-periodo').value;
+  let ok = true;
+
+  // Validación mínima
+  ['err-gen-empleado','err-gen-periodo'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+    document.getElementById(id).textContent = '';
+  });
+  if (!idEmp) {
+    show(document.getElementById('err-gen-empleado'));
+    document.getElementById('err-gen-empleado').textContent = 'Selecciona un empleado.';
+    document.getElementById('gen-empleado').classList.add('error');
+    ok = false;
+  }
+  if (!periodo) {
+    show(document.getElementById('err-gen-periodo'));
+    document.getElementById('err-gen-periodo').textContent = 'El período es obligatorio.';
+    document.getElementById('gen-periodo').classList.add('error');
+    ok = false;
+  }
+  if (!ok) return;
+
+  const saveBtn  = document.getElementById('modal-save');
+  const saveText = document.getElementById('save-text');
+  saveBtn.disabled = true;
+  saveText.textContent = 'Generando...';
+
+  try {
+    await planillaApi.generar({
+      idEmpleado:       Number(idEmp),
+      periodoMesAnio:   periodo,
+      comisiones:       Number(document.getElementById('gen-comisiones').value  || 0),
+      incentivos:       Number(document.getElementById('gen-incentivos').value  || 0),
+      embargo:          Number(document.getElementById('gen-embargo').value     || 0),
+      sindicato:        Number(document.getElementById('gen-sindicato').value   || 0),
+      otrasDeducciones: Number(document.getElementById('gen-otras').value       || 0),
+    });
+    toast('Planilla generada correctamente.', 'success');
+    hide(modalGen);
+    cargar();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveText.textContent = 'Generar planilla';
+  }
+});
+
+/* ── Filtros ─────────────────────────────────────────────── */
+document.getElementById('btn-filtrar').addEventListener('click', () => {
+  const periodo    = document.getElementById('filtro-periodo').value;
+  const idEmpleado = document.getElementById('filtro-empleado').value;
+  cargar(periodo, idEmpleado);
+});
+
+document.getElementById('btn-limpiar').addEventListener('click', () => {
+  document.getElementById('filtro-periodo').value   = '';
+  document.getElementById('filtro-empleado').value  = '';
+  cargar();
+});
+
+/* ── Cerrar modales ─────────────────────────────────────── */
+['modal-close','modal-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(modalGen)));
+['desglose-close','desglose-cerrar'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(modalDesg)));
+modalGen.addEventListener('click',  e => { if(e.target===modalGen)  hide(modalGen);  });
+modalDesg.addEventListener('click', e => { if(e.target===modalDesg) hide(modalDesg); });
+
+/* ── Init ───────────────────────────────────────────────── */
+await cargarEmpleados();
+cargar();
+</script>
+</body>
+</html>

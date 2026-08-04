@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Dashboard — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <style>
+    .bienvenida-card {
+      background: linear-gradient(135deg,#064E3B 0%,#059669 100%);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6) var(--space-8);
+      display: flex; align-items: center; gap: var(--space-6);
+      margin-bottom: var(--space-6); color: #fff; flex-wrap: wrap;
+    }
+    .bienvenida-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; font-weight: 700; flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,.3);
+    }
+    .bienvenida-texto h2   { font-size: var(--font-size-xl); font-weight: 700; }
+    .bienvenida-texto p    { font-size: var(--font-size-sm); opacity: .75; margin-top: 2px; }
+    .bienvenida-accesos    { margin-left: auto; display: flex; gap: var(--space-3); flex-wrap: wrap; }
+    .acceso-btn {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+      border-radius: var(--radius-lg); padding: var(--space-3) var(--space-5);
+      color: #fff; font-size: var(--font-size-sm); font-weight: 600;
+      text-decoration: none; transition: background var(--transition);
+      display: flex; align-items: center; gap: var(--space-2);
+    }
+    .acceso-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+
+    .turno-hoy {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl); padding: var(--space-5) var(--space-6);
+      display: flex; align-items: center; gap: var(--space-5);
+      margin-bottom: var(--space-6); flex-wrap: wrap;
+    }
+    .turno-dot {
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    }
+    .turno-dot.activo   { background: var(--color-accent); animation: pulseG 2s infinite; }
+    .turno-dot.inactivo { background: var(--color-border); }
+    .turno-dot.almuerzo { background: var(--color-warning); animation: pulseG 2s infinite; }
+    @keyframes pulseG {
+      0%,100%{ box-shadow:0 0 0 0 rgba(16,185,129,.4); }
+      50%    { box-shadow:0 0 0 6px rgba(16,185,129,0); }
+    }
+    .turno-info { flex: 1; }
+    .turno-titulo { font-weight: 600; }
+    .turno-sub    { font-size: var(--font-size-sm); color: var(--color-text-muted); margin-top: 2px; }
+
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+    .chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600; }
+    .chip-green  { background:#DCFCE7;color:#166534; }
+    .chip-yellow { background:#FEF9C3;color:#854D0E; }
+    .chip-red    { background:#FEE2E2;color:#991B1B; }
+    .chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
+
+    @media(max-width:768px) {
+      .bienvenida-card { padding: var(--space-4); }
+      .bienvenida-accesos { margin-left: 0; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Mi Dashboard</span>
+      <div class="topbar-right">
+        <span id="reloj-badge" style="font-family:monospace;font-size:var(--font-size-sm);font-weight:600;color:var(--color-primary)"></span>
+        <span class="topbar-badge" id="badge-fecha"></span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <!-- Bienvenida -->
+      <div class="bienvenida-card">
+        <div class="bienvenida-avatar" id="avatar">E</div>
+        <div class="bienvenida-texto">
+          <h2 id="saludo">Bienvenido</h2>
+          <p id="subtitulo">Cargando información...</p>
+        </div>
+        <div class="bienvenida-accesos">
+          <a href="/frontend/pages/empleado/marcaje.html"    class="acceso-btn">⏱ Marcar</a>
+          <a href="/frontend/pages/empleado/solicitudes.html" class="acceso-btn">🌴 Solicitudes</a>
+          <a href="/frontend/pages/empleado/nomina.html"     class="acceso-btn">💵 Mi Pago</a>
+        </div>
+      </div>
+
+      <!-- Estado del turno de hoy -->
+      <div class="turno-hoy">
+        <div class="turno-dot inactivo" id="turno-dot"></div>
+        <div class="turno-info">
+          <div class="turno-titulo" id="turno-titulo">Verificando turno de hoy...</div>
+          <div class="turno-sub"   id="turno-sub"></div>
+        </div>
+        <a href="/frontend/pages/empleado/marcaje.html" class="btn btn-primary btn-sm">
+          Ir a Marcaje →
+        </a>
+      </div>
+
+      <!-- Stats rápidos -->
+      <div class="stats-grid" style="margin-bottom:var(--space-5)">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">📊</div></div>
+          <div class="stat-value" id="stat-puntualidad">—</div>
+          <div class="stat-label">Puntualidad este mes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⏰</div></div>
+          <div class="stat-value" id="stat-tardanzas">—</div>
+          <div class="stat-label">Tardanzas este mes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">⏱</div></div>
+          <div class="stat-value" id="stat-he">—</div>
+          <div class="stat-label">H. extras aprobadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">🌴</div></div>
+          <div class="stat-value" id="stat-vacaciones">—</div>
+          <div class="stat-label">Días vacaciones</div>
+        </div>
+      </div>
+
+      <!-- Dos columnas -->
+      <div class="dashboard-grid">
+
+        <!-- Últimas asistencias -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
+               display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Asistencias recientes</span>
+            <a href="/frontend/pages/empleado/historial.html"
+               style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver todo →</a>
+          </div>
+          <div id="lista-asistencias">
+            <div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Cargando...</div>
+          </div>
+        </div>
+
+        <!-- Solicitudes pendientes -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
+               display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Mis solicitudes recientes</span>
+            <a href="/frontend/pages/empleado/solicitudes.html"
+               style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver todo →</a>
+          </div>
+          <div id="lista-solicitudes">
+            <div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Cargando...</div>
+          </div>
+        </div>
+
+        <!-- Horas extras recientes -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
+               display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Horas extras recientes</span>
+            <a href="/frontend/pages/empleado/horas-extras.html"
+               style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver todo →</a>
+          </div>
+          <div id="lista-he">
+            <div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Cargando...</div>
+          </div>
+        </div>
+
+        <!-- Último recibo -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
+               display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Último recibo de pago</span>
+            <a href="/frontend/pages/empleado/nomina.html"
+               style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver detalle →</a>
+          </div>
+          <div id="ultimo-recibo">
+            <div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Cargando...</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initEmpleadoLayout }                            from '/frontend/modules/layout.js';
+import { authApi, asistenciaApi, horasExtrasApi,
+         permisoApi, planillaApi, empleadoApi,
+         sedeApi }                                        from '/frontend/modules/api.js';
+import { toast, formatDate, formatCurrency }              from '/frontend/modules/utils.js';
+
+await initEmpleadoLayout('dashboard');
+
+/* ── Reloj ──────────────────────────────────────── */
+const badge = document.getElementById('badge-fecha');
+badge.textContent = new Intl.DateTimeFormat('es-NI',{dateStyle:'medium'}).format(new Date());
+const reloj = document.getElementById('reloj-badge');
+const tick  = () => { reloj.textContent = new Date().toLocaleTimeString('es-NI',{hour:'2-digit',minute:'2-digit'}); };
+tick(); setInterval(tick, 30000);
+
+/* ── Chips ──────────────────────────────────────── */
+const chip = (e) => {
+  const m={'A Tiempo':'green','Aprobado':'green','Tardanza':'yellow','Pendiente':'yellow',
+           'Rechazado':'red','Ausente':'red','Vacaciones':'blue','Permiso Medico':'blue',
+           'Permiso Personal':'blue'};
+  return `<span class="chip chip-${m[e]??'blue'}">${e??'—'}</span>`;
+};
+
+/* ── Fila simple ────────────────────────────────── */
+const fila = (izq, der) =>
+  `<div style="display:flex;justify-content:space-between;align-items:center;
+   padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--color-border);
+   font-size:var(--font-size-sm)"><span style="color:var(--color-text-muted)">${izq}</span>
+   <span>${der}</span></div>`;
+
+/* ── Inicializar ────────────────────────────────── */
+async function init() {
+  try {
+    /* 1. Datos del usuario */
+    const me = await authApi.me();
+    const idEmpleado = me.idEmpleado ?? null;
+
+    /* Bienvenida */
+    const hora = new Date().getHours();
+    const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+    document.getElementById('avatar').textContent = me.email[0].toUpperCase();
+
+    /* Expediente del empleado */
+    let emp = null;
+    if (idEmpleado) {
+      emp = await empleadoApi.getById(idEmpleado).catch(() => null);
+    }
+    const nombre = emp ? `${emp.nombres} ${emp.apellidos}` : me.email;
+    document.getElementById('saludo').textContent    = `${saludo}, ${nombre.split(' ')[0]}`;
+    document.getElementById('subtitulo').textContent =
+      emp ? `${emp.cargoFuncion} · ${formatCurrency(emp.salarioBaseMensual)}/mes` : me.email;
+    document.getElementById('stat-vacaciones').textContent = emp?.diasVacacionesAcumuladas ?? '—';
+
+    if (!idEmpleado) {
+      ['turno-titulo','lista-asistencias','lista-solicitudes','lista-he','ultimo-recibo']
+        .forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML =
+          '<p style="padding:var(--space-4);color:var(--color-text-muted);font-size:var(--font-size-sm)">Sin expediente asignado.</p>'; });
+      return;
+    }
+
+    /* 2. Cargar todo en paralelo */
+    const hoy   = new Date();
+    const mesStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
+    const finMes    = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0, 23,59,59).toISOString();
+
+    const [asistencias, horasExtras, permisos, planillas] = await Promise.all([
+      asistenciaApi.historial(idEmpleado).catch(() => []),
+      horasExtrasApi.getByEmpleado(idEmpleado).catch(() => []),
+      permisoApi.getMias(idEmpleado).catch(() => []),
+      planillaApi.getByEmpleado(idEmpleado).catch(() => []),
+    ]);
+
+    const asist  = Array.isArray(asistencias) ? asistencias : [];
+    const extras = Array.isArray(horasExtras) ? horasExtras : [];
+    const perms  = Array.isArray(permisos)    ? permisos    : [];
+    const plans  = Array.isArray(planillas)   ? planillas   : [];
+
+    /* ── Turno de hoy ──────────────────────────── */
+    const hoyStr = hoy.toISOString().split('T')[0];
+    const turnoHoy = asist.find(a => (a.fecha??'').toString().startsWith(hoyStr));
+
+    const dot   = document.getElementById('turno-dot');
+    const ttit  = document.getElementById('turno-titulo');
+    const tsub  = document.getElementById('turno-sub');
+
+    if (!turnoHoy) {
+      dot.className = 'turno-dot inactivo';
+      ttit.textContent = 'Sin turno activo hoy';
+      tsub.textContent  = 'No has registrado entrada todavía.';
+    } else if (turnoHoy.horaSalida) {
+      dot.className = 'turno-dot inactivo';
+      ttit.textContent = '✅ Jornada completada';
+      tsub.textContent  = `Entrada: ${turnoHoy.horaEntrada?.toString().slice(0,5)} · Salida: ${turnoHoy.horaSalida?.toString().slice(0,5)} · ${turnoHoy.estadoAsistencia}`;
+    } else if (turnoHoy.inicioAlmuerzo && !turnoHoy.finAlmuerzo) {
+      dot.className = 'turno-dot almuerzo';
+      ttit.textContent = '🍽 En almuerzo';
+      tsub.textContent  = `Inicio: ${turnoHoy.inicioAlmuerzo?.toString().slice(0,5)}`;
+    } else {
+      dot.className = 'turno-dot activo';
+      ttit.textContent = '🟢 Turno activo';
+      const tard = turnoHoy.minutosTardanza > 0 ? ` · ⏰ ${turnoHoy.minutosTardanza} min tardanza` : '';
+      tsub.textContent  = `Entrada: ${turnoHoy.horaEntrada?.toString().slice(0,5)} · ${turnoHoy.estadoAsistencia}${tard}`;
+    }
+
+    /* ── Stats del mes ─────────────────────────── */
+    const asistMes  = asist.filter(a => (a.fecha??'').toString().slice(0,7) === mesStr);
+    const aTiempo   = asistMes.filter(a => a.estadoAsistencia === 'A Tiempo').length;
+    const tardanzas = asistMes.filter(a => a.estadoAsistencia === 'Tardanza').length;
+    const pct       = asistMes.length ? Math.round(aTiempo/asistMes.length*100) : 0;
+    const heApro    = extras.filter(h => h.estado === 'Aprobado')
+                            .reduce((s,h) => s+(h.cantidadHoras??0), 0);
+
+    document.getElementById('stat-puntualidad').textContent = pct + '%';
+    document.getElementById('stat-tardanzas').textContent   = tardanzas;
+    document.getElementById('stat-he').textContent          = heApro + 'h';
+
+    /* ── Últimas asistencias ────────────────────── */
+    const listaA = document.getElementById('lista-asistencias');
+    if (!asist.length) {
+      listaA.innerHTML = '<div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Sin registros.</div>';
+    } else {
+      listaA.innerHTML = asist.slice(0,5).map(a =>
+        fila(formatDate(a.fecha),
+          `${chip(a.estadoAsistencia)} ${a.horaEntrada?.toString().slice(0,5)??'—'}`)
+      ).join('') + (asist.length > 5
+        ? `<div style="padding:var(--space-3) var(--space-5);font-size:.75rem;color:var(--color-text-muted)">+${asist.length-5} más</div>` : '');
+    }
+
+    /* ── Últimas solicitudes ────────────────────── */
+    const listaS = document.getElementById('lista-solicitudes');
+    if (!perms.length) {
+      listaS.innerHTML = '<div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Sin solicitudes.</div>';
+    } else {
+      listaS.innerHTML = perms.slice(0,5).map(p =>
+        fila(`${p.tipoSolicitud} · ${formatDate(p.fechaInicio)}`, chip(p.estadoSolicitud))
+      ).join('');
+    }
+
+    /* ── Horas extras recientes ─────────────────── */
+    const listaHE = document.getElementById('lista-he');
+    if (!extras.length) {
+      listaHE.innerHTML = '<div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Sin horas extras.</div>';
+    } else {
+      listaHE.innerHTML = extras.slice(0,5).map(h =>
+        fila(`${formatDate(h.fecha)} · ${h.cantidadHoras}h`,
+          `${chip(h.estado)} ${formatCurrency(h.montoPagar)}`)
+      ).join('');
+    }
+
+    /* ── Último recibo ──────────────────────────── */
+    const recEl = document.getElementById('ultimo-recibo');
+    if (!plans.length) {
+      recEl.innerHTML = '<div style="padding:var(--space-5);color:var(--color-text-muted);font-size:var(--font-size-sm)">Sin planillas generadas.</div>';
+    } else {
+      const p = plans[0];
+      recEl.innerHTML = `
+        ${fila('Período',    `<span class="chip chip-blue">${p.periodoMesAnio}</span>`)}
+        ${fila('Salario base',  formatCurrency(p.salarioBase))}
+        ${fila('HH. Extras',    formatCurrency(p.pagoHorasExtras))}
+        ${fila('Total ingresos',`<strong>${formatCurrency(p.totalIngresos)}</strong>`)}
+        ${fila('Deducciones',   `<span style="color:var(--color-danger)">- ${formatCurrency(p.totalDeducciones)}</span>`)}
+        <div style="background:var(--color-accent);border-radius:0 0 var(--radius-xl) var(--radius-xl);
+             padding:var(--space-3) var(--space-5);display:flex;justify-content:space-between">
+          <span style="color:#fff;font-weight:600">NETO A PAGAR</span>
+          <span style="color:#fff;font-weight:700;font-size:var(--font-size-base)">${formatCurrency(p.salarioNeto)}</span>
+        </div>`;
+    }
+
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

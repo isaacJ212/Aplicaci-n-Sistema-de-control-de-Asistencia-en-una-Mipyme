@@ -1,0 +1,112 @@
+/* ============================================================
+   ESTILOS ESPECÍFICOS DEL PORTAL EMPLEADO
+   ============================================================ */
+
+/* ── Botones de marcaje grandes ───────────────────────── */
+.marcaje-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.marcaje-btn {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
+  border-radius: var(--radius-xl);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  font-family: var(--font-family);
+  font-weight: 600; font-size: var(--font-size-base);
+  position: relative; overflow: hidden;
+}
+.marcaje-btn:hover:not(:disabled)  { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.marcaje-btn:active:not(:disabled) { transform: translateY(0); }
+.marcaje-btn:disabled              { opacity: .4; cursor: not-allowed; }
+
+.marcaje-btn .btn-icon-big { font-size: 2.5rem; }
+.marcaje-btn .btn-hora     { font-size: var(--font-size-xs); color: inherit; opacity: .7; margin-top: -4px; }
+
+.marcaje-entrada  { background: linear-gradient(135deg,#DCFCE7,#BBF7D0); color: #166534; border-color: #86EFAC; }
+.marcaje-almuerzo { background: linear-gradient(135deg,#FEF9C3,#FDE68A); color: #854D0E; border-color: #FCD34D; }
+.marcaje-salida   { background: linear-gradient(135deg,#DBEAFE,#BFDBFE); color: #1E40AF; border-color: #93C5FD; }
+
+/* ── Estado del turno actual ──────────────────────────── */
+.turno-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  display: flex; align-items: center; gap: var(--space-5);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+.turno-estado-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  flex-shrink: 0; animation: pulseGreen 2s infinite;
+}
+.turno-estado-dot.activo   { background: var(--color-accent); }
+.turno-estado-dot.inactivo { background: var(--color-border); animation: none; }
+.turno-estado-dot.almuerzo { background: var(--color-warning); }
+
+@keyframes pulseGreen {
+  0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+}
+
+.turno-info { flex: 1; }
+.turno-titulo { font-weight: 600; font-size: var(--font-size-base); }
+.turno-sub    { font-size: var(--font-size-sm); color: var(--color-text-muted); margin-top: 2px; }
+.turno-reloj  {
+  font-size: var(--font-size-2xl); font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--color-primary);
+  font-family: monospace;
+}
+
+/* ── QR modal ─────────────────────────────────────────── */
+.qr-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-4); padding: var(--space-4) 0;
+}
+.qr-wrap canvas, .qr-wrap img { border-radius: var(--radius-md); }
+.qr-code-display {
+  font-family: monospace; font-size: .65rem;
+  color: var(--color-text-muted); word-break: break-all;
+  text-align: center; max-width: 260px;
+}
+
+/* ── Historial chips ──────────────────────────────────── */
+.chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600; }
+.chip-green  { background:#DCFCE7;color:#166534; }
+.chip-yellow { background:#FEF9C3;color:#854D0E; }
+.chip-red    { background:#FEE2E2;color:#991B1B; }
+.chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
+
+/* ── Sidebar empleado ─────────────────────────────────── */
+.sidebar-emp {
+  width: var(--sidebar-width);
+  background: #064E3B;   /* verde oscuro para distinguir del admin */
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0;
+  height: 100vh; z-index: 100; overflow-y: auto;
+  transition: transform var(--transition-md);
+}
+.sidebar-emp .sidebar-brand-text { color: #ECFDF5; }
+.sidebar-emp .sidebar-section-title { color: #34D399; opacity: .6; }
+.sidebar-emp .sidebar-link { color: #A7F3D0; }
+.sidebar-emp .sidebar-link:hover { background: rgba(255,255,255,.07); color: #ECFDF5; }
+.sidebar-emp .sidebar-link.active { background: #059669; color: #FFFFFF; }
+.sidebar-emp .sidebar-user-name   { color: #ECFDF5; }
+.sidebar-emp .sidebar-user-role   { color: #6EE7B7; }
+.sidebar-emp .sidebar-logout:hover { color: var(--color-danger); }
+
+@media(max-width:1024px) {
+  .sidebar-emp { transform: translateX(-100%); }
+  .sidebar-emp.open { transform: translateX(0); }
+}
+@media(max-width:640px) {
+  .marcaje-grid { grid-template-columns: 1fr; }
+  .turno-card   { flex-wrap: wrap; }
+}

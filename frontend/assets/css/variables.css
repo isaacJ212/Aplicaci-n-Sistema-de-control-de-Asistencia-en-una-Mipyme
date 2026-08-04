@@ -1,0 +1,65 @@
+/* ============================================================
+   DESIGN TOKENS — MipymeAsistencia
+   Modifica aquí para cambiar toda la paleta de la app
+   ============================================================ */
+:root {
+  /* ── Paleta principal ──────────────────────────────────── */
+  --color-primary:        #2563EB;   /* azul corporativo       */
+  --color-primary-dark:   #1D4ED8;   /* hover / active         */
+  --color-primary-light:  #DBEAFE;   /* fondos suaves          */
+  --color-accent:         #10B981;   /* éxito / aprobado       */
+  --color-warning:        #F59E0B;   /* pendiente / alerta     */
+  --color-danger:         #EF4444;   /* error / rechazado      */
+
+  /* ── Neutrales ─────────────────────────────────────────── */
+  --color-bg:             #F8FAFC;
+  --color-surface:        #FFFFFF;
+  --color-border:         #E2E8F0;
+  --color-text:           #1E293B;
+  --color-text-muted:     #64748B;
+  --color-text-light:     #94A3B8;
+
+  /* ── Sidebar ───────────────────────────────────────────── */
+  --sidebar-bg:           #1E293B;
+  --sidebar-text:         #CBD5E1;
+  --sidebar-active-bg:    #2563EB;
+  --sidebar-active-text:  #FFFFFF;
+  --sidebar-width:        240px;
+
+  /* ── Tipografía ────────────────────────────────────────── */
+  --font-family:          'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-xs:         0.75rem;   /* 12px */
+  --font-size-sm:         0.875rem;  /* 14px */
+  --font-size-base:       1rem;      /* 16px */
+  --font-size-lg:         1.125rem;  /* 18px */
+  --font-size-xl:         1.25rem;   /* 20px */
+  --font-size-2xl:        1.5rem;    /* 24px */
+  --font-size-3xl:        1.875rem;  /* 30px */
+
+  /* ── Espaciado ─────────────────────────────────────────── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* ── Bordes y sombras ──────────────────────────────────── */
+  --radius-sm:   0.25rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-full: 9999px;
+
+  --shadow-sm:  0 1px 2px 0 rgb(0 0 0 / .05);
+  --shadow-md:  0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+  --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+  --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+
+  /* ── Transiciones ──────────────────────────────────────── */
+  --transition: 150ms ease;
+  --transition-md: 250ms ease;
+}

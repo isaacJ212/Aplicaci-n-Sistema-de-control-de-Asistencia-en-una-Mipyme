@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rendimiento — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <style>
+    /* ── Selector de empleado ─────────────────────────── */
+    .selector-empleado {
+      display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;
+      margin-bottom: var(--space-6);
+    }
+
+    /* ── Tarjeta de perfil ───────────────────────────── */
+    .perfil-card {
+      background: linear-gradient(135deg,#1E293B 0%,#1D4ED8 100%);
+      border-radius: var(--radius-xl); padding: var(--space-5) var(--space-8);
+      display: flex; align-items: center; gap: var(--space-5);
+      margin-bottom: var(--space-6); color: #fff; flex-wrap: wrap;
+    }
+    .perfil-avatar {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: 700; flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,.3);
+    }
+    .perfil-info { flex: 1; }
+    .perfil-nombre { font-size: var(--font-size-xl); font-weight: 700; }
+    .perfil-meta   { font-size: var(--font-size-sm); color: rgba(255,255,255,.65); margin-top: 2px; }
+    .perfil-kpis   { display: flex; gap: var(--space-6); flex-wrap: wrap; }
+    .kpi { text-align: center; }
+    .kpi-val   { font-size: var(--font-size-xl); font-weight: 700; }
+    .kpi-label { font-size: .7rem; color: rgba(255,255,255,.6); margin-top: 1px; }
+
+    /* ── Barra de progreso ──────────────────────────── */
+    .progress-bar-wrap {
+      background: var(--color-border); border-radius: var(--radius-full);
+      height: 10px; overflow: hidden; margin-top: var(--space-2);
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: var(--radius-full);
+      transition: width .5s ease;
+    }
+    .progress-green  { background: var(--color-accent); }
+    .progress-yellow { background: var(--color-warning); }
+    .progress-red    { background: var(--color-danger); }
+
+    /* ── Grid principal ─────────────────────────────── */
+    .rend-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5);
+      margin-bottom: var(--space-5);
+    }
+
+    /* ── Chips ──────────────────────────────────────── */
+    .chip { display:inline-flex;align-items:center;padding:2px 8px;
+            border-radius:999px;font-size:.7rem;font-weight:600; }
+    .chip-green  { background:#DCFCE7;color:#166534; }
+    .chip-yellow { background:#FEF9C3;color:#854D0E; }
+    .chip-red    { background:#FEE2E2;color:#991B1B; }
+    .chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
+
+    /* ── Indicador KPI card ─────────────────────────── */
+    .kpi-card {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+    }
+    .kpi-card-label  { font-size: .7rem; text-transform: uppercase; letter-spacing:.05em;
+                       color: var(--color-text-muted); margin-bottom: var(--space-2); }
+    .kpi-card-value  { font-size: var(--font-size-2xl); font-weight: 700; }
+    .kpi-card-sub    { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 2px; }
+
+    /* ── Estado vacío inicial ───────────────────────── */
+    .rend-placeholder {
+      text-align: center; padding: var(--space-12); color: var(--color-text-muted);
+    }
+    .rend-placeholder .ph-icon { font-size: 3rem; margin-bottom: var(--space-4); }
+
+    @media(max-width:768px){ .rend-grid{grid-template-columns:1fr;} .perfil-kpis{gap:var(--space-4);} }
+  </style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Seguimiento y Rendimiento</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-empleado">Selecciona un empleado</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Rendimiento por empleado</h1>
+          <p>Consulta métricas de puntualidad, horas extra, permisos y nómina histórica de cada colaborador.</p>
+        </div>
+      </div>
+
+      <!-- Selector -->
+      <div class="card selector-empleado" style="padding:var(--space-4) var(--space-5)">
+        <div class="form-group" style="margin:0;flex:1;max-width:320px">
+          <label class="form-label">Empleado</label>
+          <select class="form-input" id="sel-empleado">
+            <option value="">— Seleccionar —</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Período desde</label>
+          <input type="month" class="form-input" id="filtro-desde" style="min-width:160px" />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Período hasta</label>
+          <input type="month" class="form-input" id="filtro-hasta" style="min-width:160px" />
+        </div>
+        <div style="padding-top:22px">
+          <button class="btn btn-primary" id="btn-analizar">Analizar</button>
+        </div>
+      </div>
+
+      <!-- Contenido dinámico -->
+      <div id="rend-content">
+        <div class="rend-placeholder">
+          <div class="ph-icon">📊</div>
+          <h3>Selecciona un empleado</h3>
+          <p>Elige un colaborador y un rango de fechas para ver su rendimiento detallado.</p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }                                    from '/frontend/modules/layout.js';
+import { empleadoApi, asistenciaApi, horasExtrasApi,
+         planillaApi, permisoApi }                            from '/frontend/modules/api.js';
+import { toast, formatDate, formatCurrency }                  from '/frontend/modules/utils.js';
+
+await initAdminLayout('rendimiento');
+
+/* ── Cargar empleados al select ─────────────────────── */
+try {
+  const emps = await empleadoApi.getAll();
+  const opts = (Array.isArray(emps) ? emps : [])
+    .map(e => `<option value="${e.idEmpleado}">${e.nombres} ${e.apellidos} — ${e.cargoFuncion}</option>`)
+    .join('');
+  document.getElementById('sel-empleado').innerHTML =
+    '<option value="">— Seleccionar —</option>' + opts;
+} catch (err) { toast(err.message, 'error'); }
+
+/* ── Helpers ────────────────────────────────────────── */
+const chip = (estado) => {
+  const m = { 'Aprobado':'green','A Tiempo':'green','Pendiente':'yellow',
+              'Tardanza':'yellow','Rechazado':'red','Ausente':'red' };
+  return `<span class="chip chip-${m[estado]??'blue'}">${estado}</span>`;
+};
+
+function pct(val, total) {
+  return total === 0 ? 0 : Math.round((val / total) * 100);
+}
+
+function barColor(p) {
+  return p >= 80 ? 'progress-green' : p >= 50 ? 'progress-yellow' : 'progress-red';
+}
+
+/* ── Analizar ───────────────────────────────────────── */
+document.getElementById('btn-analizar').addEventListener('click', async () => {
+  const idEmp  = document.getElementById('sel-empleado').value;
+  if (!idEmp) { toast('Selecciona un empleado primero.', 'warning'); return; }
+
+  const desde = document.getElementById('filtro-desde').value;  // YYYY-MM
+  const hasta = document.getElementById('filtro-hasta').value;
+
+  const content = document.getElementById('rend-content');
+  content.innerHTML = `<div class="rend-placeholder"><div class="ph-icon">⏳</div><h3>Cargando datos...</h3></div>`;
+
+  try {
+    /* Fecha ISO para filtros de asistencia */
+    const desdeDt = desde ? new Date(desde + '-01T00:00:00Z').toISOString() : '';
+    const hastaDt = hasta ? new Date(hasta + '-31T23:59:59Z').toISOString() : '';
+    let asistParams = '';
+    if (desdeDt) asistParams += `?fechaDesde=${encodeURIComponent(desdeDt)}`;
+    if (hastaDt) asistParams += `${asistParams ? '&' : '?'}fechaHasta=${encodeURIComponent(hastaDt)}&idEmpleado=${idEmp}`;
+    else         asistParams += `${asistParams ? '&' : '?'}idEmpleado=${idEmp}`;
+
+    const [emp, asistencias, horasExtras, permisos, planillas] = await Promise.all([
+      empleadoApi.getById(Number(idEmp)),
+      asistenciaApi.getAll(asistParams).catch(() => []),
+      horasExtrasApi.getByEmpleado(Number(idEmp)).catch(() => []),
+      permisoApi.getMias(Number(idEmp)).catch(() => []),
+      planillaApi.getByEmpleado(Number(idEmp)).catch(() => []),
+    ]);
+
+    const asist  = Array.isArray(asistencias) ? asistencias : [];
+    const extras = Array.isArray(horasExtras) ? horasExtras : [];
+    const perms  = Array.isArray(permisos)    ? permisos    : [];
+    const plans  = Array.isArray(planillas)   ? planillas   : [];
+
+    /* ── KPIs de asistencia ──────────────────────────── */
+    const totalReg  = asist.length;
+    const aTiempo   = asist.filter(a => a.estadoAsistencia === 'A Tiempo').length;
+    const tardanzas = asist.filter(a => a.estadoAsistencia === 'Tardanza').length;
+    const ausentes  = asist.filter(a => a.estadoAsistencia === 'Ausente').length;
+    const pctPunt   = pct(aTiempo, totalReg);
+    const minTard   = asist.reduce((s, a) => s + (a.minutosTardanza ?? 0), 0);
+
+    /* ── KPIs de horas extras ────────────────────────── */
+    const extrasTotales  = extras.length;
+    const extrasApro     = extras.filter(h => h.estado === 'Aprobado');
+    const extrasHoras    = extrasApro.reduce((s, h) => s + (h.cantidadHoras ?? 0), 0);
+    const extrasMonto    = extrasApro.reduce((s, h) => s + (h.montoPagar ?? 0), 0);
+
+    /* ── KPIs de permisos ────────────────────────────── */
+    const permsTotales  = perms.length;
+    const permsApro     = perms.filter(p => p.estadoSolicitud === 'Aprobado').length;
+    const diasPermiso   = perms.filter(p => p.estadoSolicitud === 'Aprobado')
+                              .reduce((s, p) => s + (p.diasSolicitados ?? 0), 0);
+
+    /* ── KPIs de nómina ──────────────────────────────── */
+    const totalNeto = plans.reduce((s, p) => s + (p.salarioNeto ?? 0), 0);
+    const promedioNeto = plans.length ? totalNeto / plans.length : 0;
+
+    /* ── Badge topbar ────────────────────────────────── */
+    document.getElementById('badge-empleado').textContent =
+      `${emp.nombres} ${emp.apellidos}`;
+
+    /* ── Render ──────────────────────────────────────── */
+    content.innerHTML = `
+
+      <!-- Perfil -->
+      <div class="perfil-card">
+        <div class="perfil-avatar">${(emp.nombres??'?')[0]}${(emp.apellidos??'')[0]}</div>
+        <div class="perfil-info">
+          <div class="perfil-nombre">${emp.nombres} ${emp.apellidos}</div>
+          <div class="perfil-meta">${emp.cargoFuncion} · Desde ${formatDate(emp.fechaContratacion)} · ${formatCurrency(emp.salarioBaseMensual)}/mes</div>
+        </div>
+        <div class="perfil-kpis">
+          <div class="kpi"><div class="kpi-val">${pctPunt}%</div><div class="kpi-label">Puntualidad</div></div>
+          <div class="kpi"><div class="kpi-val">${totalReg}</div><div class="kpi-label">Registros</div></div>
+          <div class="kpi"><div class="kpi-val">${extrasHoras}h</div><div class="kpi-label">H. extras</div></div>
+          <div class="kpi"><div class="kpi-val">${plans.length}</div><div class="kpi-label">Planillas</div></div>
+        </div>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="rend-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:var(--space-5)">
+        <div class="kpi-card">
+          <div class="kpi-card-label">Puntualidad</div>
+          <div class="kpi-card-value" style="color:${pctPunt>=80?'var(--color-accent)':pctPunt>=50?'var(--color-warning)':'var(--color-danger)'}">
+            ${pctPunt}%
+          </div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill ${barColor(pctPunt)}" style="width:${pctPunt}%"></div></div>
+          <div class="kpi-card-sub">${aTiempo} a tiempo de ${totalReg} registros</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">Tardanzas</div>
+          <div class="kpi-card-value" style="color:var(--color-warning)">${tardanzas}</div>
+          <div class="kpi-card-sub">${minTard} minutos acumulados</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">Horas extras aprobadas</div>
+          <div class="kpi-card-value" style="color:var(--color-primary)">${extrasHoras}h</div>
+          <div class="kpi-card-sub">${formatCurrency(extrasMonto)} devengado</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">Días de permiso tomados</div>
+          <div class="kpi-card-value">${diasPermiso}</div>
+          <div class="kpi-card-sub">${permsApro} solicitudes aprobadas</div>
+        </div>
+      </div>
+
+      <!-- Detalle en dos columnas -->
+      <div class="rend-grid">
+
+        <!-- Historial de asistencia -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Asistencia reciente</span>
+            <a href="/frontend/pages/admin/empleado-detalle.html?id=${emp.idEmpleado}"
+               style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver expediente →</a>
+          </div>
+          ${!asist.length
+            ? `<div class="empty-state" style="padding:var(--space-8)"><div class="empty-icon">📭</div><h3>Sin registros</h3></div>`
+            : `<div class="table-wrapper" style="border:none;border-radius:0">
+                <table class="data-table">
+                  <thead><tr><th>Fecha</th><th>Estado</th><th>Tardanza</th></tr></thead>
+                  <tbody>
+                    ${asist.slice(0,10).map(a => `
+                      <tr>
+                        <td>${formatDate(a.fecha)}</td>
+                        <td>${chip(a.estadoAsistencia ?? '—')}</td>
+                        <td>${(a.minutosTardanza??0) > 0
+                              ? `<span class="chip chip-yellow">${a.minutosTardanza} min</span>`
+                              : '<span style="color:var(--color-text-light)">—</span>'}</td>
+                      </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>
+              ${asist.length > 10 ? `<div style="padding:var(--space-3) var(--space-5);font-size:var(--font-size-xs);color:var(--color-text-muted);text-align:center">Mostrando 10 de ${asist.length} registros</div>` : ''}`
+          }
+        </div>
+
+        <!-- Horas extras -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Horas extras</span>
+            <span style="font-size:var(--font-size-xs);color:var(--color-text-muted)">${extrasTotales} registros</span>
+          </div>
+          ${!extras.length
+            ? `<div class="empty-state" style="padding:var(--space-8)"><div class="empty-icon">📭</div><h3>Sin horas extras</h3></div>`
+            : `<div class="table-wrapper" style="border:none;border-radius:0">
+                <table class="data-table">
+                  <thead><tr><th>Fecha</th><th>Horas</th><th>Monto</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    ${extras.slice(0,8).map(h => `
+                      <tr>
+                        <td>${formatDate(h.fecha)}</td>
+                        <td>${h.cantidadHoras}h</td>
+                        <td>${formatCurrency(h.montoPagar)}</td>
+                        <td>${chip(h.estado)}</td>
+                      </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>`
+          }
+        </div>
+
+        <!-- Permisos / Vacaciones -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Permisos y vacaciones</span>
+            <span style="font-size:var(--font-size-xs);color:var(--color-text-muted)">${permsTotales} solicitudes</span>
+          </div>
+          ${!perms.length
+            ? `<div class="empty-state" style="padding:var(--space-8)"><div class="empty-icon">📭</div><h3>Sin solicitudes</h3></div>`
+            : `<div class="table-wrapper" style="border:none;border-radius:0">
+                <table class="data-table">
+                  <thead><tr><th>Tipo</th><th>Fechas</th><th>Días</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    ${perms.slice(0,8).map(p => `
+                      <tr>
+                        <td>${p.tipoSolicitud}</td>
+                        <td>${formatDate(p.fechaInicio)}</td>
+                        <td>${p.diasSolicitados}</td>
+                        <td>${chip(p.estadoSolicitud)}</td>
+                      </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>`
+          }
+        </div>
+
+        <!-- Nómina histórica -->
+        <div class="card" style="padding:0">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Nómina histórica</span>
+            <span style="font-size:var(--font-size-xs);color:var(--color-text-muted)">${plans.length} períodos · Promedio neto: ${formatCurrency(promedioNeto)}</span>
+          </div>
+          ${!plans.length
+            ? `<div class="empty-state" style="padding:var(--space-8)"><div class="empty-icon">📭</div><h3>Sin planillas generadas</h3></div>`
+            : `<div class="table-wrapper" style="border:none;border-radius:0">
+                <table class="data-table">
+                  <thead><tr><th>Período</th><th>Total ingresos</th><th>Deducciones</th><th>Neto</th></tr></thead>
+                  <tbody>
+                    ${plans.map(p => `
+                      <tr>
+                        <td class="font-medium">${p.periodoMesAnio}</td>
+                        <td>${formatCurrency(p.totalIngresos)}</td>
+                        <td style="color:var(--color-danger)">- ${formatCurrency(p.totalDeducciones)}</td>
+                        <td class="font-medium" style="color:var(--color-accent)">${formatCurrency(p.salarioNeto)}</td>
+                      </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>`
+          }
+        </div>
+
+      </div>
+
+      <!-- Resumen final -->
+      <div class="card" style="background:var(--color-bg)">
+        <div class="card-header"><span class="card-title">📋 Resumen de indicadores</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4)">
+          <div>
+            <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:var(--space-1)">Índice de puntualidad</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;color:${pctPunt>=80?'var(--color-accent)':pctPunt>=50?'var(--color-warning)':'var(--color-danger)'}">
+              ${pctPunt}% ${pctPunt>=80?'🟢':pctPunt>=50?'🟡':'🔴'}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:var(--space-1)">Total ganado (nóminas)</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--color-primary)">${formatCurrency(totalNeto)}</div>
+          </div>
+          <div>
+            <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:var(--space-1)">Días de vacaciones disponibles</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700">${emp.diasVacacionesAcumuladas ?? 0} días</div>
+          </div>
+          <div>
+            <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:var(--space-1)">Ausencias registradas</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;color:${ausentes>0?'var(--color-danger)':'var(--color-accent)'}">${ausentes}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+  } catch (err) {
+    toast(err.message, 'error');
+    content.innerHTML = `<div class="rend-placeholder">
+      <div class="ph-icon">⚠️</div>
+      <h3>Error al cargar los datos</h3>
+      <p>${err.message}</p></div>`;
+  }
+});
+
+/* ── Default: período actual ──────────────────────── */
+const hoy = new Date();
+const mesStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+document.getElementById('filtro-hasta').value = mesStr;
+// Desde hace 3 meses
+const hace3 = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1);
+document.getElementById('filtro-desde').value =
+  `${hace3.getFullYear()}-${String(hace3.getMonth()+1).padStart(2,'0')}`;
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expedientes — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Expedientes</div>
+        <div class="topbar-right"><span class="topbar-badge">Portal Admin</span></div>
+      </header>
+      <section class="page-content">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h1>Gestión de expedientes</h1>
+            <p>Consulta y mantiene los datos detallados de los empleados.</p>
+          </div>
+        </div>
+        <div class="card">
+          <p class="text-muted">Esta vista se integra con la misma información del módulo de empleados para mantener centralizada la gestión del expediente.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="toast-container"></div>
+  <script type="module">
+    import { AuthService } from '../../modules/auth.js';
+    import { initAdminLayout } from '../../modules/layout.js';
+    if (!AuthService.requireAuth('Admin')) return;
+    initAdminLayout('empleados');
+  </script>
+</body>
+</html>

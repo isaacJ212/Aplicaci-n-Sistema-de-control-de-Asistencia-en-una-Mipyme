@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MipymeAsistencia</title>
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <style>
+    /* Pantalla de redirección centrada */
+    .redirect-screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-4);
+    }
+    .redirect-brand {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .redirect-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    .redirect-text { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="redirect-screen">
+    <div class="redirect-brand">🏢 MipymeAsistencia</div>
+    <div class="redirect-spinner"></div>
+    <p class="redirect-text">Cargando...</p>
+  </div>
+
+ <script type="module">
+    // Eliminamos "/frontend" y usamos rutas relativas correctas
+    import { AuthService } from './modules/auth.js';
+    import CONFIG          from './modules/config.js';
+
+    // Redirige al dashboard correcto si hay sesión, o al login
+    if (AuthService.isAuthenticated()) {
+      const dest = CONFIG.REDIRECT_AFTER_LOGIN[AuthService.getRole()]
+                ?? './pages/auth/login.html';
+      window.location.replace(dest);
+    } else {
+      window.location.replace('./pages/auth/login.html');
+    }
+</script>
+
+
+</body>
+</html>

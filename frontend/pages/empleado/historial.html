@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Historial — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+</head>
+<body>
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Mi Historial de Asistencia</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-total">0 registros</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Mi Historial</h1>
+          <p>Consulta todos tus registros de entrada, salida, almuerzo y estado de puntualidad.</p>
+        </div>
+        <div style="display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Desde</label>
+            <input type="month" class="form-input" id="filtro-desde" style="min-width:150px" />
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Hasta</label>
+            <input type="month" class="form-input" id="filtro-hasta" style="min-width:150px" />
+          </div>
+          <button class="btn btn-secondary" id="btn-filtrar">Filtrar</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-a-tiempo">—</div>
+          <div class="stat-label">A tiempo</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⏰</div></div>
+          <div class="stat-value" id="stat-tardanzas">—</div>
+          <div class="stat-label">Tardanzas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon red">❌</div></div>
+          <div class="stat-value" id="stat-ausencias">—</div>
+          <div class="stat-label">Ausencias</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">📊</div></div>
+          <div class="stat-value" id="stat-puntualidad">—</div>
+          <div class="stat-label">Puntualidad</div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card" style="padding:0">
+        <div class="table-wrapper" style="border:none;border-radius:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Entrada</th>
+                <th>Inicio Almuerzo</th>
+                <th>Fin Almuerzo</th>
+                <th>Salida</th>
+                <th>Estado</th>
+                <th>Tardanza</th>
+                <th>GPS</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast-container"></div>
+<script type="module">
+import { initEmpleadoLayout }          from '/frontend/modules/layout.js';
+import { authApi, asistenciaApi }       from '/frontend/modules/api.js';
+import { toast, formatDate }            from '/frontend/modules/utils.js';
+
+await initEmpleadoLayout('historial');
+
+const chip = (e) => {
+  const m={'A Tiempo':'green','Tardanza':'yellow','Ausente':'red'};
+  return `<span class="chip chip-${m[e]??'blue'}">${e??'—'}</span>`;
+};
+
+const tbody = document.getElementById('tbody');
+const badge  = document.getElementById('badge-total');
+
+let idEmpleado = null;
+
+async function init() {
+  const me = await authApi.me();
+  idEmpleado = me.idEmpleado ?? null;
+  if (!idEmpleado) { toast('No tienes expediente de empleado activo.','warning'); return; }
+  // default: últimos 3 meses
+  const hoy  = new Date();
+  const hace3 = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1);
+  document.getElementById('filtro-hasta').value =
+    `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('filtro-desde').value =
+    `${hace3.getFullYear()}-${String(hace3.getMonth()+1).padStart(2,'0')}`;
+  cargar();
+}
+
+async function cargar() {
+  tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
+  try {
+    const data = await asistenciaApi.historial(idEmpleado);
+    const lista = Array.isArray(data) ? data : [];
+
+    const desde = document.getElementById('filtro-desde').value;
+    const hasta = document.getElementById('filtro-hasta').value;
+    const filtrada = lista.filter(a => {
+      const mes = (a.fecha??'').toString().slice(0,7);
+      return (!desde || mes >= desde) && (!hasta || mes <= hasta);
+    });
+
+    // Stats
+    const aT  = filtrada.filter(a => a.estadoAsistencia === 'A Tiempo').length;
+    const tar = filtrada.filter(a => a.estadoAsistencia === 'Tardanza').length;
+    const aus = filtrada.filter(a => a.estadoAsistencia === 'Ausente').length;
+    const pct = filtrada.length ? Math.round(aT/filtrada.length*100) : 0;
+    badge.textContent = `${filtrada.length} registro${filtrada.length!==1?'s':''}`;
+    document.getElementById('stat-a-tiempo').textContent   = aT;
+    document.getElementById('stat-tardanzas').textContent  = tar;
+    document.getElementById('stat-ausencias').textContent  = aus;
+    document.getElementById('stat-puntualidad').textContent = pct+'%';
+
+    if (!filtrada.length) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><h3>Sin registros en este rango</h3></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtrada.map(a => `
+      <tr>
+        <td class="font-medium">${formatDate(a.fecha)}</td>
+        <td>${a.horaEntrada?.toString().slice(0,5) ?? '—'}</td>
+        <td>${a.inicioAlmuerzo?.toString().slice(0,5) ?? '—'}</td>
+        <td>${a.finAlmuerzo?.toString().slice(0,5) ?? '—'}</td>
+        <td>${a.horaSalida?.toString().slice(0,5) ?? '—'}</td>
+        <td>${chip(a.estadoAsistencia)}</td>
+        <td>${(a.minutosTardanza??0)>0
+          ? `<span class="chip chip-yellow">${a.minutosTardanza} min</span>`
+          : '<span style="color:var(--color-text-light)">—</span>'}</td>
+        <td>${a.estaDentroDelRangoGps
+          ? '<span class="chip chip-green">✓</span>'
+          : '<span class="chip chip-red">✗</span>'}</td>
+      </tr>`).join('');
+  } catch (err) {
+    toast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><h3>${err.message}</h3></div></td></tr>`;
+  }
+}
+
+document.getElementById('btn-filtrar').addEventListener('click', cargar);
+init();
+</script>
+</body>
+</html>

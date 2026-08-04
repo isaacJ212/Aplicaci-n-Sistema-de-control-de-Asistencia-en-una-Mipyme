@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Nómina — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <style>
+    .recibo {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-md);
+    }
+    .recibo-header {
+      background: linear-gradient(135deg,#064E3B,#059669);
+      padding: var(--space-6); color: #fff;
+      display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3);
+    }
+    .recibo-empresa { font-size: var(--font-size-xl); font-weight: 700; }
+    .recibo-periodo { font-size: var(--font-size-sm); opacity: .8; margin-top: 2px; }
+    .recibo-empleado { text-align: right; }
+    .recibo-nombre { font-size: var(--font-size-base); font-weight: 600; }
+    .recibo-cargo  { font-size: var(--font-size-xs); opacity: .7; }
+    .recibo-body   { padding: var(--space-6); }
+    .recibo-section-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--color-text-muted); margin-bottom: var(--space-3); padding-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .recibo-fila {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: var(--space-2) 0; font-size: var(--font-size-sm);
+    }
+    .recibo-fila .label { color: var(--color-text-muted); }
+    .recibo-fila .valor { font-weight: 500; }
+    .recibo-fila .valor.danger { color: var(--color-danger); }
+    .recibo-fila .valor.accent { color: var(--color-accent); font-weight: 700; font-size: var(--font-size-base); }
+    .recibo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-bottom: var(--space-5); }
+    .recibo-neto {
+      background: var(--color-accent); border-radius: var(--radius-lg);
+      padding: var(--space-4) var(--space-5); margin-top: var(--space-4);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .recibo-neto-label { color: #fff; font-weight: 600; }
+    .recibo-neto-valor { color: #fff; font-size: var(--font-size-2xl); font-weight: 700; }
+    @media(max-width:600px) { .recibo-grid{grid-template-columns:1fr;} .recibo-header{flex-direction:column;} .recibo-empleado{text-align:left;} }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Mi Recibo de Pago</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-periodo">—</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Mi Nómina</h1>
+          <p>Consulta el desglose completo de tu salario, deducciones y prestaciones sociales.</p>
+        </div>
+        <div style="display:flex;gap:var(--space-3);align-items:flex-end">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Período</label>
+            <input type="month" class="form-input" id="sel-periodo" style="min-width:160px" />
+          </div>
+          <button class="btn btn-secondary" id="btn-buscar">Consultar</button>
+        </div>
+      </div>
+
+      <div id="contenido">
+        <div style="text-align:center;padding:var(--space-12);color:var(--color-text-muted)">
+          <div style="font-size:2.5rem;margin-bottom:var(--space-4)">💵</div>
+          <h3 style="margin-bottom:var(--space-2)">Selecciona un período</h3>
+          <p>Elige el mes que deseas consultar y haz clic en "Consultar".</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast-container"></div>
+<script type="module">
+import { initEmpleadoLayout }        from '/frontend/modules/layout.js';
+import { authApi, planillaApi,
+         empleadoApi }                from '/frontend/modules/api.js';
+import { toast, formatDate,
+         formatCurrency }             from '/frontend/modules/utils.js';
+
+await initEmpleadoLayout('nomina');
+
+let idEmpleado = null;
+let nombreEmpleado = '';
+
+async function init() {
+  const me = await authApi.me();
+  idEmpleado = me.idEmpleado ?? null;
+  if (!idEmpleado) { toast('No tienes expediente de empleado.','warning'); return; }
+  try {
+    const emp = await empleadoApi.getById(idEmpleado);
+    nombreEmpleado = `${emp.nombres} ${emp.apellidos}`;
+  } catch { nombreEmpleado = me.email; }
+  // default: mes actual
+  const hoy = new Date();
+  document.getElementById('sel-periodo').value =
+    `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+}
+
+async function buscar() {
+  const periodo = document.getElementById('sel-periodo').value;
+  if (!periodo) { toast('Selecciona un período.','warning'); return; }
+
+  document.getElementById('badge-periodo').textContent = periodo;
+  document.getElementById('contenido').innerHTML =
+    `<div style="text-align:center;padding:var(--space-8);color:var(--color-text-muted)"><div style="font-size:2rem">⏳</div><p>Cargando...</p></div>`;
+
+  try {
+    const data = await planillaApi.getByEmpleado(idEmpleado, periodo);
+    const lista = Array.isArray(data) ? data : [];
+
+    if (!lista.length) {
+      document.getElementById('contenido').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3>Sin planilla para este período</h3>
+          <p>No se ha generado la planilla de <strong>${periodo}</strong>. Contacta al administrador.</p>
+        </div>`;
+      return;
+    }
+
+    const p = lista[0];
+    document.getElementById('contenido').innerHTML = `
+      <div class="recibo">
+        <div class="recibo-header">
+          <div>
+            <div class="recibo-empresa">🏢 MipymeAsistencia</div>
+            <div class="recibo-periodo">Recibo de pago — Período ${p.periodoMesAnio}</div>
+            <div style="font-size:.7rem;opacity:.6;margin-top:var(--space-1)">Emitido: ${formatDate(p.fechaEmision)}</div>
+          </div>
+          <div class="recibo-empleado">
+            <div class="recibo-nombre">${p.nombreEmpleado || nombreEmpleado}</div>
+            <div class="recibo-cargo">${p.cargoEmpleado || '—'}</div>
+          </div>
+        </div>
+
+        <div class="recibo-body">
+          <div class="recibo-grid">
+            <div>
+              <div class="recibo-section-title">📈 Ingresos</div>
+              <div class="recibo-fila"><span class="label">Salario básico</span><span class="valor">${formatCurrency(p.salarioBase)}</span></div>
+              <div class="recibo-fila"><span class="label">Comisiones</span><span class="valor">${formatCurrency(p.comisiones)}</span></div>
+              <div class="recibo-fila"><span class="label">Horas extras (${p.totalHorasExtras}h)</span><span class="valor">${formatCurrency(p.pagoHorasExtras)}</span></div>
+              <div class="recibo-fila"><span class="label">Incentivos</span><span class="valor">${formatCurrency(p.incentivos)}</span></div>
+              <div class="recibo-fila" style="border-top:1px solid var(--color-border);margin-top:var(--space-2);padding-top:var(--space-3)">
+                <span class="label font-medium">Total ingresos</span>
+                <span class="valor font-medium">${formatCurrency(p.totalIngresos)}</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="recibo-section-title">📉 Deducciones laborales</div>
+              <div class="recibo-fila"><span class="label">INSS Laboral (7%)</span><span class="valor danger">- ${formatCurrency(p.inssLaboral)}</span></div>
+              <div class="recibo-fila"><span class="label">IR (Ley 822 LCT)</span><span class="valor danger">- ${formatCurrency(p.irLaboral)}</span></div>
+              <div class="recibo-fila"><span class="label">Embargo</span><span class="valor danger">- ${formatCurrency(p.embargo)}</span></div>
+              <div class="recibo-fila"><span class="label">Sindicato</span><span class="valor danger">- ${formatCurrency(p.sindicato)}</span></div>
+              <div class="recibo-fila"><span class="label">Otras deducciones</span><span class="valor danger">- ${formatCurrency(p.otrasDeducciones)}</span></div>
+              <div class="recibo-fila" style="border-top:1px solid var(--color-border);margin-top:var(--space-2);padding-top:var(--space-3)">
+                <span class="label font-medium">Total deducciones</span>
+                <span class="valor danger font-medium">- ${formatCurrency(p.totalDeducciones)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="recibo-neto">
+            <span class="recibo-neto-label">💰 NETO A PAGAR</span>
+            <span class="recibo-neto-valor">${formatCurrency(p.salarioNeto)}</span>
+          </div>
+
+          <div style="margin-top:var(--space-5)">
+            <div class="recibo-section-title">🏦 Aportes patronales (informativo — cargo a la empresa)</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4)">
+              <div class="recibo-fila"><span class="label">INSS Patronal (21.5%)</span><span class="valor">${formatCurrency(p.inssPatronal)}</span></div>
+              <div class="recibo-fila"><span class="label">INATEC (2%)</span><span class="valor">${formatCurrency(p.inatec)}</span></div>
+            </div>
+          </div>
+
+          <div style="margin-top:var(--space-5)">
+            <div class="recibo-section-title">📆 Provisión de prestaciones sociales (mensual)</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4)">
+              <div class="recibo-fila" style="flex-direction:column;align-items:flex-start;gap:2px">
+                <span class="label">Vacaciones</span><span class="valor">${formatCurrency(p.acumuladoVacaciones)}</span>
+              </div>
+              <div class="recibo-fila" style="flex-direction:column;align-items:flex-start;gap:2px">
+                <span class="label">Aguinaldo</span><span class="valor">${formatCurrency(p.acumuladoAguinaldo)}</span>
+              </div>
+              <div class="recibo-fila" style="flex-direction:column;align-items:flex-start;gap:2px">
+                <span class="label">Indemnización</span><span class="valor">${formatCurrency(p.acumuladoIndemnizacion)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historial de todos los períodos -->
+      <div class="card" style="padding:0;margin-top:var(--space-5)">
+        <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border)">
+          <span class="card-title">Historial completo de nómina</span>
+        </div>
+        <div id="historial-tabla"></div>
+      </div>
+    `;
+
+    // Cargar historial completo
+    const todos = await planillaApi.getByEmpleado(idEmpleado);
+    const hist = Array.isArray(todos) ? todos : [];
+    document.getElementById('historial-tabla').innerHTML = hist.length
+      ? `<div class="table-wrapper" style="border:none;border-radius:0">
+          <table class="data-table">
+            <thead><tr><th>Período</th><th>Salario base</th><th>HH. Extras</th><th>Total ingresos</th><th>Deducciones</th><th style="color:var(--color-accent)">Neto</th></tr></thead>
+            <tbody>${hist.map(r => `
+              <tr>
+                <td class="font-medium">${r.periodoMesAnio}</td>
+                <td>${formatCurrency(r.salarioBase)}</td>
+                <td>${formatCurrency(r.pagoHorasExtras)}</td>
+                <td>${formatCurrency(r.totalIngresos)}</td>
+                <td style="color:var(--color-danger)">- ${formatCurrency(r.totalDeducciones)}</td>
+                <td class="font-medium" style="color:var(--color-accent)">${formatCurrency(r.salarioNeto)}</td>
+              </tr>`).join('')}</tbody>
+          </table></div>`
+      : `<div class="empty-state" style="padding:var(--space-6)"><p>Sin planillas históricas.</p></div>`;
+
+  } catch (err) {
+    toast(err.message,'error');
+    document.getElementById('contenido').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><h3>${err.message}</h3></div>`;
+  }
+}
+
+document.getElementById('btn-buscar').addEventListener('click', buscar);
+document.getElementById('sel-periodo').addEventListener('keydown', e => {
+  if (e.key === 'Enter') buscar();
+});
+
+await init();
+</script>
+</body>
+</html>
