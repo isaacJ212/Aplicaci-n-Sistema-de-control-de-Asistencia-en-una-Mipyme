@@ -40,9 +40,10 @@
     <p class="redirect-text">Cargando...</p>
   </div>
 
-  <script type="module">
-    import { AuthService } from '/frontend/modules/auth.js';
-    import CONFIG          from '/frontend/modules/config.js';
+ <script type="module">
+    // Eliminamos "/frontend" y usamos rutas relativas correctas
+    import { AuthService } from './modules/auth.js';
+    import CONFIG          from './modules/config.js';
 
     // Redirige al dashboard correcto si hay sesión, o al login
     if (AuthService.isAuthenticated()) {
@@ -52,7 +53,8 @@
     } else {
       window.location.replace('./pages/auth/login.html');
     }
-  </script>
+</script>
+
 
 </body>
 </html>
