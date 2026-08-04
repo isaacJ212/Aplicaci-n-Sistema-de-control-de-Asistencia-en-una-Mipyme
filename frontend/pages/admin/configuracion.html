@@ -6,37 +6,466 @@
   <title>Configuración — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/css/variables.css" />
-  <link rel="stylesheet" href="../../assets/css/reset.css" />
-  <link rel="stylesheet" href="../../assets/css/components.css" />
-  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <!-- QRCode.js para generar el QR en el navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    /* ── Secciones ───────────────────────────────────── */
+    .config-grid {
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: var(--space-6);
+    }
+
+    /* ── Info actual de la sede ──────────────────────── */
+    .sede-info-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: var(--space-3); padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .sede-info-row:last-child { border-bottom: none; }
+    .sede-info-label { font-size: var(--font-size-xs); color: var(--color-text-muted);
+                       text-transform: uppercase; letter-spacing: .04em; min-width: 150px; }
+    .sede-info-value { font-size: var(--font-size-sm); font-weight: 500; text-align: right; }
+
+    /* ── Kiosco QR ───────────────────────────────────── */
+    .qr-kiosko {
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-4); padding: var(--space-6);
+      background: var(--color-bg); border-radius: var(--radius-xl);
+      border: 2px dashed var(--color-border);
+    }
+    .qr-kiosko h3 { font-size: var(--font-size-base); font-weight: 600; }
+    #qr-canvas { border-radius: var(--radius-md); background: #fff; padding: var(--space-3); }
+    .qr-token {
+      font-family: monospace; font-size: .7rem;
+      color: var(--color-text-muted); word-break: break-all;
+      text-align: center; max-width: 220px;
+    }
+    .qr-estado {
+      display: flex; align-items: center; gap: var(--space-2);
+      font-size: var(--font-size-xs); font-weight: 600;
+    }
+    .qr-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--color-accent); animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:.3; }
+    }
+
+    /* ── Modal formulario ────────────────────────────── */
+    .form-section-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--color-text-muted);
+      margin-bottom: var(--space-3); padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border);
+    }
+    .form-section-title:first-child { border-top: none; padding-top: 0; }
+
+    @media(max-width:900px){ .config-grid{grid-template-columns:1fr;} }
+  </style>
 </head>
 <body>
-  <div class="admin-layout">
-    <div id="sidebar-container"></div>
-    <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-title">Configuración de sede y QR</div>
-        <div class="topbar-right"><span class="topbar-badge">Próximamente</span></div>
-      </header>
-      <section class="page-content">
-        <div class="page-header">
-          <div class="page-header-text">
-            <h1>Configuración del sistema</h1>
-            <p>Ajustes de sede, horario oficial y kiosco QR.</p>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Configuración de Sede</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-sede">Cargando...</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Sede y Kiosco QR</h1>
+          <p>Configura las coordenadas GPS, horarios oficiales y el código QR de marcaje de la empresa.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-editar">✏️ Editar configuración</button>
+      </div>
+
+      <div id="config-content">
+        <div style="text-align:center;padding:var(--space-12);color:var(--color-text-muted)">
+          <div style="font-size:2rem;margin-bottom:var(--space-3)">⏳</div>
+          <p>Cargando configuración...</p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══ MODAL EDITAR SEDE ═══ -->
+<div class="modal-overlay hidden" id="modal-sede">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <span class="modal-title">Editar configuración de sede</span>
+      <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-sede" novalidate>
+
+        <p class="form-section-title">Datos generales</p>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Nombre de la sede *</label>
+            <input type="text" class="form-input" id="f-nombre" maxlength="100" />
+            <span class="form-error hidden" id="err-nombre"></span>
           </div>
         </div>
-        <div class="card">
-          <p class="text-muted">Esta página se conectará con el módulo de sede y configuración del QR.</p>
+
+        <p class="form-section-title">📍 Coordenadas GPS</p>
+        <div style="background:var(--color-primary-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--font-size-xs);color:var(--color-primary-dark);margin-bottom:var(--space-4)">
+          💡 Las coordenadas definen la ubicación física de la empresa. El sistema valida que el empleado esté dentro del radio al marcar asistencia.
         </div>
-      </section>
-    </main>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Latitud * (−90 a 90)</label>
+            <input type="number" class="form-input" id="f-lat" step="0.000001" placeholder="Ej. 12.13500" />
+            <span class="form-error hidden" id="err-lat"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Longitud * (−180 a 180)</label>
+            <input type="number" class="form-input" id="f-lon" step="0.000001" placeholder="Ej. -86.28000" />
+            <span class="form-error hidden" id="err-lon"></span>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Radio de tolerancia GPS (metros) *</label>
+            <input type="number" class="form-input" id="f-radio" min="1" max="5000" placeholder="Ej. 200" />
+            <span class="form-hint">Rango permitido: 1–5000 metros</span>
+            <span class="form-error hidden" id="err-radio"></span>
+          </div>
+        </div>
+
+        <p class="form-section-title">🕐 Horarios oficiales</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Hora de entrada * (HH:mm)</label>
+            <input type="time" class="form-input" id="f-entrada" />
+            <span class="form-error hidden" id="err-entrada"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hora de salida * (HH:mm)</label>
+            <input type="time" class="form-input" id="f-salida" />
+            <span class="form-error hidden" id="err-salida"></span>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Duración del almuerzo (minutos) *</label>
+            <input type="number" class="form-input" id="f-almuerzo" min="1" max="180" placeholder="Ej. 60" />
+            <span class="form-hint">Rango permitido: 1–180 minutos</span>
+            <span class="form-error hidden" id="err-almuerzo"></span>
+          </div>
+        </div>
+
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save">
+        <span id="save-text">Guardar cambios</span>
+      </button>
+    </div>
   </div>
-  <script type="module">
-    import { AuthService } from '../../modules/auth.js';
-    import { initAdminLayout } from '../../modules/layout.js';
-    if (!AuthService.requireAuth('Admin')) return;
-    initAdminLayout('configuracion');
-  </script>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }     from '/frontend/modules/layout.js';
+import { sedeApi }              from '/frontend/modules/api.js';
+import { toast, show, hide, formatDate } from '/frontend/modules/utils.js';
+
+await initAdminLayout('configuracion');
+
+let sedeActual = null;
+
+/* ── Renderizar la vista con la config actual ─────── */
+function renderSede(s) {
+  sedeActual = s;
+  document.getElementById('badge-sede').textContent = s.nombreSede;
+
+  document.getElementById('config-content').innerHTML = `
+    <div class="config-grid">
+
+      <!-- Info de la sede -->
+      <div>
+        <div class="card" style="margin-bottom:var(--space-5)">
+          <div class="card-header"><span class="card-title">📋 Datos de la sede</span></div>
+          <div>
+            <div class="sede-info-row">
+              <span class="sede-info-label">Nombre</span>
+              <span class="sede-info-value">${s.nombreSede}</span>
+            </div>
+            <div class="sede-info-row">
+              <span class="sede-info-label">Latitud GPS</span>
+              <span class="sede-info-value">${s.latitudSede}°</span>
+            </div>
+            <div class="sede-info-row">
+              <span class="sede-info-label">Longitud GPS</span>
+              <span class="sede-info-value">${s.longitudSede}°</span>
+            </div>
+            <div class="sede-info-row">
+              <span class="sede-info-label">Radio de tolerancia</span>
+              <span class="sede-info-value">${s.radioToleranciaMetros} metros</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">🕐 Horarios oficiales</span></div>
+          <div>
+            <div class="sede-info-row">
+              <span class="sede-info-label">Hora de entrada</span>
+              <span class="sede-info-value font-bold">${s.horaEntradaOficial}</span>
+            </div>
+            <div class="sede-info-row">
+              <span class="sede-info-label">Hora de salida</span>
+              <span class="sede-info-value font-bold">${s.horaSalidaOficial}</span>
+            </div>
+            <div class="sede-info-row">
+              <span class="sede-info-label">Duración almuerzo</span>
+              <span class="sede-info-value">${s.duracionAlmuerzoMinutos} minutos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kiosco QR -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">📱 Kiosco QR de marcaje</span></div>
+        <div class="qr-kiosko">
+          <h3>Código QR activo</h3>
+          ${s.tokenQrActual
+            ? `<div id="qr-canvas"></div>
+               <div class="qr-estado"><div class="qr-dot"></div> Token activo</div>
+               <div class="qr-token">${s.tokenQrActual}</div>
+               <div style="font-size:.7rem;color:var(--color-text-muted)">
+                 Actualizado: ${s.qrUltimaActualizacion ? formatDate(s.qrUltimaActualizacion) : '—'}
+               </div>`
+            : `<div style="font-size:3rem">🔒</div>
+               <p style="color:var(--color-text-muted);text-align:center;font-size:var(--font-size-sm)">
+                 No hay QR generado. Selecciona un empleado para generar su QR de marcaje.
+               </p>`
+          }
+        </div>
+
+        <div style="margin-top:var(--space-5)">
+          <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-bottom:var(--space-3)">
+            💡 El QR se genera por empleado. Para marcaje en kiosco físico, selecciona el empleado y genera su código.
+          </p>
+          <div class="form-group" style="margin-bottom:var(--space-3)">
+            <label class="form-label">Empleado para generar QR</label>
+            <select class="form-input" id="sel-emp-qr">
+              <option value="">— Seleccionar empleado —</option>
+            </select>
+          </div>
+          <button class="btn btn-primary w-full" id="btn-generar-qr">
+            📱 Generar QR de marcaje
+          </button>
+          <div id="qr-resultado" class="hidden" style="margin-top:var(--space-4)">
+            <div class="qr-kiosko">
+              <h3 id="qr-res-nombre"></h3>
+              <div id="qr-res-canvas"></div>
+              <div id="qr-res-info" style="font-size:.75rem;color:var(--color-text-muted);text-align:center"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  /* Renderiza el QR con la librería si hay token */
+  if (s.tokenQrActual && document.getElementById('qr-canvas')) {
+    new QRCode(document.getElementById('qr-canvas'), {
+      text:   s.tokenQrActual,
+      width:  200, height: 200,
+      colorDark: '#1E293B', colorLight: '#FFFFFF',
+    });
+  }
+
+  /* Cargar empleados en el select de QR */
+  loadEmpleadosQR();
+
+  /* Botón generar QR */
+  document.getElementById('btn-generar-qr').addEventListener('click', generarQR);
+}
+
+/* ── Cargar empleados para el select QR ──────────── */
+async function loadEmpleadosQR() {
+  try {
+    const { empleadoApi } = await import('/frontend/modules/api.js');
+    const emps = await empleadoApi.getAll();
+    const sel = document.getElementById('sel-emp-qr');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Seleccionar empleado —</option>' +
+      (Array.isArray(emps) ? emps : []).map(e =>
+        `<option value="${e.idEmpleado}">${e.nombres} ${e.apellidos}</option>`
+      ).join('');
+  } catch { /* silencioso */ }
+}
+
+/* ── Generar QR de empleado ──────────────────────── */
+async function generarQR() {
+  const { asistenciaApi } = await import('/frontend/modules/api.js');
+  const sel = document.getElementById('sel-emp-qr');
+  const id  = sel?.value;
+  if (!id) { toast('Selecciona un empleado.', 'warning'); return; }
+
+  const btn = document.getElementById('btn-generar-qr');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+
+  try {
+    const res = await asistenciaApi.generarQr(Number(id));
+    const token = res?.tokenQrGenerado ?? res?.token ?? JSON.stringify(res);
+
+    const nombre = sel.options[sel.selectedIndex].text;
+    document.getElementById('qr-res-nombre').textContent = `QR — ${nombre}`;
+    document.getElementById('qr-res-info').textContent   =
+      `Token: ${String(token).slice(0, 40)}...`;
+
+    /* Limpia y genera nuevo QR */
+    const canvas = document.getElementById('qr-res-canvas');
+    canvas.innerHTML = '';
+    new QRCode(canvas, {
+      text:   String(token), width: 200, height: 200,
+      colorDark: '#1E293B', colorLight: '#FFFFFF',
+    });
+
+    show(document.getElementById('qr-resultado'));
+    toast(`QR generado para ${nombre}`, 'success');
+  } catch (err) {
+    toast('Error al generar QR: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📱 Generar QR de marcaje';
+  }
+}
+
+/* ── Cargar sede ─────────────────────────────────── */
+async function cargar() {
+  try {
+    const s = await sedeApi.get();
+    renderSede(s);
+  } catch (err) {
+    toast(err.message, 'error');
+    document.getElementById('config-content').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <h3>No se pudo cargar la configuración</h3>
+        <p>${err.message}</p>
+      </div>`;
+  }
+}
+
+/* ── Abrir modal editar ───────────────────────────── */
+document.getElementById('btn-editar').addEventListener('click', () => {
+  if (!sedeActual) { toast('Espera a que cargue la configuración.', 'warning'); return; }
+
+  document.getElementById('f-nombre').value   = sedeActual.nombreSede   ?? '';
+  document.getElementById('f-lat').value      = sedeActual.latitudSede  ?? '';
+  document.getElementById('f-lon').value      = sedeActual.longitudSede ?? '';
+  document.getElementById('f-radio').value    = sedeActual.radioToleranciaMetros ?? '';
+  document.getElementById('f-entrada').value  = sedeActual.horaEntradaOficial  ?? '';
+  document.getElementById('f-salida').value   = sedeActual.horaSalidaOficial   ?? '';
+  document.getElementById('f-almuerzo').value = sedeActual.duracionAlmuerzoMinutos ?? '';
+
+  document.querySelectorAll('.form-error').forEach(el => { el.textContent=''; hide(el); });
+  document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
+  show(document.getElementById('modal-sede'));
+});
+
+/* ── Guardar cambios ─────────────────────────────── */
+document.getElementById('modal-save').addEventListener('click', async () => {
+  if (!validar()) return;
+
+  const btn = document.getElementById('modal-save');
+  const txt = document.getElementById('save-text');
+  btn.disabled = true; txt.textContent = 'Guardando...';
+
+  try {
+    /* Los inputs time devuelven HH:mm directamente */
+    const entrada  = document.getElementById('f-entrada').value;
+    const salida   = document.getElementById('f-salida').value;
+
+    const updated = await sedeApi.update({
+      nombreSede:              document.getElementById('f-nombre').value.trim(),
+      latitudSede:             parseFloat(document.getElementById('f-lat').value),
+      longitudSede:            parseFloat(document.getElementById('f-lon').value),
+      radioToleranciaMetros:   parseInt(document.getElementById('f-radio').value),
+      horaEntradaOficial:      entrada,
+      horaSalidaOficial:       salida,
+      duracionAlmuerzoMinutos: parseInt(document.getElementById('f-almuerzo').value),
+    });
+
+    toast('Configuración actualizada correctamente.', 'success');
+    hide(document.getElementById('modal-sede'));
+    renderSede(updated);
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; txt.textContent = 'Guardar cambios';
+  }
+});
+
+/* ── Validación del formulario ───────────────────── */
+function showErr(fieldId, errId, msg) {
+  document.getElementById(fieldId)?.classList.add('error');
+  const el = document.getElementById(errId);
+  if (el) { el.textContent = msg; show(el); }
+}
+
+function validar() {
+  let ok = true;
+  document.querySelectorAll('.form-error').forEach(el => { el.textContent=''; hide(el); });
+  document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
+
+  const nombre   = document.getElementById('f-nombre').value.trim();
+  const lat      = parseFloat(document.getElementById('f-lat').value);
+  const lon      = parseFloat(document.getElementById('f-lon').value);
+  const radio    = parseInt(document.getElementById('f-radio').value);
+  const entrada  = document.getElementById('f-entrada').value;
+  const salida   = document.getElementById('f-salida').value;
+  const almuerzo = parseInt(document.getElementById('f-almuerzo').value);
+
+  if (!nombre)
+    { showErr('f-nombre','err-nombre','El nombre es obligatorio.'); ok=false; }
+  if (isNaN(lat) || lat < -90 || lat > 90)
+    { showErr('f-lat','err-lat','La latitud debe estar entre -90 y 90.'); ok=false; }
+  if (isNaN(lon) || lon < -180 || lon > 180)
+    { showErr('f-lon','err-lon','La longitud debe estar entre -180 y 180.'); ok=false; }
+  if (!radio || radio < 1 || radio > 5000)
+    { showErr('f-radio','err-radio','Radio entre 1 y 5000 metros.'); ok=false; }
+  if (!entrada)
+    { showErr('f-entrada','err-entrada','La hora de entrada es obligatoria.'); ok=false; }
+  if (!salida)
+    { showErr('f-salida','err-salida','La hora de salida es obligatoria.'); ok=false; }
+  if (entrada && salida && entrada >= salida)
+    { showErr('f-salida','err-salida','La salida debe ser posterior a la entrada.'); ok=false; }
+  if (!almuerzo || almuerzo < 1 || almuerzo > 180)
+    { showErr('f-almuerzo','err-almuerzo','Duración entre 1 y 180 minutos.'); ok=false; }
+
+  return ok;
+}
+
+/* ── Cerrar modal ────────────────────────────────── */
+['modal-close','modal-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () =>
+    hide(document.getElementById('modal-sede'))));
+document.getElementById('modal-sede').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-sede'))
+    hide(document.getElementById('modal-sede'));
+});
+
+/* ── Init ────────────────────────────────────────── */
+cargar();
+</script>
 </body>
 </html>
