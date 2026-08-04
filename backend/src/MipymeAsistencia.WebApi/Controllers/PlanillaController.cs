@@ -2,6 +2,7 @@ using MediatR;
 using MipymeAsistencia.Application.Common.DTOs;
 using MipymeAsistencia.Application.Common.DTOs.Planilla;
 using MipymeAsistencia.Application.Features.Planilla.Commands.GenerarPlanilla;
+using MipymeAsistencia.Application.Features.Planilla.Queries.GetAllPlanillas;
 using MipymeAsistencia.Application.Features.Planilla.Queries.GetPlanillasByEmpleado;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,28 @@ public class PlanillaController : ControllerBase
     private readonly IMediator _mediator;
 
     public PlanillaController(IMediator mediator) => _mediator = mediator;
+
+    /// <summary>
+    /// Obtiene todas las planillas del sistema.
+    /// Filtros opcionales: periodo (YYYY-MM) y/o empleado.
+    /// Solo accesible por Admin.
+    /// </summary>
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<List<PlanillaResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? periodo    = null,
+        [FromQuery] int?    idEmpleado = null)
+    {
+        var data = await _mediator.Send(new GetAllPlanillasQuery
+        {
+            PeriodoMesAnio = periodo,
+            IdEmpleado     = idEmpleado
+        });
+
+        return Ok(ApiResponse<List<PlanillaResponseDto>>.Ok(
+            data, $"Se encontraron {data.Count} planillas."));
+    }
 
     /// <summary>
     /// Genera la planilla mensual de un empleado aplicando:
