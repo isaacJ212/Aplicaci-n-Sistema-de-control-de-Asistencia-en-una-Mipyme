@@ -9,59 +9,191 @@
   <link rel="stylesheet" href="../../assets/css/variables.css" />
   <link rel="stylesheet" href="../../assets/css/reset.css" />
   <link rel="stylesheet" href="../../assets/css/components.css" />
-  <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .placeholder-screen {
-      text-align: center;
-      display: flex; flex-direction: column; align-items: center; gap: var(--space-4);
-    }
-    .role-badge {
-      background: var(--color-primary-light);
-      color: var(--color-primary-dark);
-      padding: var(--space-2) var(--space-5);
-      border-radius: var(--radius-full);
-      font-size: var(--font-size-sm);
-      font-weight: 600;
-      letter-spacing: .05em;
-    }
-    h1 { font-size: var(--font-size-3xl); color: var(--color-text); }
-    p  { color: var(--color-text-muted); max-width: 380px; }
-    .user-info {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4) var(--space-6);
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
-    }
-  </style>
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
 </head>
 <body>
-  <div class="placeholder-screen">
-    <div class="role-badge">👨‍💼 ADMIN</div>
-    <h1>Dashboard Admin</h1>
-    <p>Inicio de sesión verificado correctamente. Este dashboard está en construcción.</p>
-    <div class="user-info" id="user-info">Cargando usuario...</div>
-    <button class="btn btn-secondary" id="logout-btn">Cerrar sesión</button>
+  <div class="admin-layout">
+    <div id="sidebar-container"></div>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Dashboard Admin</div>
+        <div class="topbar-right">
+          <span class="topbar-badge" id="date-badge">Cargando...</span>
+        </div>
+      </header>
+
+      <section class="page-content">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h1>Métricas del día</h1>
+            <p>Resumen de asistencia y alertas de puntualidad para el personal del día.</p>
+          </div>
+          <button class="btn btn-secondary" id="refresh-btn">Actualizar</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon blue">👥</div>
+            </div>
+            <div class="stat-value" id="stats-total-empleados">0</div>
+            <div class="stat-label">Empleados activos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">✅</div>
+            </div>
+            <div class="stat-value" id="stats-registros-hoy">0</div>
+            <div class="stat-label">Registros de hoy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon yellow">⏰</div>
+            </div>
+            <div class="stat-value" id="stats-tardanzas">0</div>
+            <div class="stat-label">Tardanzas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon blue">📈</div>
+            </div>
+            <div class="stat-value" id="stats-a-tiempo">0</div>
+            <div class="stat-label">A tiempo</div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Resumen de asistencia del día</div>
+            </div>
+            <div class="summary-list">
+              <div class="summary-row">
+                <span>Registros capturados</span>
+                <strong id="summary-registros">0</strong>
+              </div>
+              <div class="summary-row">
+                <span>Tardanzas detectadas</span>
+                <strong id="summary-tardanzas">0</strong>
+              </div>
+              <div class="summary-row">
+                <span>Marcajes a tiempo</span>
+                <strong id="summary-a-tiempo">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Alertas de puntualidad</div>
+            </div>
+            <div id="alertas-content" class="alerts-list">
+              Cargando alertas...
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
   <div id="toast-container"></div>
 
   <script type="module">
+    import { asistenciaApi, empleadoApi } from '../../modules/api.js';
     import { AuthService } from '../../modules/auth.js';
-    import { toast }       from '../../modules/utils.js';
+    import { initAdminLayout } from '../../modules/layout.js';
+    import { toast } from '../../modules/utils.js';
 
-    // Guardia — solo Admin puede ver esta página
     if (!AuthService.requireAuth('Admin')) return;
 
-    const user = AuthService.getUser();
-    document.getElementById('user-info').textContent =
-      `✅ Sesión activa: ${user?.email}  |  Rol: ${user?.role}`;
+    initAdminLayout('dashboard');
 
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      toast('Cerrando sesión...', 'info', 1000);
-      setTimeout(() => AuthService.logout(), 800);
+    const state = {
+      empleados: [],
+      asistencias: []
+    };
+
+    const dateBadge = document.getElementById('date-badge');
+    const alertsContent = document.getElementById('alertas-content');
+
+    function getTodayRange() {
+      const today = new Date();
+      const start = new Date(today);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(today);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    }
+
+    function isAlertaPuntualidad(asistencia) {
+      const estado = (asistencia?.estadoAsistencia || '').toLowerCase();
+      return (asistencia?.minutosTardanza || 0) > 0 || estado.includes('tard') || estado.includes('ausente');
+    }
+
+    function render() {
+      const today = new Date();
+      dateBadge.textContent = new Intl.DateTimeFormat('es-NI', { dateStyle: 'full' }).format(today);
+
+      document.getElementById('stats-total-empleados').textContent = state.empleados.length;
+      document.getElementById('stats-registros-hoy').textContent = state.asistencias.length;
+
+      const tardanzas = state.asistencias.filter(isAlertaPuntualidad).length;
+      const aTiempo = state.asistencias.length - tardanzas;
+
+      document.getElementById('stats-tardanzas').textContent = tardanzas;
+      document.getElementById('stats-a-tiempo').textContent = aTiempo;
+      document.getElementById('summary-registros').textContent = state.asistencias.length;
+      document.getElementById('summary-tardanzas').textContent = tardanzas;
+      document.getElementById('summary-a-tiempo').textContent = aTiempo;
+
+      const alertas = state.asistencias.filter(isAlertaPuntualidad).slice(0, 6);
+      if (!alertas.length) {
+        alertsContent.innerHTML = '<div class="empty-alert">No hay alertas de puntualidad para hoy.</div>';
+        return;
+      }
+
+      const empleadosMap = new Map(state.empleados.map((emp) => [emp.idEmpleado, emp]));
+      alertsContent.innerHTML = alertas.map((asistencia) => {
+        const empleado = empleadosMap.get(asistencia.idEmpleado);
+        const nombre = empleado ? `${empleado.nombres} ${empleado.apellidos}` : `Empleado #${asistencia.idEmpleado}`;
+        const minutos = asistencia.minutosTardanza || 0;
+        const estado = asistencia.estadoAsistencia || 'Pendiente';
+        return `
+          <div class="alert-item">
+            <div>
+              <div class="font-medium">${nombre}</div>
+              <div class="text-muted">${estado}</div>
+            </div>
+            <div class="alert-pill">${minutos > 0 ? `${minutos} min` : 'Revisión'}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadDashboard() {
+      const { start, end } = getTodayRange();
+      try {
+        const [empleadosData, asistenciasData] = await Promise.all([
+          empleadoApi.getAll(),
+          asistenciaApi.getAll(`?fechaDesde=${encodeURIComponent(start.toISOString())}&fechaHasta=${encodeURIComponent(end.toISOString())}`)
+        ]);
+
+        state.empleados = Array.isArray(empleadosData) ? empleadosData : [];
+        state.asistencias = Array.isArray(asistenciasData) ? asistenciasData : [];
+        render();
+      } catch (error) {
+        console.error(error);
+        toast(error.message || 'No se pudieron cargar los datos del dashboard.', 'error');
+      }
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      toast('Actualizando dashboard...', 'info', 1000);
+      loadDashboard();
     });
+
+    loadDashboard();
   </script>
 </body>
 </html>
