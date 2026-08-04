@@ -30,6 +30,12 @@ public static class DependencyInjection
 
         services.AddScoped<ITokenService, TokenService>();
 
+        // HttpClient nombrado para Supabase Storage
+        services.AddHttpClient("supabase");
+
+        // Servicio de almacenamiento de imágenes en Supabase Storage
+        services.AddScoped<IStorageService, SupabaseStorageService>();
+
         return services;
     }
 }
