@@ -17,26 +17,211 @@
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-title">Detalle / Expediente individual</div>
-        <div class="topbar-right"><span class="topbar-badge">Próximamente</span></div>
+        <div class="topbar-right">
+          <span class="topbar-badge" id="page-badge">Cargando...</span>
+        </div>
       </header>
+
       <section class="page-content">
         <div class="page-header">
           <div class="page-header-text">
-            <h1>Detalle de empleado</h1>
-            <p>Esta vista mostrará el expediente completo del empleado seleccionado.</p>
+            <h1>Expediente del empleado</h1>
+            <p>Consulta de forma centralizada los datos personales, asistencias, permisos y nómina del trabajador.</p>
+          </div>
+          <a class="btn btn-secondary" href="/frontend/pages/admin/empleados.html">← Volver a empleados</a>
+        </div>
+
+        <div class="card employee-profile-card" id="employee-profile">
+          <div class="employee-avatar" id="employee-avatar">👤</div>
+          <div>
+            <div class="font-bold" id="employee-name">Cargando...</div>
+            <div class="text-muted" id="employee-role">—</div>
           </div>
         </div>
-        <div class="card">
-          <p class="text-muted">Aquí se integrará la información del empleado con datos de asistencia, horas extras, permisos y planilla.</p>
+
+        <div class="detail-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Datos del expediente</div>
+            </div>
+            <div class="detail-list" id="employee-details"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Asistencia reciente</div>
+            </div>
+            <div class="detail-list" id="attendance-list">Cargando...</div>
+          </div>
+        </div>
+
+        <div class="detail-grid mt-4">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Horas extras</div>
+            </div>
+            <div class="detail-list" id="hours-list">Cargando...</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Permisos y vacaciones</div>
+            </div>
+            <div class="detail-list" id="permissions-list">Cargando...</div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <div class="card-title">Planillas</div>
+          </div>
+          <div class="detail-list" id="payroll-list">Cargando...</div>
         </div>
       </section>
     </main>
   </div>
+
+  <div id="toast-container"></div>
+
   <script type="module">
     import { AuthService } from '../../modules/auth.js';
     import { initAdminLayout } from '../../modules/layout.js';
+    import { empleadoApi, asistenciaApi, horasExtrasApi, planillaApi, permisoApi } from '../../modules/api.js';
+    import { toast, formatDate, formatCurrency } from '../../modules/utils.js';
+
     if (!AuthService.requireAuth('Admin')) return;
     initAdminLayout('empleado-detalle');
+
+    const params = new URLSearchParams(window.location.search);
+    const employeeId = Number(params.get('id'));
+
+    const state = {
+      employee: null,
+      attendance: [],
+      hours: [],
+      permissions: [],
+      payroll: []
+    };
+
+    const nameEl = document.getElementById('employee-name');
+    const roleEl = document.getElementById('employee-role');
+    const pageBadge = document.getElementById('page-badge');
+    const detailsEl = document.getElementById('employee-details');
+    const attendanceEl = document.getElementById('attendance-list');
+    const hoursEl = document.getElementById('hours-list');
+    const permissionsEl = document.getElementById('permissions-list');
+    const payrollEl = document.getElementById('payroll-list');
+
+    function renderEmployeeInfo() {
+      if (!state.employee) return;
+      nameEl.textContent = `${state.employee.nombres || ''} ${state.employee.apellidos || ''}`.trim();
+      roleEl.textContent = state.employee.cargoFuncion || 'Sin cargo asignado';
+      pageBadge.textContent = state.employee.cedulaIdentificacion || 'Empleado';
+    }
+
+    function renderDetails() {
+      const emp = state.employee;
+      if (!emp) {
+        detailsEl.innerHTML = '<div class="text-muted">No se encontró información del empleado.</div>';
+        return;
+      }
+      detailsEl.innerHTML = `
+        <div class="detail-row"><span>Correo</span><strong>${emp.email || '—'}</strong></div>
+        <div class="detail-row"><span>Cédula</span><strong>${emp.cedulaIdentificacion || '—'}</strong></div>
+        <div class="detail-row"><span>Cargo</span><strong>${emp.cargoFuncion || '—'}</strong></div>
+        <div class="detail-row"><span>Fecha de contratación</span><strong>${formatDate(emp.fechaContratacion)}</strong></div>
+        <div class="detail-row"><span>Salario base</span><strong>${formatCurrency(emp.salarioBaseMensual)}</strong></div>
+        <div class="detail-row"><span>Días vacaciones</span><strong>${emp.diasVacacionesAcumuladas ?? 0}</strong></div>
+        <div class="detail-row"><span>Responsabilidades</span><strong>${emp.responsabilidades || '—'}</strong></div>
+      `;
+    }
+
+    function renderAttendance() {
+      if (!state.attendance.length) {
+        attendanceEl.innerHTML = '<div class="text-muted">Sin registros de asistencia recientes.</div>';
+        return;
+      }
+      attendanceEl.innerHTML = state.attendance.slice(0, 6).map((item) => `
+        <div class="detail-row">
+          <span>${formatDate(item.fecha)}</span>
+          <strong>${item.estadoAsistencia || 'Sin estado'} · ${item.horaEntrada || '—'}</strong>
+        </div>
+      `).join('');
+    }
+
+    function renderHours() {
+      if (!state.hours.length) {
+        hoursEl.innerHTML = '<div class="text-muted">Sin horas extras registradas.</div>';
+        return;
+      }
+      hoursEl.innerHTML = state.hours.slice(0, 6).map((item) => `
+        <div class="detail-row">
+          <span>${formatDate(item.fecha)}</span>
+          <strong>${item.cantidadHoras} h · ${item.estado} · ${formatCurrency(item.montoPagar)}</strong>
+        </div>
+      `).join('');
+    }
+
+    function renderPermissions() {
+      if (!state.permissions.length) {
+        permissionsEl.innerHTML = '<div class="text-muted">Sin solicitudes de permisos o vacaciones.</div>';
+        return;
+      }
+      permissionsEl.innerHTML = state.permissions.slice(0, 6).map((item) => `
+        <div class="detail-row">
+          <span>${item.tipoSolicitud}</span>
+          <strong>${item.estadoSolicitud} · ${formatDate(item.fechaInicio)}</strong>
+        </div>
+      `).join('');
+    }
+
+    function renderPayroll() {
+      if (!state.payroll.length) {
+        payrollEl.innerHTML = '<div class="text-muted">Sin planillas generadas.</div>';
+        return;
+      }
+      payrollEl.innerHTML = state.payroll.slice(0, 6).map((item) => `
+        <div class="detail-row">
+          <span>${item.periodoMesAnio}</span>
+          <strong>${formatCurrency(item.salarioNeto)}</strong>
+        </div>
+      `).join('');
+    }
+
+    async function loadEmployeeDetail() {
+      if (!employeeId) {
+        toast('No se especificó un empleado.', 'error');
+        return;
+      }
+
+      try {
+        const [employeeData, attendanceData, hoursData, permissionsData, payrollData] = await Promise.all([
+          empleadoApi.getById(employeeId),
+          asistenciaApi.historial(employeeId),
+          horasExtrasApi.getByEmpleado(employeeId),
+          permisoApi.getMias(employeeId),
+          planillaApi.getByEmpleado(employeeId)
+        ]);
+
+        state.employee = employeeData;
+        state.attendance = Array.isArray(attendanceData) ? attendanceData : [];
+        state.hours = Array.isArray(hoursData) ? hoursData : [];
+        state.permissions = Array.isArray(permissionsData) ? permissionsData : [];
+        state.payroll = Array.isArray(payrollData) ? payrollData : [];
+
+        renderEmployeeInfo();
+        renderDetails();
+        renderAttendance();
+        renderHours();
+        renderPermissions();
+        renderPayroll();
+      } catch (error) {
+        console.error(error);
+        toast(error.message || 'No se pudo cargar el expediente.', 'error');
+      }
+    }
+
+    loadEmployeeDetail();
   </script>
 </body>
 </html>

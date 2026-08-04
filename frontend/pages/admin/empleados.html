@@ -3,353 +3,534 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gestión de Empleados — MipymeAsistencia</title>
+  <title>Empleados — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/css/variables.css" />
-  <link rel="stylesheet" href="../../assets/css/reset.css" />
-  <link rel="stylesheet" href="../../assets/css/components.css" />
-  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
 </head>
 <body>
-  <div class="admin-layout">
-    <div id="sidebar-container"></div>
 
-    <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-title">Gestión de Empleados / Expedientes</div>
-        <div class="topbar-right">
-          <span class="topbar-badge">CRUD</span>
-        </div>
-      </header>
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
 
-      <section class="page-content">
-        <div class="page-header">
-          <div class="page-header-text">
-            <h1>Empleados y expedientes</h1>
-            <p>Administra los registros de personal, datos del expediente y la información básica del empleado.</p>
-          </div>
-          <button class="btn btn-primary" id="btn-nuevo-empleado">+ Nuevo empleado</button>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-card-top">
-              <div class="stat-icon blue">👥</div>
-            </div>
-            <div class="stat-value" id="total-empleados">0</div>
-            <div class="stat-label">Total de empleados</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-top">
-              <div class="stat-icon green">✅</div>
-            </div>
-            <div class="stat-value" id="empleados-activos">0</div>
-            <div class="stat-label">Empleados registrados</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="table-toolbar">
-            <div class="search-wrapper">
-              <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.477l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-              </svg>
-              <input id="search-input" class="search-input" type="text" placeholder="Buscar por nombre, cédula o cargo" />
-            </div>
-          </div>
-
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Empleado</th>
-                  <th>Correo</th>
-                  <th>Cédula</th>
-                  <th>Cargo</th>
-                  <th>Contratación</th>
-                  <th>Salario</th>
-                  <th>Vacaciones</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="empleados-table-body">
-                <tr>
-                  <td colspan="8" class="text-center text-muted">Cargando empleados...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <div class="modal-overlay hidden" id="empleado-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title" id="modal-title">Nuevo empleado</h3>
-        <button class="btn btn-ghost" type="button" id="modal-close-btn">✕</button>
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Empleados / Expedientes</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-total">0 empleados</span>
       </div>
-      <form id="empleado-form" class="modal-body">
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label" for="idUsuario">ID de usuario *</label>
-            <input class="form-input" id="idUsuario" name="idUsuario" type="number" required />
-            <div class="form-hint">Debe existir un usuario registrado previamente en el sistema.</div>
+    </header>
+
+    <section class="page-content">
+
+      <!-- Encabezado -->
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Gestión de Empleados</h1>
+          <p>Registro, edición y expediente del personal activo de la empresa.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-nuevo">
+          <span>＋ Nuevo empleado</span>
+        </button>
+      </div>
+
+      <!-- Stats rápidas -->
+      <div class="stats-grid" style="margin-bottom:var(--space-6)">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">👥</div></div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total empleados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">💰</div></div>
+          <div class="stat-value" id="stat-salario-promedio">—</div>
+          <div class="stat-label">Salario promedio</div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card" style="padding:0">
+        <div class="table-toolbar" style="padding:var(--space-4) var(--space-5)">
+          <div class="search-wrapper">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+            </svg>
+            <input type="text" class="search-input" id="buscador"
+              placeholder="Buscar por nombre, cédula o cargo..." />
           </div>
-          <div class="form-group">
-            <label class="form-label" for="cedulaIdentificacion">Cédula *</label>
-            <input class="form-input" id="cedulaIdentificacion" name="cedulaIdentificacion" type="text" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="nombres">Nombres *</label>
-            <input class="form-input" id="nombres" name="nombres" type="text" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="apellidos">Apellidos *</label>
-            <input class="form-input" id="apellidos" name="apellidos" type="text" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="cargoFuncion">Cargo / función *</label>
-            <input class="form-input" id="cargoFuncion" name="cargoFuncion" type="text" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="fechaContratacion">Fecha de contratación *</label>
-            <input class="form-input" id="fechaContratacion" name="fechaContratacion" type="date" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="salarioBaseMensual">Salario base mensual *</label>
-            <input class="form-input" id="salarioBaseMensual" name="salarioBaseMensual" type="number" step="0.01" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="diasVacacionesAcumuladas">Días de vacaciones *</label>
-            <input class="form-input" id="diasVacacionesAcumuladas" name="diasVacacionesAcumuladas" type="number" step="0.01" required />
-          </div>
-          <div class="form-group full">
-            <label class="form-label" for="responsabilidades">Responsabilidades</label>
-            <textarea class="form-input" id="responsabilidades" name="responsabilidades" rows="3"></textarea>
-          </div>
-          <div class="form-group full">
-            <label class="form-label" for="fotoUrl">URL de foto (opcional)</label>
-            <input class="form-input" id="fotoUrl" name="fotoUrl" type="url" />
-          </div>
+          <button class="btn btn-ghost btn-sm" id="btn-refresh" title="Recargar">↻ Recargar</button>
         </div>
 
-        <div class="modal-footer">
-          <button class="btn btn-secondary" type="button" id="cancelar-btn">Cancelar</button>
-          <button class="btn btn-primary" type="submit" id="submit-btn">Guardar empleado</button>
+        <div class="table-wrapper" style="border:none;border-top:1px solid var(--color-border);border-radius:0">
+          <table class="data-table" id="tabla-empleados">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Empleado</th>
+                <th>Cédula</th>
+                <th>Cargo</th>
+                <th>Fecha contratación</th>
+                <th>Salario base</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr>
+                <td colspan="7">
+                  <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <h3>Cargando empleados...</h3>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══════════════════ MODAL CREAR / EDITAR ═══════════════════ -->
+<div class="modal-overlay hidden" id="modal-empleado">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Nuevo empleado</span>
+      <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-empleado" novalidate>
+        <input type="hidden" id="field-id" />
+
+        <div class="form-grid">
+          <!-- Sección: cuenta de usuario (solo en creación) -->
+          <div class="form-group full" id="bloque-usuario">
+            <div style="background:var(--color-primary-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--font-size-sm);color:var(--color-primary-dark);margin-bottom:var(--space-2)">
+              🔑 <strong>Cuenta de acceso</strong> — Se creará un usuario con estos datos
+            </div>
+          </div>
+          <div class="form-group" id="wrap-email">
+            <label class="form-label" for="field-email">Correo electrónico *</label>
+            <input type="email" class="form-input" id="field-email" placeholder="correo@empresa.com" />
+            <span class="form-error hidden" id="err-email"></span>
+          </div>
+          <div class="form-group" id="wrap-password">
+            <label class="form-label" for="field-password">Contraseña inicial *</label>
+            <div class="input-wrapper">
+              <input type="password" class="form-input" id="field-password" placeholder="Mínimo 8 caracteres" />
+              <button type="button" class="input-suffix" id="toggle-pass" title="Mostrar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                  <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                </svg>
+              </button>
+            </div>
+            <span class="form-error hidden" id="err-password"></span>
+          </div>
+
+          <!-- Datos personales -->
+          <div class="form-group">
+            <label class="form-label" for="field-nombres">Nombres *</label>
+            <input type="text" class="form-input" id="field-nombres" placeholder="Ej. Carlos Enrique" />
+            <span class="form-error hidden" id="err-nombres"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-apellidos">Apellidos *</label>
+            <input type="text" class="form-input" id="field-apellidos" placeholder="Ej. Ramírez López" />
+            <span class="form-error hidden" id="err-apellidos"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-cedula">Cédula de identidad *</label>
+            <input type="text" class="form-input" id="field-cedula" placeholder="Ej. 001-010101-0001X" />
+            <span class="form-error hidden" id="err-cedula"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-cargo">Cargo / Función *</label>
+            <input type="text" class="form-input" id="field-cargo" placeholder="Ej. Analista de Sistemas" />
+            <span class="form-error hidden" id="err-cargo"></span>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="field-responsabilidades">Responsabilidades *</label>
+            <textarea class="form-input" id="field-responsabilidades" rows="3"
+              placeholder="Describe las funciones principales del cargo..." style="resize:vertical"></textarea>
+            <span class="form-error hidden" id="err-responsabilidades"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-contratacion">Fecha de contratación *</label>
+            <input type="date" class="form-input" id="field-contratacion" />
+            <span class="form-error hidden" id="err-contratacion"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-salario">Salario base mensual (C$) *</label>
+            <input type="number" class="form-input" id="field-salario" min="0" step="0.01"
+              placeholder="Ej. 12000.00" />
+            <span class="form-error hidden" id="err-salario"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-foto">URL de foto (opcional)</label>
+            <input type="text" class="form-input" id="field-foto" placeholder="https://..." />
+          </div>
         </div>
       </form>
     </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save">
+        <span id="save-text">Guardar empleado</span>
+      </button>
+    </div>
   </div>
+</div>
 
-  <div id="toast-container"></div>
+<!-- ═══════════════════ MODAL ELIMINAR ═══════════════════ -->
+<div class="modal-overlay hidden" id="modal-eliminar">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Confirmar eliminación</span>
+      <button class="btn btn-ghost btn-sm" id="del-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:var(--space-2)">
+        ¿Estás seguro de que deseas eliminar al empleado
+        <strong id="del-nombre">—</strong>?
+      </p>
+      <p style="font-size:var(--font-size-sm);color:var(--color-text-muted)">
+        Esta acción no se puede deshacer. También eliminará el usuario asociado y todos sus registros.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="del-cancel">Cancelar</button>
+      <button class="btn btn-danger" id="del-confirm">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
 
-  <script type="module">
-    import { empleadoApi } from '../../modules/api.js';
-    import { AuthService } from '../../modules/auth.js';
-    import { initAdminLayout } from '../../modules/layout.js';
-    import { toast, formatDate, formatCurrency, showPageLoader, hidePageLoader } from '../../modules/utils.js';
+<div id="toast-container"></div>
 
-    if (!AuthService.requireAuth('Admin')) return;
+<script type="module">
+import { initAdminLayout }         from '/frontend/modules/layout.js';
+import { empleadoApi, authApi }     from '/frontend/modules/api.js';
+import { toast, formatDate, formatCurrency, $, show, hide, debounce } from '/frontend/modules/utils.js';
 
-    initAdminLayout('empleados');
+await initAdminLayout('empleados');
 
-    const state = {
-      empleados: [],
-      editingId: null,
-      filter: ''
-    };
+// ─── Estado ──────────────────────────────────────────────────────────────────
+const state = { empleados: [], filtrados: [], editandoId: null };
 
-    const tableBody = document.getElementById('empleados-table-body');
-    const modal = document.getElementById('empleado-modal');
-    const form = document.getElementById('empleado-form');
-    const title = document.getElementById('modal-title');
-    const searchInput = document.getElementById('search-input');
-    const totalEmpleadosEl = document.getElementById('total-empleados');
-    const empleadosActivosEl = document.getElementById('empleados-activos');
+// ─── Refs DOM ────────────────────────────────────────────────────────────────
+const tbody          = document.getElementById('tbody');
+const buscador       = document.getElementById('buscador');
+const badgeTotal     = document.getElementById('badge-total');
+const statTotal      = document.getElementById('stat-total');
+const statSalario    = document.getElementById('stat-salario-promedio');
+const modalEmp       = document.getElementById('modal-empleado');
+const modalEliminar  = document.getElementById('modal-eliminar');
 
-    function openModal(employee = null) {
-      state.editingId = employee?.idEmpleado ?? null;
-      title.textContent = employee ? 'Editar empleado' : 'Nuevo empleado';
-      form.reset();
+// ─── Cargar empleados ─────────────────────────────────────────────────────────
+async function cargar() {
+  tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
+  try {
+    const data = await empleadoApi.getAll();
+    state.empleados = Array.isArray(data) ? data : [];
+    filtrar();
+    actualizarStats();
+  } catch (err) {
+    toast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><h3>Error al cargar</h3><p>${err.message}</p></div></td></tr>`;
+  }
+}
 
-      if (employee) {
-        document.getElementById('idUsuario').value = employee.idUsuario ?? '';
-        document.getElementById('cedulaIdentificacion').value = employee.cedulaIdentificacion ?? '';
-        document.getElementById('nombres').value = employee.nombres ?? '';
-        document.getElementById('apellidos').value = employee.apellidos ?? '';
-        document.getElementById('cargoFuncion').value = employee.cargoFuncion ?? '';
-        document.getElementById('responsabilidades').value = employee.responsabilidades ?? '';
-        document.getElementById('fotoUrl').value = employee.fotoUrl ?? '';
-        document.getElementById('salarioBaseMensual').value = employee.salarioBaseMensual ?? '';
-        document.getElementById('diasVacacionesAcumuladas').value = employee.diasVacacionesAcumuladas ?? '';
-        const fecha = employee.fechaContratacion ? new Date(employee.fechaContratacion).toISOString().slice(0, 10) : '';
-        document.getElementById('fechaContratacion').value = fecha;
-        document.getElementById('idUsuario').readOnly = true;
-      } else {
-        document.getElementById('idUsuario').readOnly = false;
-      }
+// ─── Estadísticas rápidas ─────────────────────────────────────────────────────
+function actualizarStats() {
+  const total = state.empleados.length;
+  statTotal.textContent = total;
+  badgeTotal.textContent = `${total} empleado${total !== 1 ? 's' : ''}`;
+  if (total > 0) {
+    const prom = state.empleados.reduce((s, e) => s + (e.salarioBaseMensual ?? 0), 0) / total;
+    statSalario.textContent = formatCurrency(prom);
+  } else {
+    statSalario.textContent = '—';
+  }
+}
 
-      modal.classList.remove('hidden');
-    }
+// ─── Filtrar ──────────────────────────────────────────────────────────────────
+function filtrar() {
+  const q = buscador.value.trim().toLowerCase();
+  state.filtrados = q
+    ? state.empleados.filter(e =>
+        `${e.nombres} ${e.apellidos}`.toLowerCase().includes(q) ||
+        (e.cedulaIdentificacion ?? '').toLowerCase().includes(q) ||
+        (e.cargoFuncion ?? '').toLowerCase().includes(q))
+    : [...state.empleados];
+  renderTabla();
+}
 
-    function closeModal() {
-      modal.classList.add('hidden');
-      form.reset();
-      state.editingId = null;
-      document.getElementById('idUsuario').readOnly = false;
-    }
+// ─── Render tabla ─────────────────────────────────────────────────────────────
+function renderTabla() {
+  if (!state.filtrados.length) {
+    tbody.innerHTML = `<tr><td colspan="7">
+      <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <h3>No se encontraron empleados</h3>
+        <p>Intenta con otro término de búsqueda o registra un nuevo empleado.</p>
+      </div></td></tr>`;
+    return;
+  }
 
-    function getFilteredEmployees() {
-      const term = state.filter.trim().toLowerCase();
-      if (!term) return state.empleados;
-      return state.empleados.filter((emp) => {
-        const haystack = [
-          emp.nombres,
-          emp.apellidos,
-          emp.cedulaIdentificacion,
-          emp.cargoFuncion,
-          emp.email
-        ].filter(Boolean).join(' ').toLowerCase();
-        return haystack.includes(term);
-      });
-    }
+  tbody.innerHTML = state.filtrados.map((e, i) => {
+    const iniciales = `${(e.nombres ?? '')[0] ?? ''}${(e.apellidos ?? '')[0] ?? ''}`.toUpperCase();
+    return `
+    <tr>
+      <td class="text-muted">${i + 1}</td>
+      <td>
+        <div class="flex items-center gap-2">
+          <div style="width:34px;height:34px;border-radius:50%;background:var(--color-primary-light);
+                      color:var(--color-primary-dark);display:flex;align-items:center;justify-content:center;
+                      font-weight:700;font-size:.75rem;flex-shrink:0">${iniciales}</div>
+          <div>
+            <div class="font-medium">${e.nombres} ${e.apellidos}</div>
+          </div>
+        </div>
+      </td>
+      <td>${e.cedulaIdentificacion ?? '—'}</td>
+      <td>${e.cargoFuncion ?? '—'}</td>
+      <td>${formatDate(e.fechaContratacion)}</td>
+      <td class="font-medium">${formatCurrency(e.salarioBaseMensual)}</td>
+      <td>
+        <div class="row-actions">
+          <a href="/frontend/pages/admin/empleado-detalle.html?id=${e.idEmpleado}"
+             class="btn-icon" title="Ver expediente">
+            👁
+          </a>
+          <button class="btn-icon" title="Editar" data-accion="editar" data-id="${e.idEmpleado}">✏️</button>
+          <button class="btn-icon btn-icon-danger" title="Eliminar" data-accion="eliminar"
+                  data-id="${e.idEmpleado}" data-nombre="${e.nombres} ${e.apellidos}">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
 
-    function renderTable() {
-      const empleados = getFilteredEmployees();
-      totalEmpleadosEl.textContent = state.empleados.length;
-      empleadosActivosEl.textContent = state.empleados.length;
+// ─── Acciones de fila ─────────────────────────────────────────────────────────
+tbody.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-accion]');
+  if (!btn) return;
+  const { accion, id, nombre } = btn.dataset;
+  if (accion === 'editar')   abrirEditar(Number(id));
+  if (accion === 'eliminar') abrirEliminar(Number(id), nombre);
+});
 
-      if (!empleados.length) {
-        tableBody.innerHTML = `
-          <tr>
-            <td colspan="8" class="empty-state">
-              <div class="empty-icon">📋</div>
-              <h3>No hay empleados para mostrar</h3>
-              <p>Intenta con otro criterio de búsqueda o crea uno nuevo.</p>
-            </td>
-          </tr>
-        `;
-        return;
-      }
+// ─── MODAL CREAR ─────────────────────────────────────────────────────────────
+document.getElementById('btn-nuevo').addEventListener('click', () => {
+  state.editandoId = null;
+  document.getElementById('modal-title').textContent = 'Nuevo empleado';
+  document.getElementById('save-text').textContent   = 'Crear empleado';
+  limpiarForm();
+  show(document.getElementById('bloque-usuario'));
+  show(document.getElementById('wrap-email'));
+  show(document.getElementById('wrap-password'));
+  show(modalEmp);
+});
 
-      tableBody.innerHTML = empleados.map((emp) => `
-        <tr>
-          <td>
-            <div class="font-medium">${emp.nombres ?? ''} ${emp.apellidos ?? ''}</div>
-          </td>
-          <td>${emp.email || '—'}</td>
-          <td>${emp.cedulaIdentificacion || '—'}</td>
-          <td>${emp.cargoFuncion || '—'}</td>
-          <td>${formatDate(emp.fechaContratacion)}</td>
-          <td>${formatCurrency(emp.salarioBaseMensual)}</td>
-          <td>${emp.diasVacacionesAcumuladas ?? 0}</td>
-          <td>
-            <div class="row-actions">
-              <button class="btn-icon btn-editar" data-id="${emp.idEmpleado}" title="Editar">✏️</button>
-              <button class="btn-icon btn-icon-danger btn-eliminar" data-id="${emp.idEmpleado}" title="Eliminar">🗑️</button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
+// ─── MODAL EDITAR ─────────────────────────────────────────────────────────────
+async function abrirEditar(id) {
+  state.editandoId = id;
+  document.getElementById('modal-title').textContent = 'Editar empleado';
+  document.getElementById('save-text').textContent   = 'Guardar cambios';
+  limpiarForm();
+  // Oculta campos de cuenta (no se edita usuario desde aquí)
+  hide(document.getElementById('bloque-usuario'));
+  hide(document.getElementById('wrap-email'));
+  hide(document.getElementById('wrap-password'));
+  show(modalEmp);
 
-    async function loadEmpleados() {
-      showPageLoader();
-      try {
-        const data = await empleadoApi.getAll();
-        state.empleados = Array.isArray(data) ? data : [];
-        renderTable();
-      } catch (error) {
-        console.error(error);
-        toast(error.message || 'No se pudieron cargar los empleados.', 'error');
-      } finally {
-        hidePageLoader();
-      }
-    }
+  try {
+    const emp = await empleadoApi.getById(id);
+    document.getElementById('field-id').value              = emp.idEmpleado;
+    document.getElementById('field-nombres').value         = emp.nombres ?? '';
+    document.getElementById('field-apellidos').value       = emp.apellidos ?? '';
+    document.getElementById('field-cedula').value          = emp.cedulaIdentificacion ?? '';
+    document.getElementById('field-cargo').value           = emp.cargoFuncion ?? '';
+    document.getElementById('field-responsabilidades').value = emp.responsabilidades ?? '';
+    document.getElementById('field-contratacion').value    = (emp.fechaContratacion ?? '').split('T')[0];
+    document.getElementById('field-salario').value         = emp.salarioBaseMensual ?? '';
+    document.getElementById('field-foto').value            = emp.fotoUrl ?? '';
+  } catch (err) {
+    toast('No se pudo cargar el empleado: ' + err.message, 'error');
+  }
+}
 
-    async function handleSubmit(event) {
-      event.preventDefault();
-      const submitBtn = document.getElementById('submit-btn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="spinner"></span> Guardando...';
+// ─── MODAL ELIMINAR ───────────────────────────────────────────────────────────
+let _deleteId = null;
+function abrirEliminar(id, nombre) {
+  _deleteId = id;
+  document.getElementById('del-nombre').textContent = nombre;
+  show(modalEliminar);
+}
 
-      const payload = {
-        idUsuario: Number(document.getElementById('idUsuario').value),
-        cedulaIdentificacion: document.getElementById('cedulaIdentificacion').value.trim(),
-        fotoUrl: document.getElementById('fotoUrl').value.trim() || null,
-        nombres: document.getElementById('nombres').value.trim(),
-        apellidos: document.getElementById('apellidos').value.trim(),
-        cargoFuncion: document.getElementById('cargoFuncion').value.trim(),
-        responsabilidades: document.getElementById('responsabilidades').value.trim(),
-        fechaContratacion: new Date(document.getElementById('fechaContratacion').value + 'T00:00:00').toISOString(),
-        salarioBaseMensual: Number(document.getElementById('salarioBaseMensual').value),
-        diasVacacionesAcumuladas: Number(document.getElementById('diasVacacionesAcumuladas').value)
+document.getElementById('del-confirm').addEventListener('click', async () => {
+  if (!_deleteId) return;
+  try {
+    await empleadoApi.delete(_deleteId);
+    toast('Empleado eliminado correctamente.', 'success');
+    hide(modalEliminar);
+    cargar();
+  } catch (err) {
+    toast('Error al eliminar: ' + err.message, 'error');
+  }
+});
+
+['del-close','del-cancel'].forEach(id =>
+  document.getElementById(id).addEventListener('click', () => hide(modalEliminar)));
+
+// ─── GUARDAR (crear o editar) ─────────────────────────────────────────────────
+document.getElementById('modal-save').addEventListener('click', async () => {
+  if (!validarForm()) return;
+
+  const saveBtn  = document.getElementById('modal-save');
+  const saveText = document.getElementById('save-text');
+  saveBtn.disabled = true;
+  const textoOrig = saveText.textContent;
+  saveText.textContent = 'Guardando...';
+
+  try {
+    if (state.editandoId) {
+      // ── Editar ──────────────────────────────────────────────
+      const body = {
+        nombres:              document.getElementById('field-nombres').value.trim(),
+        apellidos:            document.getElementById('field-apellidos').value.trim(),
+        cedulaIdentificacion: document.getElementById('field-cedula').value.trim(),
+        cargoFuncion:         document.getElementById('field-cargo').value.trim(),
+        responsabilidades:    document.getElementById('field-responsabilidades').value.trim(),
+        fechaContratacion:    document.getElementById('field-contratacion').value,
+        salarioBaseMensual:   parseFloat(document.getElementById('field-salario').value),
+        fotoUrl:              document.getElementById('field-foto').value.trim() || null,
       };
+      await empleadoApi.update(state.editandoId, body);
+      toast('Empleado actualizado correctamente.', 'success');
+    } else {
+      // ── Crear — primero registra usuario, luego empleado ────
+      const email    = document.getElementById('field-email').value.trim();
+      const password = document.getElementById('field-password').value;
 
-      try {
-        if (state.editingId) {
-          await empleadoApi.update(state.editingId, payload);
-          toast('Empleado actualizado correctamente.', 'success');
-        } else {
-          await empleadoApi.create(payload);
-          toast('Empleado creado correctamente.', 'success');
-        }
-        closeModal();
-        await loadEmpleados();
-      } catch (error) {
-        console.error(error);
-        toast(error.message || 'No se pudo guardar el empleado.', 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Guardar empleado';
-      }
+      // 1. Crea cuenta de usuario con rol Empleado
+      const usuario = await authApi.register({ email, password, role: 'Empleado' });
+
+      // 2. Crea el expediente del empleado asociado al usuario creado
+      const body = {
+        idUsuario:            usuario.idUsuario,
+        nombres:              document.getElementById('field-nombres').value.trim(),
+        apellidos:            document.getElementById('field-apellidos').value.trim(),
+        cedulaIdentificacion: document.getElementById('field-cedula').value.trim(),
+        cargoFuncion:         document.getElementById('field-cargo').value.trim(),
+        responsabilidades:    document.getElementById('field-responsabilidades').value.trim(),
+        fechaContratacion:    document.getElementById('field-contratacion').value,
+        salarioBaseMensual:   parseFloat(document.getElementById('field-salario').value),
+        fotoUrl:              document.getElementById('field-foto').value.trim() || null,
+      };
+      await empleadoApi.create(body);
+      toast('Empleado registrado correctamente.', 'success');
     }
 
-    async function handleDelete(id) {
-      const confirmed = window.confirm('¿Desea eliminar este empleado y su expediente?');
-      if (!confirmed) return;
+    hide(modalEmp);
+    cargar();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveText.textContent = textoOrig;
+  }
+});
 
-      try {
-        await empleadoApi.delete(id);
-        toast('Empleado eliminado correctamente.', 'success');
-        await loadEmpleados();
-      } catch (error) {
-        console.error(error);
-        toast(error.message || 'No se pudo eliminar el empleado.', 'error');
-      }
+// ─── Cerrar modales ───────────────────────────────────────────────────────────
+['modal-close','modal-cancel'].forEach(id =>
+  document.getElementById(id).addEventListener('click', () => hide(modalEmp)));
+
+modalEmp.addEventListener('click', (e) => {
+  if (e.target === modalEmp) hide(modalEmp);
+});
+modalEliminar.addEventListener('click', (e) => {
+  if (e.target === modalEliminar) hide(modalEliminar);
+});
+
+// ─── Mostrar/ocultar contraseña ───────────────────────────────────────────────
+document.getElementById('toggle-pass').addEventListener('click', () => {
+  const inp = document.getElementById('field-password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+});
+
+// ─── Buscador ─────────────────────────────────────────────────────────────────
+buscador.addEventListener('input', debounce(filtrar, 280));
+
+// ─── Refresh ─────────────────────────────────────────────────────────────────
+document.getElementById('btn-refresh').addEventListener('click', cargar);
+
+// ─── Utilidades ──────────────────────────────────────────────────────────────
+function limpiarForm() {
+  ['field-id','field-email','field-password','field-nombres','field-apellidos',
+   'field-cedula','field-cargo','field-responsabilidades','field-contratacion',
+   'field-salario','field-foto'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.querySelectorAll('.form-error').forEach(el => { el.textContent = ''; hide(el); });
+  document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
+}
+
+function mostrarError(fieldId, errId, msg) {
+  const f = document.getElementById(fieldId);
+  const e = document.getElementById(errId);
+  if (f) f.classList.add('error');
+  if (e) { e.textContent = msg; show(e); }
+}
+
+function validarForm() {
+  let ok = true;
+  document.querySelectorAll('.form-error').forEach(el => { el.textContent = ''; hide(el); });
+  document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
+
+  const esCreacion = !state.editandoId;
+
+  if (esCreacion) {
+    const email = document.getElementById('field-email').value.trim();
+    if (!email) { mostrarError('field-email','err-email','El correo es obligatorio.'); ok = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      mostrarError('field-email','err-email','Ingresa un correo válido.'); ok = false;
     }
 
-    document.getElementById('btn-nuevo-empleado').addEventListener('click', () => openModal());
-    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
-    document.getElementById('cancelar-btn').addEventListener('click', closeModal);
-    modal.addEventListener('click', (event) => {
-      if (event.target === modal) closeModal();
-    });
-    form.addEventListener('submit', handleSubmit);
-    searchInput.addEventListener('input', (event) => {
-      state.filter = event.target.value;
-      renderTable();
-    });
+    const pass = document.getElementById('field-password').value;
+    if (!pass) { mostrarError('field-password','err-password','La contraseña es obligatoria.'); ok = false; }
+    else if (pass.length < 8) {
+      mostrarError('field-password','err-password','Mínimo 8 caracteres.'); ok = false;
+    }
+  }
 
-    tableBody.addEventListener('click', async (event) => {
-      const button = event.target.closest('button');
-      if (!button) return;
+  if (!document.getElementById('field-nombres').value.trim())
+    { mostrarError('field-nombres','err-nombres','Los nombres son obligatorios.'); ok = false; }
+  if (!document.getElementById('field-apellidos').value.trim())
+    { mostrarError('field-apellidos','err-apellidos','Los apellidos son obligatorios.'); ok = false; }
+  if (!document.getElementById('field-cedula').value.trim())
+    { mostrarError('field-cedula','err-cedula','La cédula es obligatoria.'); ok = false; }
+  if (!document.getElementById('field-cargo').value.trim())
+    { mostrarError('field-cargo','err-cargo','El cargo es obligatorio.'); ok = false; }
+  if (!document.getElementById('field-responsabilidades').value.trim())
+    { mostrarError('field-responsabilidades','err-responsabilidades','Las responsabilidades son obligatorias.'); ok = false; }
+  if (!document.getElementById('field-contratacion').value)
+    { mostrarError('field-contratacion','err-contratacion','La fecha de contratación es obligatoria.'); ok = false; }
 
-      const id = Number(button.dataset.id);
-      if (!id) return;
+  const sal = parseFloat(document.getElementById('field-salario').value);
+  if (!sal || sal <= 0)
+    { mostrarError('field-salario','err-salario','El salario debe ser mayor a 0.'); ok = false; }
 
-      if (button.classList.contains('btn-eliminar')) {
-        await handleDelete(id);
-      } else if (button.classList.contains('btn-editar')) {
-        const empleado = state.empleados.find((item) => item.idEmpleado === id);
-        if (empleado) openModal(empleado);
-      }
-    });
+  return ok;
+}
 
-    loadEmpleados();
-  </script>
+// ─── Iniciar ──────────────────────────────────────────────────────────────────
+cargar();
+</script>
 </body>
 </html>
