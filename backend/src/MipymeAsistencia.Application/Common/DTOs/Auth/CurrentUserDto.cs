@@ -7,6 +7,7 @@ namespace MipymeAsistencia.Application.Common.DTOs.Auth;
 public class CurrentUserDto
 {
     public int IdUsuario { get; set; }
+    public int? IdEmpleado { get; set; }   // null si el usuario no tiene expediente de empleado
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public bool EstadoActivo { get; set; }

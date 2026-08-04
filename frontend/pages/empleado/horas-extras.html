@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Horas Extras — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+</head>
+<body>
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Horas Extras</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-pendientes">0 pendientes</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Mis Horas Extras</h1>
+          <p>Solicita registro de horas extras y consulta el estado de tus solicitudes.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-nueva">＋ Registrar horas extras</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
+          <div class="stat-value" id="stat-pendientes">—</div>
+          <div class="stat-label">Pendientes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-aprobadas">—</div>
+          <div class="stat-label">Aprobadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">⏱</div></div>
+          <div class="stat-value" id="stat-horas">—</div>
+          <div class="stat-label">Total horas aprobadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">💰</div></div>
+          <div class="stat-value" id="stat-monto">—</div>
+          <div class="stat-label">Monto total aprobado</div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card" style="padding:0">
+        <div class="table-wrapper" style="border:none;border-radius:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Horas</th><th>Factor</th>
+                <th>Monto</th><th>Motivo</th><th>Estado</th><th>Aprobado por</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL REGISTRAR -->
+<div class="modal-overlay hidden" id="modal-he">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Registrar Horas Extras</span>
+      <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--color-primary-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--font-size-sm);color:var(--color-primary-dark);margin-bottom:var(--space-5)">
+        💡 El monto se calcula automáticamente: <strong>(Salario/240) × Factor × Horas</strong> según Arto. 62 Ley 185.
+      </div>
+      <form id="form-he" novalidate>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Fecha *</label>
+            <input type="date" class="form-input" id="f-fecha" />
+            <span class="form-error hidden" id="err-fecha"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cantidad de horas *</label>
+            <input type="number" class="form-input" id="f-horas" min="0.5" max="12" step="0.5" placeholder="Ej. 4" />
+            <span class="form-hint">Máximo 12 h por día (Ley 185)</span>
+            <span class="form-error hidden" id="err-horas"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Factor de recargo *</label>
+            <select class="form-input" id="f-factor">
+              <option value="1.5">1.5 — Turno diurno</option>
+              <option value="1.8">1.8 — Nocturno / día de descanso</option>
+            </select>
+            <span class="form-error hidden" id="err-factor"></span>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Motivo / justificación *</label>
+            <textarea class="form-input" id="f-motivo" rows="3" placeholder="Describe el motivo de las horas extras..." style="resize:vertical"></textarea>
+            <span class="form-error hidden" id="err-motivo"></span>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save"><span id="save-text">Registrar</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initEmpleadoLayout }        from '/frontend/modules/layout.js';
+import { authApi, horasExtrasApi }    from '/frontend/modules/api.js';
+import { toast, formatDate, formatCurrency, show, hide } from '/frontend/modules/utils.js';
+
+await initEmpleadoLayout('horas-extras');
+
+const chip = (e) => {
+  const m={'Aprobado':'green','Pendiente':'yellow','Rechazado':'red'};
+  return `<span class="chip chip-${m[e]??'blue'}">${e}</span>`;
+};
+
+const tbody = document.getElementById('tbody');
+let idEmpleado = null;
+
+async function init() {
+  const me = await authApi.me();
+  idEmpleado = me.idEmpleado ?? null;
+  if (!idEmpleado) { toast('No tienes expediente de empleado.','warning'); return; }
+  // fecha por defecto = hoy
+  document.getElementById('f-fecha').value = new Date().toISOString().split('T')[0];
+  cargar();
+}
+
+async function cargar() {
+  tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
+  try {
+    const data  = Array.isArray(await horasExtrasApi.getByEmpleado(idEmpleado))
+                  ? await horasExtrasApi.getByEmpleado(idEmpleado) : [];
+
+    const pend  = data.filter(h => h.estado === 'Pendiente').length;
+    const apro  = data.filter(h => h.estado === 'Aprobado');
+    const horas = apro.reduce((s,h) => s+(h.cantidadHoras??0), 0);
+    const monto = apro.reduce((s,h) => s+(h.montoPagar??0), 0);
+
+    document.getElementById('badge-pendientes').textContent = `${pend} pendiente${pend!==1?'s':''}`;
+    document.getElementById('stat-pendientes').textContent  = pend;
+    document.getElementById('stat-aprobadas').textContent   = apro.length;
+    document.getElementById('stat-horas').textContent       = horas+'h';
+    document.getElementById('stat-monto').textContent       = formatCurrency(monto);
+
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📭</div><h3>Sin horas extras registradas</h3><p>Haz clic en "Registrar horas extras" para comenzar.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(h => `
+      <tr>
+        <td>${formatDate(h.fecha)}</td>
+        <td class="font-medium">${h.cantidadHoras}h</td>
+        <td>${h.factorRecargo ? h.factorRecargo+'×' : '—'}</td>
+        <td class="font-medium">${formatCurrency(h.montoPagar)}</td>
+        <td style="max-width:200px;white-space:normal">${h.motivo??'—'}</td>
+        <td>${chip(h.estado)}</td>
+        <td>${h.nombreAprobador??'—'}</td>
+      </tr>`).join('');
+  } catch (err) {
+    toast(err.message,'error');
+  }
+}
+
+// Abrir modal
+document.getElementById('btn-nueva').addEventListener('click', () => {
+  document.getElementById('f-fecha').value  = new Date().toISOString().split('T')[0];
+  document.getElementById('f-horas').value  = '';
+  document.getElementById('f-factor').value = '1.5';
+  document.getElementById('f-motivo').value = '';
+  document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
+  show(document.getElementById('modal-he'));
+});
+
+// Guardar
+document.getElementById('modal-save').addEventListener('click', async () => {
+  let ok = true;
+  document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
+
+  const fecha  = document.getElementById('f-fecha').value;
+  const horas  = parseFloat(document.getElementById('f-horas').value);
+  const factor = parseFloat(document.getElementById('f-factor').value);
+  const motivo = document.getElementById('f-motivo').value.trim();
+
+  if (!fecha)                   { show(document.getElementById('err-fecha'));  document.getElementById('err-fecha').textContent='La fecha es obligatoria.'; ok=false; }
+  if (!horas||horas<=0||horas>12) { show(document.getElementById('err-horas')); document.getElementById('err-horas').textContent='Entre 0.5 y 12 horas.'; ok=false; }
+  if (!motivo)                  { show(document.getElementById('err-motivo')); document.getElementById('err-motivo').textContent='El motivo es obligatorio.'; ok=false; }
+  if (!ok) return;
+
+  const btn = document.getElementById('modal-save');
+  const txt = document.getElementById('save-text');
+  btn.disabled = true; txt.textContent = 'Registrando...';
+  try {
+    await horasExtrasApi.registrar({ idEmpleado, fecha, cantidadHoras: horas, factorRecargo: factor, motivo });
+    toast('Horas extras registradas. Pendiente de aprobación.','success');
+    hide(document.getElementById('modal-he'));
+    cargar();
+  } catch(err) {
+    toast('Error: '+err.message,'error');
+  } finally {
+    btn.disabled = false; txt.textContent = 'Registrar';
+  }
+});
+
+['modal-close','modal-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-he'))));
+document.getElementById('modal-he').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-he')) hide(document.getElementById('modal-he'));
+});
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Permisos y Vacaciones — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+</head>
+<body>
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Permisos y Vacaciones</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-dias">— días disponibles</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Mis Solicitudes</h1>
+          <p>Solicita permisos, vacaciones o tiempo personal y consulta el estado de cada solicitud.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-nueva">＋ Nueva solicitud</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">🌴</div></div>
+          <div class="stat-value" id="stat-vacaciones">—</div>
+          <div class="stat-label">Días vacaciones acumulados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
+          <div class="stat-value" id="stat-pendientes">—</div>
+          <div class="stat-label">Solicitudes pendientes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-aprobadas">—</div>
+          <div class="stat-label">Aprobadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">📅</div></div>
+          <div class="stat-value" id="stat-dias-tomados">—</div>
+          <div class="stat-label">Días tomados</div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card" style="padding:0">
+        <div class="table-wrapper" style="border:none;border-radius:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tipo</th><th>Desde</th><th>Hasta</th>
+                <th>Días</th><th>Motivo</th><th>Estado</th><th>Respuesta</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL NUEVA SOLICITUD -->
+<div class="modal-overlay hidden" id="modal-sol">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <span class="modal-title">Nueva Solicitud</span>
+      <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-sol" novalidate>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Tipo de solicitud *</label>
+            <select class="form-input" id="f-tipo">
+              <option value="Vacaciones">Vacaciones</option>
+              <option value="Permiso Medico">Permiso Médico</option>
+              <option value="Permiso Personal">Permiso Personal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha inicio *</label>
+            <input type="date" class="form-input" id="f-inicio" />
+            <span class="form-error hidden" id="err-inicio"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha fin *</label>
+            <input type="date" class="form-input" id="f-fin" />
+            <span class="form-error hidden" id="err-fin"></span>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Motivo / descripción *</label>
+            <textarea class="form-input" id="f-motivo" rows="3"
+              placeholder="Describe brevemente el motivo de tu solicitud..." style="resize:vertical"></textarea>
+            <span class="form-error hidden" id="err-motivo"></span>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save"><span id="save-text">Enviar solicitud</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initEmpleadoLayout }          from '/frontend/modules/layout.js';
+import { authApi, permisoApi,
+         empleadoApi }                  from '/frontend/modules/api.js';
+import { toast, formatDate, show, hide } from '/frontend/modules/utils.js';
+
+await initEmpleadoLayout('solicitudes');
+
+const chip = (e) => {
+  const m={'Aprobado':'green','Pendiente':'yellow','Rechazado':'red'};
+  return `<span class="chip chip-${m[e]??'blue'}">${e??'Pendiente'}</span>`;
+};
+const chipTipo = (t) =>
+  `<span class="chip chip-blue" style="font-size:.65rem">${t}</span>`;
+
+const tbody = document.getElementById('tbody');
+let idEmpleado = null;
+
+async function init() {
+  const me = await authApi.me();
+  idEmpleado = me.idEmpleado ?? null;
+  if (!idEmpleado) { toast('No tienes expediente de empleado.','warning'); return; }
+
+  // Días de vacaciones acumuladas
+  try {
+    const emp = await empleadoApi.getById(idEmpleado);
+    const dias = emp.diasVacacionesAcumuladas ?? 0;
+    document.getElementById('badge-dias').textContent = `${dias} días disponibles`;
+    document.getElementById('stat-vacaciones').textContent = dias;
+  } catch { /* silencioso */ }
+
+  // Fecha mínima = mañana
+  const man = new Date(); man.setDate(man.getDate()+1);
+  const manStr = man.toISOString().split('T')[0];
+  document.getElementById('f-inicio').min = manStr;
+  document.getElementById('f-fin').min    = manStr;
+  document.getElementById('f-inicio').value = manStr;
+  document.getElementById('f-fin').value    = manStr;
+
+  cargar();
+}
+
+async function cargar() {
+  tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
+  try {
+    const data = await permisoApi.getMias(idEmpleado);
+    const lista = Array.isArray(data) ? data : [];
+
+    const pend  = lista.filter(p => p.estadoSolicitud === 'Pendiente').length;
+    const apro  = lista.filter(p => p.estadoSolicitud === 'Aprobado');
+    const dias  = apro.reduce((s,p) => s+(p.diasSolicitados??0), 0);
+
+    document.getElementById('stat-pendientes').textContent  = pend;
+    document.getElementById('stat-aprobadas').textContent   = apro.length;
+    document.getElementById('stat-dias-tomados').textContent = dias;
+
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📭</div><h3>Sin solicitudes registradas</h3><p>Haz clic en "Nueva solicitud" para enviar tu primera solicitud.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = lista.map(p => `
+      <tr>
+        <td>${chipTipo(p.tipoSolicitud)}</td>
+        <td>${formatDate(p.fechaInicio)}</td>
+        <td>${formatDate(p.fechaFin)}</td>
+        <td class="font-medium">${p.diasSolicitados} día${p.diasSolicitados!==1?'s':''}</td>
+        <td style="max-width:180px;white-space:normal">${p.motivo??'—'}</td>
+        <td>${chip(p.estadoSolicitud)}</td>
+        <td>${p.fechaRespuesta ? formatDate(p.fechaRespuesta) : '—'}</td>
+      </tr>`).join('');
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// Abrir modal
+document.getElementById('btn-nueva').addEventListener('click', () => {
+  document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
+  show(document.getElementById('modal-sol'));
+});
+
+// Calcular días automáticamente al cambiar fechas
+function calcDias() {
+  const ini = document.getElementById('f-inicio').value;
+  const fin = document.getElementById('f-fin').value;
+  if (ini && fin && fin >= ini) {
+    const d = Math.ceil((new Date(fin)-new Date(ini))/(1000*60*60*24))+1;
+    document.getElementById('f-fin').title = `${d} día${d!==1?'s':''}`;
+  }
+}
+document.getElementById('f-inicio').addEventListener('change', calcDias);
+document.getElementById('f-fin').addEventListener('change', calcDias);
+
+// Guardar
+document.getElementById('modal-save').addEventListener('click', async () => {
+  let ok = true;
+  document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
+
+  const tipo   = document.getElementById('f-tipo').value;
+  const inicio = document.getElementById('f-inicio').value;
+  const fin    = document.getElementById('f-fin').value;
+  const motivo = document.getElementById('f-motivo').value.trim();
+
+  if (!inicio) { show(document.getElementById('err-inicio')); document.getElementById('err-inicio').textContent='La fecha de inicio es obligatoria.'; ok=false; }
+  if (!fin)    { show(document.getElementById('err-fin'));    document.getElementById('err-fin').textContent='La fecha de fin es obligatoria.'; ok=false; }
+  if (inicio && fin && fin < inicio) { show(document.getElementById('err-fin')); document.getElementById('err-fin').textContent='La fecha fin debe ser igual o posterior al inicio.'; ok=false; }
+  if (!motivo) { show(document.getElementById('err-motivo')); document.getElementById('err-motivo').textContent='El motivo es obligatorio.'; ok=false; }
+  if (!ok) return;
+
+  const dias = Math.ceil((new Date(fin)-new Date(inicio))/(1000*60*60*24))+1;
+
+  const btn = document.getElementById('modal-save');
+  const txt = document.getElementById('save-text');
+  btn.disabled = true; txt.textContent = 'Enviando...';
+  try {
+    await permisoApi.solicitar({ idEmpleado, tipoSolicitud: tipo, fechaInicio: inicio, fechaFin: fin, diasSolicitados: dias, motivo });
+    toast('Solicitud enviada correctamente. Pendiente de aprobación.','success');
+    hide(document.getElementById('modal-sol'));
+    cargar();
+  } catch(err) {
+    toast('Error: '+err.message,'error');
+  } finally {
+    btn.disabled = false; txt.textContent = 'Enviar solicitud';
+  }
+});
+
+['modal-close','modal-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-sol'))));
+document.getElementById('modal-sol').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-sol')) hide(document.getElementById('modal-sol'));
+});
+
+init();
+</script>
+</body>
+</html>

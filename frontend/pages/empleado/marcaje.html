@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marcar Asistencia — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Marcar Asistencia</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-fecha"></span>
+        <span id="reloj-topbar" style="font-family:monospace;font-size:var(--font-size-sm);font-weight:600;color:var(--color-primary)"></span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Mi jornada de hoy</h1>
+          <p>Registra tu entrada, almuerzo y salida. Asegúrate de estar en el rango GPS de la sede.</p>
+        </div>
+      </div>
+
+      <!-- Estado del turno actual -->
+      <div class="turno-card" id="turno-card">
+        <div class="turno-estado-dot inactivo" id="turno-dot"></div>
+        <div class="turno-info">
+          <div class="turno-titulo" id="turno-titulo">Sin turno activo</div>
+          <div class="turno-sub"   id="turno-sub">Aún no has marcado la entrada de hoy.</div>
+        </div>
+        <div class="turno-reloj" id="turno-reloj">--:--</div>
+      </div>
+
+      <!-- Botones de marcaje -->
+      <div class="marcaje-grid">
+        <button class="marcaje-btn marcaje-entrada" id="btn-entrada" disabled>
+          <span class="btn-icon-big">🟢</span>
+          <span>Registrar Entrada</span>
+          <span class="btn-hora" id="hora-entrada-reg">—</span>
+        </button>
+
+        <button class="marcaje-btn marcaje-almuerzo" id="btn-almuerzo" disabled>
+          <span class="btn-icon-big">🍽</span>
+          <span id="label-almuerzo">Inicio Almuerzo</span>
+          <span class="btn-hora" id="hora-almuerzo-reg">—</span>
+        </button>
+
+        <button class="marcaje-btn marcaje-salida" id="btn-salida" disabled>
+          <span class="btn-icon-big">🔵</span>
+          <span>Registrar Salida</span>
+          <span class="btn-hora" id="hora-salida-reg">—</span>
+        </button>
+      </div>
+
+      <!-- Info de hoy -->
+      <div class="stats-grid" style="margin-bottom:var(--space-6)">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">📍</div></div>
+          <div class="stat-value" id="stat-gps">—</div>
+          <div class="stat-label">Estado GPS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">🏢</div></div>
+          <div class="stat-value" id="stat-sede">—</div>
+          <div class="stat-label">Sede</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⏱</div></div>
+          <div class="stat-value" id="stat-distancia">—</div>
+          <div class="stat-label">Distancia a la sede</div>
+        </div>
+      </div>
+
+      <!-- Instrucciones -->
+      <div class="card" style="background:var(--color-primary-light);border-color:var(--color-primary)">
+        <div class="card-title" style="color:var(--color-primary-dark);margin-bottom:var(--space-3)">📋 ¿Cómo funciona el marcaje?</div>
+        <ol style="padding-left:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-size-sm);color:var(--color-primary-dark)">
+          <li>El sistema obtiene tu ubicación GPS automáticamente.</li>
+          <li>Se consulta el <strong>QR activo de la sede</strong> que muestra el kiosco en la entrada.</li>
+          <li>Haz clic en el botón correspondiente: <strong>Entrada</strong> al llegar, <strong>Almuerzo</strong> al salir y volver, <strong>Salida</strong> al terminar.</li>
+          <li>Si el GPS no está disponible, puedes ingresar manualmente las coordenadas.</li>
+        </ol>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══ MODAL DE MARCAJE ═══ -->
+<div class="modal-overlay hidden" id="modal-marcaje">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-marcaje-titulo">Confirmar marcaje</span>
+      <button class="btn btn-ghost btn-sm" id="marcaje-close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- QR preview -->
+      <div class="qr-wrap" id="qr-wrap">
+        <div id="qr-display"></div>
+        <div class="qr-code-display" id="qr-token-display"></div>
+      </div>
+
+      <!-- Datos del marcaje -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);margin-top:var(--space-4)">
+        <div class="form-group">
+          <label class="form-label">Latitud GPS</label>
+          <input type="number" class="form-input" id="f-lat" step="0.000001" placeholder="12.13500" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Longitud GPS</label>
+          <input type="number" class="form-input" id="f-lon" step="0.000001" placeholder="-86.28000" />
+        </div>
+      </div>
+
+      <div id="gps-status" style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2)">
+        📡 Obteniendo ubicación GPS...
+      </div>
+
+      <div id="marcaje-info" style="margin-top:var(--space-4);padding:var(--space-3) var(--space-4);
+           background:var(--color-bg);border-radius:var(--radius-md);font-size:var(--font-size-sm);
+           color:var(--color-text-muted)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="marcaje-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="marcaje-confirm">
+        <span id="marcaje-confirm-text">Confirmar marcaje</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initEmpleadoLayout }        from '/frontend/modules/layout.js';
+import { asistenciaApi, sedeApi,
+         authApi }                    from '/frontend/modules/api.js';
+import { AuthService }               from '/frontend/modules/auth.js';
+import { toast, formatDate, show,
+         hide, formatCurrency }       from '/frontend/modules/utils.js';
+
+await initEmpleadoLayout('marcaje');
+
+/* ══════════════════════════════════════════════════════════
+   ESTADO GLOBAL
+══════════════════════════════════════════════════════════ */
+const state = {
+  idEmpleado:    null,
+  sede:          null,
+  qrToken:       null,
+  asistenciaHoy: null,   // registro de asistencia de hoy si ya existe
+  gps:           { lat: null, lon: null, disponible: false },
+  tipoMarcaje:   null,   // 'Entrada' | 'InicioAlmuerzo' | 'FinAlmuerzo' | 'Salida'
+};
+
+/* ══════════════════════════════════════════════════════════
+   RELOJ EN TOPBAR
+══════════════════════════════════════════════════════════ */
+function actualizarReloj() {
+  const now = new Date();
+  document.getElementById('reloj-topbar').textContent =
+    now.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  document.getElementById('turno-reloj').textContent =
+    now.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' });
+}
+actualizarReloj();
+setInterval(actualizarReloj, 1000);
+
+document.getElementById('badge-fecha').textContent =
+  new Intl.DateTimeFormat('es-NI', { dateStyle: 'full' }).format(new Date());
+
+/* ══════════════════════════════════════════════════════════
+   OBTENER DATOS DEL EMPLEADO DESDE /auth/me
+══════════════════════════════════════════════════════════ */
+async function inicializar() {
+  try {
+    /* 1. Datos del usuario logueado */
+    const me = await authApi.me();
+    /* me tiene idUsuario, email, role — necesitamos el idEmpleado */
+    /* Buscamos el empleado por email desde la respuesta de /auth/me */
+    state.idEmpleado = me.idEmpleado ?? null;
+
+    /* Si la API /auth/me no devuelve idEmpleado, buscamos por idUsuario */
+    if (!state.idEmpleado && me.idUsuario) {
+      const { empleadoApi } = await import('/frontend/modules/api.js');
+      const todos = await empleadoApi.getAll();
+      const emp   = (Array.isArray(todos) ? todos : [])
+                      .find(e => e.idUsuario === me.idUsuario || e.email === me.email);
+      state.idEmpleado = emp?.idEmpleado ?? null;
+    }
+
+    /* 2. Sede */
+    state.sede = await sedeApi.get();
+    document.getElementById('stat-sede').textContent =
+      state.sede?.nombreSede ?? 'Sin sede';
+
+    /* 3. QR activo */
+    const qrData = await asistenciaApi.qrActual().catch(() => null);
+    state.qrToken = qrData?.tokenQrActual ?? qrData?.token ?? null;
+
+    /* 4. Historial de hoy para saber qué marcajes ya hizo */
+    if (state.idEmpleado) {
+      const historial = await asistenciaApi.historial(state.idEmpleado).catch(() => []);
+      const hoy = new Date().toISOString().split('T')[0];
+      state.asistenciaHoy = (Array.isArray(historial) ? historial : [])
+        .find(a => (a.fecha ?? '').toString().startsWith(hoy)) ?? null;
+    }
+
+    /* 5. GPS */
+    obtenerGPS();
+
+    /* 6. Actualizar UI */
+    actualizarBotones();
+    actualizarTurno();
+
+  } catch (err) {
+    toast('Error al cargar los datos: ' + err.message, 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   GEOLOCALIZACIÓN
+══════════════════════════════════════════════════════════ */
+function obtenerGPS() {
+  if (!navigator.geolocation) {
+    state.gps.disponible = false;
+    document.getElementById('stat-gps').textContent = 'No disponible';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      state.gps.lat        = pos.coords.latitude;
+      state.gps.lon        = pos.coords.longitude;
+      state.gps.disponible = true;
+      document.getElementById('stat-gps').textContent = '✅ Disponible';
+      document.getElementById('f-lat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('f-lon').value = pos.coords.longitude.toFixed(6);
+      document.getElementById('gps-status').textContent =
+        `📍 Ubicación obtenida: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+      calcularDistancia();
+    },
+    () => {
+      state.gps.disponible = false;
+      document.getElementById('stat-gps').textContent = '⚠️ No obtenido';
+      document.getElementById('gps-status').textContent =
+        '⚠️ GPS no disponible. Ingresa las coordenadas manualmente.';
+    },
+    { timeout: 8000, enableHighAccuracy: true }
+  );
+}
+
+function calcularDistancia() {
+  if (!state.sede || !state.gps.lat) {
+    document.getElementById('stat-distancia').textContent = '—';
+    return;
+  }
+  const R = 6371000; // metros
+  const dLat = (state.sede.latitudSede - state.gps.lat) * Math.PI / 180;
+  const dLon = (state.sede.longitudSede - state.gps.lon) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(state.gps.lat * Math.PI/180) *
+            Math.cos(state.sede.latitudSede * Math.PI/180) *
+            Math.sin(dLon/2)**2;
+  const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  const enRango = dist <= (state.sede.radioToleranciaMetros ?? 200);
+  document.getElementById('stat-distancia').textContent =
+    `${dist} m ${enRango ? '✅' : '⚠️'}`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   LÓGICA DE BOTONES SEGÚN ESTADO DEL TURNO
+══════════════════════════════════════════════════════════ */
+function actualizarBotones() {
+  const a = state.asistenciaHoy;
+  const btnE = document.getElementById('btn-entrada');
+  const btnA = document.getElementById('btn-almuerzo');
+  const btnS = document.getElementById('btn-salida');
+
+  // Reset
+  [btnE, btnA, btnS].forEach(b => b.disabled = true);
+
+  if (!a) {
+    // Sin registro hoy → solo Entrada disponible
+    btnE.disabled = false;
+    document.getElementById('hora-entrada-reg').textContent = '';
+    return;
+  }
+
+  // Ya registró entrada
+  if (a.horaEntrada)
+    document.getElementById('hora-entrada-reg').textContent = `✅ ${a.horaEntrada.toString().slice(0,5)}`;
+
+  if (a.horaSalida) {
+    // Turno completo — todo bloqueado
+    document.getElementById('hora-salida-reg').textContent = `✅ ${a.horaSalida.toString().slice(0,5)}`;
+    if (a.inicioAlmuerzo)
+      document.getElementById('hora-almuerzo-reg').textContent = `✅ Completo`;
+    return;
+  }
+
+  if (!a.inicioAlmuerzo) {
+    // Tiene entrada, no almuerzo → puede iniciar almuerzo o salida
+    btnA.disabled = false;
+    document.getElementById('label-almuerzo').textContent = 'Iniciar Almuerzo';
+    btnS.disabled = false;
+  } else if (!a.finAlmuerzo) {
+    // Está en almuerzo → puede finalizar almuerzo
+    btnA.disabled = false;
+    document.getElementById('label-almuerzo').textContent = 'Fin Almuerzo';
+    document.getElementById('hora-almuerzo-reg').textContent =
+      `🍽 ${a.inicioAlmuerzo.toString().slice(0,5)}`;
+  } else {
+    // Volvió del almuerzo → puede salida
+    btnS.disabled = false;
+    document.getElementById('hora-almuerzo-reg').textContent = `✅ Completo`;
+  }
+}
+
+function actualizarTurno() {
+  const a = state.asistenciaHoy;
+  const dot   = document.getElementById('turno-dot');
+  const titulo = document.getElementById('turno-titulo');
+  const sub    = document.getElementById('turno-sub');
+
+  if (!a) {
+    dot.className = 'turno-estado-dot inactivo';
+    titulo.textContent = 'Sin turno activo';
+    sub.textContent    = 'Haz clic en "Registrar Entrada" para iniciar tu jornada.';
+    return;
+  }
+
+  if (a.horaSalida) {
+    dot.className = 'turno-estado-dot inactivo';
+    titulo.textContent = '✅ Jornada completada';
+    sub.textContent    = `Entrada: ${a.horaEntrada?.toString().slice(0,5)} · Salida: ${a.horaSalida?.toString().slice(0,5)} · Estado: ${a.estadoAsistencia}`;
+    return;
+  }
+
+  if (a.inicioAlmuerzo && !a.finAlmuerzo) {
+    dot.className = 'turno-estado-dot almuerzo';
+    titulo.textContent = '🍽 En almuerzo';
+    sub.textContent    = `Inicio almuerzo: ${a.inicioAlmuerzo?.toString().slice(0,5)}`;
+    return;
+  }
+
+  dot.className = 'turno-estado-dot activo';
+  titulo.textContent = '🟢 Turno activo';
+  const extra = a.minutosTardanza > 0 ? ` · ⏰ Tardanza: ${a.minutosTardanza} min` : '';
+  sub.textContent    = `Entrada: ${a.horaEntrada?.toString().slice(0,5)} · ${a.estadoAsistencia}${extra}`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ABRIR MODAL DE MARCAJE
+══════════════════════════════════════════════════════════ */
+function abrirModalMarcaje(tipo) {
+  state.tipoMarcaje = tipo;
+
+  const titulos = {
+    'Entrada':       '🟢 Registrar Entrada',
+    'InicioAlmuerzo':'🍽 Iniciar Almuerzo',
+    'FinAlmuerzo':   '🍽 Fin de Almuerzo',
+    'Salida':        '🔵 Registrar Salida',
+  };
+  document.getElementById('modal-marcaje-titulo').textContent =
+    titulos[tipo] ?? 'Confirmar marcaje';
+
+  /* Mostrar QR activo si existe */
+  const qrDisplay = document.getElementById('qr-display');
+  qrDisplay.innerHTML = '';
+  if (state.qrToken) {
+    new QRCode(qrDisplay, {
+      text: state.qrToken, width: 160, height: 160,
+      colorDark: '#1E293B', colorLight: '#FFFFFF',
+    });
+    document.getElementById('qr-token-display').textContent =
+      `Token: ${state.qrToken.slice(0,30)}...`;
+  } else {
+    qrDisplay.innerHTML =
+      '<div style="padding:var(--space-6);color:var(--color-text-muted);font-size:.8rem;text-align:center">⚠️ QR no disponible.<br>Contacta al administrador.</div>';
+    document.getElementById('qr-token-display').textContent = '';
+  }
+
+  /* Info resumen */
+  document.getElementById('marcaje-info').innerHTML = `
+    <strong>Tipo de marcaje:</strong> ${tipo}<br>
+    <strong>Hora actual:</strong> ${new Date().toLocaleTimeString('es-NI')}<br>
+    <strong>Sede:</strong> ${state.sede?.nombreSede ?? '—'}
+  `;
+
+  /* GPS en el form */
+  if (state.gps.disponible) {
+    document.getElementById('f-lat').value = state.gps.lat.toFixed(6);
+    document.getElementById('f-lon').value = state.gps.lon.toFixed(6);
+    document.getElementById('gps-status').textContent =
+      `📍 ${state.gps.lat.toFixed(4)}, ${state.gps.lon.toFixed(4)}`;
+  }
+
+  show(document.getElementById('modal-marcaje'));
+}
+
+/* ══════════════════════════════════════════════════════════
+   LISTENERS DE BOTONES
+══════════════════════════════════════════════════════════ */
+document.getElementById('btn-entrada').addEventListener('click',
+  () => abrirModalMarcaje('Entrada'));
+
+document.getElementById('btn-almuerzo').addEventListener('click', () => {
+  const a = state.asistenciaHoy;
+  abrirModalMarcaje(!a?.inicioAlmuerzo ? 'InicioAlmuerzo' : 'FinAlmuerzo');
+});
+
+document.getElementById('btn-salida').addEventListener('click',
+  () => abrirModalMarcaje('Salida'));
+
+/* ══════════════════════════════════════════════════════════
+   CONFIRMAR MARCAJE → POST /asistencia/registrar
+══════════════════════════════════════════════════════════ */
+document.getElementById('marcaje-confirm').addEventListener('click', async () => {
+  const lat = parseFloat(document.getElementById('f-lat').value);
+  const lon = parseFloat(document.getElementById('f-lon').value);
+
+  if (isNaN(lat) || isNaN(lon)) {
+    toast('Ingresa las coordenadas GPS para continuar.', 'warning');
+    return;
+  }
+  if (!state.idEmpleado) {
+    toast('No se pudo identificar tu expediente de empleado. Contacta al administrador.', 'error');
+    return;
+  }
+
+  const btn  = document.getElementById('marcaje-confirm');
+  const text = document.getElementById('marcaje-confirm-text');
+  btn.disabled = true;
+  text.textContent = 'Registrando...';
+
+  try {
+    const result = await asistenciaApi.registrar({
+      idEmpleado:       state.idEmpleado,
+      tipoMarcaje:      state.tipoMarcaje,
+      latitudMarcaje:   lat,
+      longitudMarcaje:  lon,
+      tokenQrEscaneado: state.qrToken ?? '',
+      codigoOtpGenerado:'',
+    });
+
+    toast(`✅ ${state.tipoMarcaje} registrada correctamente.`, 'success');
+    hide(document.getElementById('modal-marcaje'));
+
+    /* Actualiza el estado local con la respuesta */
+    state.asistenciaHoy = result;
+    actualizarBotones();
+    actualizarTurno();
+
+  } catch (err) {
+    toast('Error al registrar: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    text.textContent = 'Confirmar marcaje';
+  }
+});
+
+/* ── Cerrar modal ──────────────────────────────────── */
+['marcaje-close','marcaje-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () =>
+    hide(document.getElementById('modal-marcaje'))));
+document.getElementById('modal-marcaje').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-marcaje'))
+    hide(document.getElementById('modal-marcaje'));
+});
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+inicializar();
+</script>
+</body>
+</html>
