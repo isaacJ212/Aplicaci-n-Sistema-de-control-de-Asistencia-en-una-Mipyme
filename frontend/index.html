@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MipymeAsistencia</title>
-  <link rel="stylesheet" href="assets/css/variables.css" />
-  <link rel="stylesheet" href="assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
   <style>
     /* Pantalla de redirección centrada */
     .redirect-screen {
@@ -41,8 +41,8 @@
   </div>
 
   <script type="module">
-    import { AuthService } from './modules/auth.js';
-    import CONFIG          from './modules/config.js';
+    import { AuthService } from '/frontend/modules/auth.js';
+    import CONFIG          from '/frontend/modules/config.js';
 
     // Redirige al dashboard correcto si hay sesión, o al login
     if (AuthService.isAuthenticated()) {

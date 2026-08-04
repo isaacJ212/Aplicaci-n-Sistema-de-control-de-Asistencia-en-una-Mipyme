@@ -3,65 +3,149 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Admin — MipymeAsistencia</title>
+  <title>Dashboard — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/css/variables.css" />
-  <link rel="stylesheet" href="../../assets/css/reset.css" />
-  <link rel="stylesheet" href="../../assets/css/components.css" />
-  <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .placeholder-screen {
-      text-align: center;
-      display: flex; flex-direction: column; align-items: center; gap: var(--space-4);
-    }
-    .role-badge {
-      background: var(--color-primary-light);
-      color: var(--color-primary-dark);
-      padding: var(--space-2) var(--space-5);
-      border-radius: var(--radius-full);
-      font-size: var(--font-size-sm);
-      font-weight: 600;
-      letter-spacing: .05em;
-    }
-    h1 { font-size: var(--font-size-3xl); color: var(--color-text); }
-    p  { color: var(--color-text-muted); max-width: 380px; }
-    .user-info {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4) var(--space-6);
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
-    }
-  </style>
+  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
+  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
 </head>
 <body>
-  <div class="placeholder-screen">
-    <div class="role-badge">👨‍💼 ADMIN</div>
-    <h1>Dashboard Admin</h1>
-    <p>Inicio de sesión verificado correctamente. Este dashboard está en construcción.</p>
-    <div class="user-info" id="user-info">Cargando usuario...</div>
-    <button class="btn btn-secondary" id="logout-btn">Cerrar sesión</button>
-  </div>
 
-  <div id="toast-container"></div>
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
 
-  <script type="module">
-    import { AuthService } from '../../modules/auth.js';
-    import { toast }       from '../../modules/utils.js';
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="date-badge"></span>
+      </div>
+    </header>
 
-    // Guardia — solo Admin puede ver esta página
-    if (!AuthService.requireAuth('Admin')) return;
+    <section class="page-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Métricas del día</h1>
+          <p>Resumen de asistencia y alertas de puntualidad en tiempo real.</p>
+        </div>
+        <button class="btn btn-secondary" id="refresh-btn">↻ Actualizar</button>
+      </div>
 
-    const user = AuthService.getUser();
-    document.getElementById('user-info').textContent =
-      `✅ Sesión activa: ${user?.email}  |  Rol: ${user?.role}`;
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">👥</div></div>
+          <div class="stat-value" id="stat-empleados">—</div>
+          <div class="stat-label">Empleados activos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-registros">—</div>
+          <div class="stat-label">Registros hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⏰</div></div>
+          <div class="stat-value" id="stat-tardanzas">—</div>
+          <div class="stat-label">Tardanzas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">🕗</div></div>
+          <div class="stat-value" id="stat-a-tiempo">—</div>
+          <div class="stat-label">A tiempo</div>
+        </div>
+      </div>
 
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      toast('Cerrando sesión...', 'info', 1000);
-      setTimeout(() => AuthService.logout(), 800);
-    });
-  </script>
+      <!-- Dos columnas -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Resumen del día</span></div>
+          <div class="summary-list">
+            <div class="summary-row"><span>Registros capturados</span><strong id="sum-registros">—</strong></div>
+            <div class="summary-row"><span>Tardanzas detectadas</span><strong id="sum-tardanzas">—</strong></div>
+            <div class="summary-row"><span>Marcajes a tiempo</span><strong id="sum-a-tiempo">—</strong></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Alertas de puntualidad</span></div>
+          <div id="alertas-list" class="alerts-list">
+            <div class="empty-alert">Cargando...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+  import { initAdminLayout }           from '/frontend/modules/layout.js';
+  import { empleadoApi, asistenciaApi } from '/frontend/modules/api.js';
+  import { toast, formatDate }          from '/frontend/modules/utils.js';
+
+  await initAdminLayout('dashboard');
+
+  // Fecha en la topbar
+  document.getElementById('date-badge').textContent =
+    new Intl.DateTimeFormat('es-NI', { dateStyle: 'full' }).format(new Date());
+
+  async function loadDashboard() {
+    try {
+      const hoy = new Date();
+      const inicio = new Date(hoy); inicio.setHours(0,0,0,0);
+      const fin    = new Date(hoy); fin.setHours(23,59,59,999);
+
+      const [empleados, asistencias] = await Promise.all([
+        empleadoApi.getAll(),
+        asistenciaApi.getAll(
+          `?fechaDesde=${encodeURIComponent(inicio.toISOString())}` +
+          `&fechaHasta=${encodeURIComponent(fin.toISOString())}`
+        )
+      ]);
+
+      const emps  = Array.isArray(empleados)   ? empleados   : [];
+      const asist = Array.isArray(asistencias) ? asistencias : [];
+
+      const tardanzas = asist.filter(a => (a.minutosTardanza ?? 0) > 0 || a.estadoAsistencia === 'Tardanza');
+      const aTiempo   = asist.filter(a => a.estadoAsistencia === 'A Tiempo');
+
+      document.getElementById('stat-empleados').textContent  = emps.length;
+      document.getElementById('stat-registros').textContent  = asist.length;
+      document.getElementById('stat-tardanzas').textContent  = tardanzas.length;
+      document.getElementById('stat-a-tiempo').textContent   = aTiempo.length;
+      document.getElementById('sum-registros').textContent   = asist.length;
+      document.getElementById('sum-tardanzas').textContent   = tardanzas.length;
+      document.getElementById('sum-a-tiempo').textContent    = aTiempo.length;
+
+      const empMap = new Map(emps.map(e => [e.idEmpleado, `${e.nombres} ${e.apellidos}`]));
+      const alertaEl = document.getElementById('alertas-list');
+
+      if (!tardanzas.length) {
+        alertaEl.innerHTML = '<div class="empty-alert">✅ Sin tardanzas registradas hoy.</div>';
+      } else {
+        alertaEl.innerHTML = tardanzas.slice(0, 8).map(a => `
+          <div class="alert-item">
+            <div>
+              <div class="font-medium">${empMap.get(a.idEmpleado) ?? `Empleado #${a.idEmpleado}`}</div>
+              <div class="text-muted" style="font-size:.75rem">${formatDate(a.fecha)}</div>
+            </div>
+            <span class="alert-pill">${a.minutosTardanza ?? 0} min</span>
+          </div>`).join('');
+      }
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    toast('Actualizando...', 'info', 800);
+    loadDashboard();
+  });
+
+  loadDashboard();
+</script>
 </body>
 </html>

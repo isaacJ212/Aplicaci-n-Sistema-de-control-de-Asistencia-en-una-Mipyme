@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rendimiento — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Seguimiento y rendimiento</div>
+        <div class="topbar-right"><span class="topbar-badge">Próximamente</span></div>
+      </header>
+      <section class="page-content">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h1>Rendimiento por empleado</h1>
+            <p>Se mostrará la evaluación del desempeño y seguimiento del personal.</p>
+          </div>
+        </div>
+        <div class="card">
+          <p class="text-muted">Esta vista podrá usar los datos de asistencia y la información del expediente para construir indicadores.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module">
+    import { AuthService } from '../../modules/auth.js';
+    import { initAdminLayout } from '../../modules/layout.js';
+    if (!AuthService.requireAuth('Admin')) return;
+    initAdminLayout('rendimiento');
+  </script>
+</body>
+</html>

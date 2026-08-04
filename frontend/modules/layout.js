@@ -1,41 +1,42 @@
 /**
  * layout.js — Carga el sidebar compartido e inicializa el layout admin.
- * Llama a initAdminLayout(currentPage) en cada página admin.
+ *
+ * Live Preview sirve archivos estáticos desde la raíz del workspace.
+ * Las rutas absolutas usan /frontend/ como prefijo.
  */
 import { AuthService } from './auth.js';
 import { toast }       from './utils.js';
 
 /**
- * Carga el sidebar HTML, activa el link de la página actual
- * e inicializa los datos del usuario en el footer del sidebar.
+ * Inicializa el layout admin: carga el sidebar, marca el link activo,
+ * rellena datos del usuario y conecta el botón de logout.
  *
- * @param {string} currentPage — coincide con data-page del link activo
- *                               ej: 'empleados', 'planillas', 'dashboard'
+ * @param {string} currentPage  Valor de data-page del link activo (ej: 'empleados')
  */
 export async function initAdminLayout(currentPage = '') {
   // 1. Guardia de ruta
   if (!AuthService.requireAuth('Admin')) return;
 
-  // 2. Carga el sidebar en #sidebar-container
+  // 2. Inyecta el sidebar en su contenedor
   const container = document.getElementById('sidebar-container');
   if (container) {
     try {
-      // Ruta absoluta relativa a la raíz del servidor de desarrollo
+      // Ruta absoluta desde la raíz del workspace (funciona con Live Preview)
       const res  = await fetch('/frontend/components/sidebar-admin.html');
       const html = await res.text();
       container.innerHTML = html;
-    } catch {
-      console.warn('No se pudo cargar el sidebar.');
+    } catch (e) {
+      console.warn('No se pudo cargar el sidebar:', e.message);
     }
   }
 
-  // 3. Marca el link activo
+  // 3. Marca el link activo DESPUÉS de inyectar el HTML
   if (currentPage) {
-    const link = document.querySelector(`.sidebar-link[data-page="${currentPage}"]`);
-    link?.classList.add('active');
+    document.querySelector(`.sidebar-link[data-page="${currentPage}"]`)
+            ?.classList.add('active');
   }
 
-  // 4. Rellena el avatar y email del usuario en el sidebar
+  // 4. Rellena datos del usuario en el footer del sidebar
   const user = AuthService.getUser();
   if (user) {
     const emailEl  = document.getElementById('sidebar-email');
@@ -44,7 +45,7 @@ export async function initAdminLayout(currentPage = '') {
     if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
   }
 
-  // 5. Logout
+  // 5. Logout (delegado en document para capturarlo después del fetch)
   document.addEventListener('click', (e) => {
     if (e.target.closest('#sidebar-logout-btn')) {
       toast('Cerrando sesión...', 'info', 800);

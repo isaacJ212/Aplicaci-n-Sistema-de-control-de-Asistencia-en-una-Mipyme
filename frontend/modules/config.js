@@ -21,7 +21,9 @@ const CONFIG = {
     EMPLEADO: 'Empleado',
   },
 
-  // Rutas por rol (a dónde redirigir después del login)
+  // Rutas por rol — relativas a la raíz del servidor de Live Preview
+  // Live Preview sirve desde la raíz del workspace, por eso la ruta
+  // incluye la carpeta /frontend/ completa.
   REDIRECT_AFTER_LOGIN: {
     Admin:    '/frontend/pages/admin/dashboard.html',
     Empleado: '/frontend/pages/empleado/dashboard.html',
