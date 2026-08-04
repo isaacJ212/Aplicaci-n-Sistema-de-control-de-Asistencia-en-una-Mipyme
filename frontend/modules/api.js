@@ -88,6 +88,7 @@ export const empleadoApi = {
   getById:  (id)   => api.get(`/empleado/${id}`),
   create:   (body) => api.post('/empleado', body),
   update:   (id, body) => api.put(`/empleado/${id}`, body),
+  delete:   (id)   => api.delete(`/empleado/${id}`),
 };
 
 // Asistencia
