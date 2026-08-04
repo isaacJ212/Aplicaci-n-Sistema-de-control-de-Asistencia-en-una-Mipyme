@@ -97,12 +97,15 @@ export const empleadoApi = {
 };
 
 export const asistenciaApi = {
-  getAll:    (params = '') => api.get(`/asistencia${params}`),
-  historial: (id)          => api.get(`/asistencia/historial/${id}`),
-  qrActual:  ()            => api.get('/asistencia/qr-actual'),
-  generarQr: (id)          => api.post(`/asistencia/generar-qr/${id}`),
-  validarQr: (body)        => api.post('/asistencia/validar-qr', body),
-  registrar: (body)        => api.post('/asistencia/registrar', body),
+  getAll:          (params = '') => api.get(`/asistencia${params}`),
+  historial:       (id)          => api.get(`/asistencia/historial/${id}`),
+  qrActual:        ()            => api.get('/asistencia/qr-actual'),
+  generarQr:       (id)          => api.post(`/asistencia/generar-qr/${id}`),
+  rotarQrSede:     ()            => api.post('/asistencia/rotar-qr-sede'),
+  validarQr:       (body)        => api.post('/asistencia/validar-qr', body),
+  registrar:       (body)        => api.post('/asistencia/registrar', body),
+  alertasTardanza: (periodo = '', umbral = 3) =>
+    api.get(`/asistencia/alertas-tardanza?periodo=${encodeURIComponent(periodo)}&umbral=${umbral}`),
 };
 
 export const horasExtrasApi = {

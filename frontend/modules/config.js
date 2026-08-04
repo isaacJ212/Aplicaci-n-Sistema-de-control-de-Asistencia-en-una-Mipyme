@@ -1,10 +1,14 @@
 /**
- * config.js — Configuración global del frontend
- * Cambia API_BASE_URL para apuntar a producción en Render.
+ * config.js — Configuración global del frontend.
+ *
+ * IMPORTANTE — REDIRECT_AFTER_LOGIN usa rutas RELATIVAS al archivo login.html
+ * (que está en pages/auth/). Así funciona con cualquier puerto y servidor.
  */
 
 const CONFIG = {
-  // URL base de la API — en producción reemplaza con tu URL de Render
+  // URL base de la API.
+  // Desarrollo local: 'http://localhost:5244/api'
+  // Producción Render: cambia por tu URL real
   API_BASE_URL: 'https://aplicaci-n-sistema-de-control-de.onrender.com/api',
 
   // Claves en localStorage
@@ -21,19 +25,15 @@ const CONFIG = {
     EMPLEADO: 'Empleado',
   },
 
-  // Rutas por rol — relativas a la raíz del servidor de Live Preview
-  // Live Preview sirve desde la raíz del workspace, por eso la ruta
-  // incluye la carpeta /frontend/ completa.
+  // Rutas de redirección RELATIVAS al archivo login.html (pages/auth/)
+  // ../../ sube dos niveles hasta la raíz del servidor (frontend/)
   REDIRECT_AFTER_LOGIN: {
-    Admin:    '/frontend/pages/admin/dashboard.html',
-    Empleado: '/frontend/pages/empleado/dashboard.html',
+    Admin:    '../../pages/admin/dashboard.html',
+    Empleado: '../../pages/empleado/dashboard.html',
   },
 
-  // Tiempo de debounce en ms para búsquedas
-  DEBOUNCE_MS: 350,
-
-  // Cuántos ms antes de la expiración del token renovar automáticamente
-  REFRESH_BEFORE_MS: 5 * 60 * 1000, // 5 minutos
+  DEBOUNCE_MS:      350,
+  REFRESH_BEFORE_MS: 5 * 60 * 1000,
 };
 
 export default CONFIG;
