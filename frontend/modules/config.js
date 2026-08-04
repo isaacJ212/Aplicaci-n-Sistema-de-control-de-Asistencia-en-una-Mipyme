@@ -5,7 +5,7 @@
 
 const CONFIG = {
   // URL base de la API — en producción reemplaza con tu URL de Render
-  API_BASE_URL: 'http://localhost:5244/api',
+  API_BASE_URL: 'https://aplicaci-n-sistema-de-control-de.onrender.com/api',
 
   // Claves en localStorage
   STORAGE: {
