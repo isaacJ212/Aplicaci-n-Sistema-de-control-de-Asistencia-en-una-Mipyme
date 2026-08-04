@@ -3,20 +3,20 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copiar solución y archivos de proyecto
-COPY ["backend/MipymeAsistencia.sln", "backend/"]
-COPY ["backend/src/MipymeAsistencia.Domain/MipymeAsistencia.Domain.csproj", "backend/src/MipymeAsistencia.Domain/"]
-COPY ["backend/src/MipymeAsistencia.Application/MipymeAsistencia.Application.csproj", "backend/src/MipymeAsistencia.Application/"]
-COPY ["backend/src/MipymeAsistencia.Infrastructure/MipymeAsistencia.Infrastructure.csproj", "backend/src/MipymeAsistencia.Infrastructure/"]
-COPY ["backend/src/MipymeAsistencia.WebApi/MipymeAsistencia.WebApi.csproj", "backend/src/MipymeAsistencia.WebApi/"]
+# Copiar solución y archivos de proyecto (rutas relativas a la carpeta backend)
+COPY ["MipymeAsistencia.sln", "./"]
+COPY ["src/MipymeAsistencia.Domain/MipymeAsistencia.Domain.csproj", "src/MipymeAsistencia.Domain/"]
+COPY ["src/MipymeAsistencia.Application/MipymeAsistencia.Application.csproj", "src/MipymeAsistencia.Application/"]
+COPY ["src/MipymeAsistencia.Infrastructure/MipymeAsistencia.Infrastructure.csproj", "src/MipymeAsistencia.Infrastructure/"]
+COPY ["src/MipymeAsistencia.WebApi/MipymeAsistencia.WebApi.csproj", "src/MipymeAsistencia.WebApi/"]
 
 # Restaurar dependencias
-RUN dotnet restore "backend/MipymeAsistencia.sln"
+RUN dotnet restore "MipymeAsistencia.sln"
 
-# Copiar todo el proyecto y publicar
-COPY backend/ ./backend/
-WORKDIR /src/backend
-RUN dotnet publish "src/MipymeAsistencia.WebApi/MipymeAsistencia.WebApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Copiar todo el contenido del backend y compilar
+COPY . .
+WORKDIR /src/src/MipymeAsistencia.WebApi
+RUN dotnet publish "MipymeAsistencia.WebApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Etapa final
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
