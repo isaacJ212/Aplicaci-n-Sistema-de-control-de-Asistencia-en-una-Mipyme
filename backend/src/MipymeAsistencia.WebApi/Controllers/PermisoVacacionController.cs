@@ -59,6 +59,30 @@ public class PermisoVacacionController : ControllerBase
         return Ok(ApiResponse<List<PermisoVacacionResponseDto>>.Ok(data, "Solicitudes obtenidas correctamente."));
     }
 
+    /// <summary>
+    /// Obtiene las solicitudes de permiso/vacación de un empleado específico.
+    /// Accesible por el empleado para ver su propio historial, y por Admin para ver el de cualquiera.
+    /// Filtros opcionales: estado y tipo de solicitud.
+    /// </summary>
+    [HttpGet("mis-solicitudes/{idEmpleado:int}")]
+    [ProducesResponseType(typeof(ApiResponse<List<PermisoVacacionResponseDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMisSolicitudes(
+        int idEmpleado,
+        [FromQuery] string? estadoSolicitud = null,
+        [FromQuery] string? tipoSolicitud   = null)
+    {
+        var data = await _mediator.Send(new GetSolicitudesPermisoVacacionQuery
+        {
+            IdEmpleado      = idEmpleado,
+            EstadoSolicitud = estadoSolicitud,
+            TipoSolicitud   = tipoSolicitud
+        });
+
+        return Ok(ApiResponse<List<PermisoVacacionResponseDto>>.Ok(
+            data, $"Se encontraron {data.Count} solicitudes."));
+    }
+
     [HttpPut("{idSolicitud:int}/responder")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<PermisoVacacionResponseDto>), StatusCodes.Status200OK)]
