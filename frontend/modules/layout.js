@@ -53,3 +53,42 @@ export async function initAdminLayout(currentPage = '') {
     }
   });
 }
+
+/**
+ * Inicializa el layout del portal del empleado.
+ * @param {string} currentPage  Valor de data-page del link activo
+ */
+export async function initEmpleadoLayout(currentPage = '') {
+  if (!AuthService.requireAuth('Empleado')) return;
+
+  const container = document.getElementById('sidebar-container');
+  if (container) {
+    try {
+      const res  = await fetch('/frontend/components/sidebar-empleado.html');
+      const html = await res.text();
+      container.innerHTML = html;
+    } catch (e) {
+      console.warn('No se pudo cargar el sidebar del empleado:', e.message);
+    }
+  }
+
+  if (currentPage) {
+    document.querySelector(`.sidebar-link[data-page="${currentPage}"]`)
+            ?.classList.add('active');
+  }
+
+  const user = AuthService.getUser();
+  if (user) {
+    const emailEl  = document.getElementById('sidebar-email');
+    const avatarEl = document.getElementById('sidebar-avatar');
+    if (emailEl)  emailEl.textContent  = user.email;
+    if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#sidebar-logout-btn')) {
+      toast('Cerrando sesión...', 'info', 800);
+      setTimeout(() => AuthService.logout(), 600);
+    }
+  });
+}
