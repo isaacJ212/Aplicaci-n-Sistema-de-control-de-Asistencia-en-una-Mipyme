@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detalle de Empleado — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Detalle / Expediente individual</div>
+        <div class="topbar-right"><span class="topbar-badge">Próximamente</span></div>
+      </header>
+      <section class="page-content">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h1>Detalle de empleado</h1>
+            <p>Esta vista mostrará el expediente completo del empleado seleccionado.</p>
+          </div>
+        </div>
+        <div class="card">
+          <p class="text-muted">Aquí se integrará la información del empleado con datos de asistencia, horas extras, permisos y planilla.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module">
+    import { AuthService } from '../../modules/auth.js';
+    import { initAdminLayout } from '../../modules/layout.js';
+    if (!AuthService.requireAuth('Admin')) return;
+    initAdminLayout('empleado-detalle');
+  </script>
+</body>
+</html>
