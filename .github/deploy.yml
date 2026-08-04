@@ -1,0 +1,40 @@
+name: Desplegar Frontend del Monorepo a GitHub Pages
+
+on:
+  push:
+    branches:
+      - Development  # Pon aquí el nombre de tu rama principal (ej. Development o main)
+    paths:
+      - 'frontend/**' # El despliegue solo se activará si haces cambios dentro de la carpeta frontend
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar las páginas de GitHub
+        uses: actions/configure-pages@v5
+
+      - name: Subir la carpeta frontend como artefacto
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # AQUÍ ESTÁ EL TRUCO: Le indicamos explícitamente que la raíz es la carpeta frontend
+          path: './frontend'
+
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
