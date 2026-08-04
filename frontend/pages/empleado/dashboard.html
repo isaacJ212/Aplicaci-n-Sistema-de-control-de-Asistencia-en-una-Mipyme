@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Empleado — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .placeholder-screen {
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: var(--space-4);
+    }
+    .role-badge {
+      background: #DCFCE7; color: #166534;
+      padding: var(--space-2) var(--space-5);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm); font-weight: 600; letter-spacing: .05em;
+    }
+    h1 { font-size: var(--font-size-3xl); color: var(--color-text); }
+    p  { color: var(--color-text-muted); max-width: 380px; }
+    .user-info {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4) var(--space-6);
+      font-size: var(--font-size-sm); color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="placeholder-screen">
+    <div class="role-badge">👷 EMPLEADO</div>
+    <h1>Dashboard Empleado</h1>
+    <p>Inicio de sesión verificado correctamente. Este dashboard está en construcción.</p>
+    <div class="user-info" id="user-info">Cargando usuario...</div>
+    <button class="btn btn-secondary" id="logout-btn">Cerrar sesión</button>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module">
+    import { AuthService } from '../../modules/auth.js';
+    import { toast }       from '../../modules/utils.js';
+
+    // Guardia — solo Empleado puede ver esta página
+    if (!AuthService.requireAuth('Empleado')) return;
+
+    const user = AuthService.getUser();
+    document.getElementById('user-info').textContent =
+      `✅ Sesión activa: ${user?.email}  |  Rol: ${user?.role}`;
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      toast('Cerrando sesión...', 'info', 1000);
+      setTimeout(() => AuthService.logout(), 800);
+    });
+  </script>
+</body>
+</html>
