@@ -1,4 +1,9 @@
-
+/**
+ * auth.js — Gestión de sesión y guardia de rutas.
+ *
+ * Todas las redirecciones usan getBase() para construir URLs absolutas
+ * que funcionan con cualquier servidor/puerto (3000, 5500, etc.)
+ */
 
 import CONFIG from './config.js';
 import { getLoginUrl, getDashboardUrl } from './routes.js';

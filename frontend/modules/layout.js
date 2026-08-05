@@ -1,10 +1,19 @@
-
+/**
+ * layout.js — Carga el sidebar compartido e inicializa el layout admin o empleado.
+ *
+ * ESTRATEGIA DE RUTAS:
+ *   Los sidebars tienen data-nav="pages/admin/dashboard.html" (ruta relativa a frontend/).
+ *   usando resolvePageUrl() de routes.js, compatible con rutas cortas y /frontend/.
+ */
 
 import { AuthService } from './auth.js';
 import { toast }       from './utils.js';
 import { getBase, resolvePageUrl } from './routes.js';
 
-
+/**
+ * Carga el sidebar HTML, resuelve los data-nav a hrefs absolutos,
+ * marca el link activo e inicializa usuario + logout.
+ */
 async function loadSidebar(htmlFile, currentPage) {
   const container = document.getElementById('sidebar-container');
   if (!container) return;

@@ -441,16 +441,30 @@ async function runKiosko(CONFIG) {
     qrInstance:   null,
     segundosRot:  ROTATION_SECS,
     sonido:       true,
+    audioReady:   false,
   };
+
+  let audioCtx = null;
+
+  function prepareAudio() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    audioCtx ??= new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    state.audioReady = audioCtx.state === 'running';
+  }
 
   // ── Pantalla completa ────────────────────────────────────────────────────
   document.getElementById('btn-fs').onclick     = toggleFullscreen;
   document.getElementById('fs-hint')?.remove();
 
   document.getElementById('btn-sound').onclick = (e) => {
+    prepareAudio();
     state.sonido = !state.sonido;
     e.currentTarget.textContent = state.sonido ? '🔊' : '🔇';
   };
+
+  document.addEventListener('click', prepareAudio, { once: true });
 
   // ── Reloj digital ────────────────────────────────────────────────────────
   function actualizarReloj() {
@@ -489,18 +503,16 @@ async function runKiosko(CONFIG) {
   }
 
   function beep(freq = 600, ms = 50) {
+    if (!state.sonido || !state.audioReady || !audioCtx) return;
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const g   = ctx.createGain();
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
       osc.type = 'sine'; osc.frequency.value = freq;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + ms/1000);
-      osc.connect(g); g.connect(ctx.destination);
-      osc.start(); osc.stop(ctx.currentTime + ms/1000);
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + ms/1000);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + ms/1000);
     } catch { /* silent */ }
   }
 

@@ -1,4 +1,12 @@
+/**
+ * routes.js — Resolución de URLs del frontend.
+ *
+ * Soporta dos modos de despliegue:
+ *   1. Servidor Express (rutas cortas): /admin/dashboard, /empleado/marcaje, /login
+ *   2. Live Server / estático: /frontend/pages/admin/dashboard.html
+ */
 
+/** True si la URL actual incluye el prefijo /frontend */
 export function usesFrontendPrefix() {
   return window.location.pathname.includes('/frontend');
 }
@@ -12,7 +20,10 @@ export function getBase() {
     : window.location.origin;
 }
 
-
+/**
+ * Convierte una ruta relativa a frontend/ en URL navegable.
+ * Ej: "pages/admin/dashboard.html" → "/admin/dashboard" o "/frontend/pages/admin/dashboard.html"
+ */
 export function resolvePageUrl(relativePath) {
   const base = getBase();
 

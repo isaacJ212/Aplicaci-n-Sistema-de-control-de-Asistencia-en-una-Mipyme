@@ -1,4 +1,10 @@
-
+/**
+ * login.js — Lógica del formulario de inicio de sesión.
+ *
+ * USA RUTAS RELATIVAS: ../../modules/
+ * Desde assets/js/, dos niveles arriba llega a frontend/modules/
+ * Funciona con cualquier servidor HTTP (puerto 3000, 5500, Live Preview, etc.)
+ */
 
 import { AuthService } from '../../modules/auth.js';
 import { authApi }     from '../../modules/api.js';
@@ -6,7 +12,7 @@ import { $, show, hide, isValidEmail, toast } from '../../modules/utils.js';
 import CONFIG          from '../../modules/config.js';
 import { getDashboardUrl } from '../../modules/routes.js';
 
-
+// ── Si ya hay sesión activa redirige de inmediato ─────────────────────────────
 AuthService.redirectIfAuthenticated();
 
 // ── Referencias al DOM ────────────────────────────────────────────────────────

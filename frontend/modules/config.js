@@ -1,6 +1,6 @@
 
 const CONFIG = {
-  API_BASE_URL: 'http://localhost:5244/api',
+  API_BASE_URL: 'https://aplicaci-n-sistema-de-control-de.onrender.com/api',
 
 
   STORAGE: {
