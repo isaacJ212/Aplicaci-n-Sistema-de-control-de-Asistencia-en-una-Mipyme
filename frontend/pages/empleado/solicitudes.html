@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../../assets/css/components.css" />
   <link rel="stylesheet" href="../../assets/css/admin.css" />
   <link rel="stylesheet" href="../../assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado-pages.css" />
 </head>
 <body>
 <div class="admin-layout">
@@ -57,8 +58,8 @@
       </div>
 
       <!-- Tabla -->
-      <div class="card" style="padding:0">
-        <div class="table-wrapper" style="border:none;border-radius:0">
+      <div class="card card-no-padding">
+        <div class="table-wrapper table-wrapper-no-border">
           <table class="data-table">
             <thead>
               <tr>
@@ -76,7 +77,7 @@
 
 <!-- MODAL NUEVA SOLICITUD -->
 <div class="modal-overlay hidden" id="modal-sol">
-  <div class="modal" style="max-width:500px">
+  <div class="modal modal-max-500">
     <div class="modal-header">
       <span class="modal-title">Nueva Solicitud</span>
       <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
@@ -104,8 +105,8 @@
           </div>
           <div class="form-group full">
             <label class="form-label">Motivo / descripción *</label>
-            <textarea class="form-input" id="f-motivo" rows="3"
-              placeholder="Describe brevemente el motivo de tu solicitud..." style="resize:vertical"></textarea>
+            <textarea class="form-input resize-vertical" id="f-motivo" rows="3"
+              placeholder="Describe brevemente el motivo de tu solicitud..."></textarea>
             <span class="form-error hidden" id="err-motivo"></span>
           </div>
         </div>
@@ -132,7 +133,7 @@ const chip = (e) => {
   return `<span class="chip chip-${m[e]??'blue'}">${e??'Pendiente'}</span>`;
 };
 const chipTipo = (t) =>
-  `<span class="chip chip-blue" style="font-size:.65rem">${t}</span>`;
+  `<span class="chip chip-blue chip-small">${t}</span>`;
 
 const tbody = document.getElementById('tbody');
 let idEmpleado = null;
@@ -186,7 +187,7 @@ async function cargar() {
         <td>${formatDate(p.fechaInicio)}</td>
         <td>${formatDate(p.fechaFin)}</td>
         <td class="font-medium">${p.diasSolicitados} día${p.diasSolicitados!==1?'s':''}</td>
-        <td style="max-width:180px;white-space:normal">${p.motivo??'—'}</td>
+        <td class="text-wrap-normal">${p.motivo??'—'}</td>
         <td>${chip(p.estadoSolicitud)}</td>
         <td>${p.fechaRespuesta ? formatDate(p.fechaRespuesta) : '—'}</td>
       </tr>`).join('');

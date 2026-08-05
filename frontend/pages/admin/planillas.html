@@ -49,7 +49,10 @@
           <h1>Planillas mensuales</h1>
           <p>Genera, consulta y cierra la nómina de cada empleado. Los cálculos aplican INSS 7%, IR Ley 822 y prestaciones sociales de Nicaragua.</p>
         </div>
-        <button class="btn btn-primary" id="btn-generar">＋ Generar planilla</button>
+        <div style="display:flex;gap:var(--space-3)">
+          <button class="btn btn-secondary" id="btn-exportar">⬇ Exportar CSV</button>
+          <button class="btn btn-primary" id="btn-generar">＋ Generar planilla</button>
+        </div>
       </div>
 
       <!-- Stats -->
@@ -107,6 +110,7 @@
                 <th>Total ingresos</th>
                 <th>INSS (7%)</th>
                 <th>IR</th>
+                <th style="color:var(--color-warning)">Tardanza</th>
                 <th>Total deduc.</th>
                 <th style="color:var(--color-accent)">Neto a pagar</th>
                 <th>Emitida</th>
@@ -114,7 +118,7 @@
               </tr>
             </thead>
             <tbody id="tbody-planillas">
-              <tr><td colspan="11"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando planillas...</h3></div></td></tr>
+              <tr><td colspan="12"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando planillas...</h3></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -263,7 +267,7 @@ function renderStats() {
 /* ── Tabla ──────────────────────────────────────────────── */
 function renderTabla() {
   if (!state.planillas.length) {
-    tbody.innerHTML = `<tr><td colspan="11">
+    tbody.innerHTML = `<tr><td colspan="12">
       <div class="empty-state">
         <div class="empty-icon">📄</div>
         <h3>Sin planillas para mostrar</h3>
@@ -284,6 +288,11 @@ function renderTabla() {
       <td class="font-medium">${formatCurrency(p.totalIngresos)}</td>
       <td>${formatCurrency(p.inssLaboral)}</td>
       <td>${formatCurrency(p.irLaboral)}</td>
+      <td style="color:${(p.deduccionTardanza ?? 0) > 0 ? 'var(--color-warning)' : 'var(--color-text-light)'}">
+        ${(p.deduccionTardanza ?? 0) > 0
+          ? `- ${formatCurrency(p.deduccionTardanza)} <span style="font-size:.7rem">(${p.minutosTardanzaMes ?? 0} min)</span>`
+          : '—'}
+      </td>
       <td>${formatCurrency(p.totalDeducciones)}</td>
       <td class="font-medium" style="color:var(--color-accent)">${formatCurrency(p.salarioNeto)}</td>
       <td>${formatDate(p.fechaEmision)}</td>
@@ -336,6 +345,8 @@ tbody.addEventListener('click', (e) => {
         <div class="desglose-value danger">- ${formatCurrency(plan.inssLaboral)}</div></div>
       <div class="desglose-item"><div class="desglose-label">IR (Ley 822 LCT)</div>
         <div class="desglose-value danger">- ${formatCurrency(plan.irLaboral)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Deducción tardanza${plan.minutosTardanzaMes ? ` (${plan.minutosTardanzaMes} min)` : ''}</div>
+        <div class="desglose-value danger">- ${formatCurrency(plan.deduccionTardanza ?? 0)}</div></div>
       <div class="desglose-item"><div class="desglose-label">Embargo</div>
         <div class="desglose-value danger">- ${formatCurrency(plan.embargo)}</div></div>
       <div class="desglose-item"><div class="desglose-label">Sindicato</div>
@@ -449,28 +460,43 @@ document.getElementById('btn-limpiar').addEventListener('click', () => {
   cargar();
 });
 
-document.getElementById('btn-exportar').addEventListener('click', async () => {
-  const periodo = document.getElementById('filtro-periodo').value;
-  const idEmpleado = document.getElementById('filtro-empleado').value;
-  const params = new URLSearchParams();
-  if (periodo) params.set('periodo', periodo);
-  if (idEmpleado) params.set('idEmpleado', idEmpleado);
-
-  try {
-    const blob = await planillaApi.export(params.toString() ? `?${params}` : '');
-    const url = URL.createObjectURL(blob);
-    const fileName = `planillas_${periodo || 'todas'}_${new Date().toISOString().slice(0,10)}.xlsx`;
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = fileName;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-    toast('Exportación lista. Excel descargado.', 'success');
-  } catch (err) {
-    toast('No se pudo exportar: ' + err.message, 'error');
+document.getElementById('btn-exportar')?.addEventListener('click', () => {
+  // Exportar como CSV con los datos ya cargados en memoria
+  if (!state.planillas.length) {
+    toast('No hay planillas para exportar.', 'warning');
+    return;
   }
+
+  const headers = ['Empleado','Cargo','Período','Salario Base','HH Extras C$',
+    'Total Ingresos','INSS Laboral','IR Laboral','Deducción Tardanza',
+    'Total Deducciones','Salario Neto','Emitida'];
+
+  const rows = state.planillas.map(p => [
+    `"${p.nombreEmpleado}"`,
+    `"${p.cargoEmpleado ?? ''}"`,
+    p.periodoMesAnio,
+    p.salarioBase,
+    p.pagoHorasExtras,
+    p.totalIngresos,
+    p.inssLaboral,
+    p.irLaboral,
+    p.deduccionTardanza ?? 0,
+    p.totalDeducciones,
+    p.salarioNeto,
+    `"${formatDate(p.fechaEmision)}"`,
+  ].join(','));
+
+  const csv  = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `planillas_${document.getElementById('filtro-periodo').value || 'todas'}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('CSV descargado correctamente.', 'success');
 });
 
 /* ── Cerrar modales ─────────────────────────────────────── */

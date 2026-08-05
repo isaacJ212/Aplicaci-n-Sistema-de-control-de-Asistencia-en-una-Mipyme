@@ -59,6 +59,35 @@ async function loadSidebar(htmlFile, currentPage) {
       setTimeout(() => AuthService.logout(), 600);
     }
   });
+
+  // 6. Menú móvil para el portal empleado
+  if (htmlFile === 'sidebar-empleado.html') {
+    const topbar = document.querySelector('.topbar');
+    const sidebar = container.querySelector('.sidebar-emp');
+    if (topbar && sidebar && !topbar.querySelector('.mobile-menu-toggle')) {
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'mobile-menu-toggle';
+      toggle.setAttribute('aria-label', 'Abrir menú');
+      toggle.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>`;
+      topbar.prepend(toggle);
+
+      toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+      document.addEventListener('click', (event) => {
+        if (window.innerWidth <= 1024 && sidebar.classList.contains('open') &&
+            !event.target.closest('.sidebar-emp') &&
+            !event.target.closest('.mobile-menu-toggle')) {
+          sidebar.classList.remove('open');
+        }
+      });
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) sidebar.classList.remove('open');
+      });
+    }
+  }
 }
 
 /** Inicializa el layout del portal Admin. */
