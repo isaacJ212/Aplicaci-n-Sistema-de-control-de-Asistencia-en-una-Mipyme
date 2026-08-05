@@ -77,7 +77,6 @@ Sistema de gestión de recursos humanos y marcaje de asistencia con geolocalizac
 ## 📌 Reglas de negocio destacadas
 ### Autenticación y 2FA
 * El usuario se autentica con `Email` + `Password`.
-* El backend puede exigir verificación TOTP de 6 dígitos.
 * Tras validar, se emite un token JWT con el rol del usuario.
 
 ### Control de asistencia
