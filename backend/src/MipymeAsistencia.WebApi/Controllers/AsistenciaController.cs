@@ -32,14 +32,24 @@ public class AsistenciaController : ControllerBase
         _context = context;
     }
 
-    private int? ObtenerIdEmpleadoDelToken()
+    private async Task<int?> ObtenerIdEmpleadoDelJwt(CancellationToken ct = default)
     {
+        // 1. Intentar desde claim "idEmpleado" (si en el futuro se agrega al JWT)
         var claim = User.Claims.FirstOrDefault(c => c.Type == "idEmpleado");
-        if (claim is not null && int.TryParse(claim.Value, out var idEmpleado))
-        {
-            return idEmpleado;
-        }
-        return null;
+        if (claim is not null && int.TryParse(claim.Value, out var id))
+            return id;
+
+        // 2. Resolver desde el email del JWT (siempre disponible)
+        var email = User.FindFirstValue(ClaimTypes.Email)
+                 ?? User.FindFirstValue("sub");
+
+        if (string.IsNullOrWhiteSpace(email)) return null;
+
+        var empleado = await _context.Empleados
+            .Include(e => e.Usuario)
+            .FirstOrDefaultAsync(e => e.Usuario != null && e.Usuario.Email == email, ct);
+
+        return empleado?.IdEmpleado;
     }
 
     [HttpGet("qr-actual")]
@@ -122,26 +132,27 @@ public class AsistenciaController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Registrar([FromBody] RegistrarAsistenciaRequestDto request)
+    public async Task<IActionResult> Registrar(
+        [FromBody] RegistrarAsistenciaRequestDto request,
+        CancellationToken cancellationToken)
     {
-        var idEmpleado = ObtenerIdEmpleadoDelToken();
+        // Resuelve idEmpleado desde el JWT (email → empleado)
+        var idEmpleado = await ObtenerIdEmpleadoDelJwt(cancellationToken);
         if (!idEmpleado.HasValue)
-        {
             return BadRequest(ApiResponse<object>.BadRequest(
                 "Tu usuario no tiene un expediente de empleado asociado. Contacta al administrador."));
-        }
 
         var data = await _mediator.Send(new RegistrarAsistenciaCommand
         {
-            IdEmpleado = idEmpleado.Value,
-            TipoMarcaje = request.TipoMarcaje,
-            LatitudMarcaje = request.LatitudMarcaje,
-            LongitudMarcaje = request.LongitudMarcaje,
-            TokenQrEscaneado = request.TokenQrEscaneado,
+            IdEmpleado        = idEmpleado.Value,
+            TipoMarcaje       = request.TipoMarcaje,
+            LatitudMarcaje    = request.LatitudMarcaje,
+            LongitudMarcaje   = request.LongitudMarcaje,
+            TokenQrEscaneado  = request.TokenQrEscaneado,
             CodigoOtpGenerado = request.CodigoOtpGenerado
         });
 
-        return Ok(ApiResponse<AsistenciaResponseDto>.Ok(data, "Asistencia registrada correctamente."));
+        return Ok(ApiResponse<AsistenciaResponseDto>.Ok(data, data.Mensaje ?? "Asistencia registrada correctamente."));
     }
 
     [HttpGet("historial/{idEmpleado:int}")]

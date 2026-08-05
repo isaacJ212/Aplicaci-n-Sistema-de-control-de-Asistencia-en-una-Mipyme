@@ -1,16 +1,30 @@
 /**
  * auth.js — Gestión de sesión y guardia de rutas.
  *
- * Todas las redirecciones usan getBase() para construir URLs absolutas
- * que funcionan con cualquier servidor/puerto (3000, 5500, etc.)
+ * Compatible con:
+ *   A) Live Preview desde workspace root → URL tiene /frontend/
+ *   B) Live Server desde frontend/       → URL NO tiene /frontend/
  */
 
 import CONFIG from './config.js';
-import { getLoginUrl, getDashboardUrl } from './routes.js';
+
+// ── Helper de URL base ────────────────────────────────────────────────────────
+
+function getBase() {
+  const { origin, pathname } = window.location;
+  const idx = pathname.indexOf('/frontend/');
+  return idx !== -1
+    ? origin + pathname.slice(0, idx) + '/frontend'
+    : origin;
+}
+
+function urlPage(path) {
+  return `${getBase()}/${path}`;
+}
+
+// ── AuthService ───────────────────────────────────────────────────────────────
 
 export const AuthService = {
-
-  // ── Persistencia ─────────────────────────────────────────────────────────
 
   saveSession(data) {
     localStorage.setItem(CONFIG.STORAGE.TOKEN,         data.token);
@@ -38,7 +52,7 @@ export const AuthService = {
   isAuthenticated() { return !!this.getToken(); },
   isAdmin()         { return this.getRole() === CONFIG.ROLES.ADMIN; },
 
-  // ── Refresco del token ────────────────────────────────────────────────────
+  // ── Refresco ──────────────────────────────────────────────────────────────
 
   async tryRefresh() {
     const rt = this.getRefreshToken();
@@ -73,36 +87,31 @@ export const AuthService = {
       } catch { /* silencioso */ }
     }
     this.clearSession();
-    window.location.href = getLoginUrl();
+    window.location.href = urlPage('pages/auth/login.html');
   },
 
-  // ── Guardias de ruta ──────────────────────────────────────────────────────
+  // ── Guardias ──────────────────────────────────────────────────────────────
 
-  /**
-   * Llama esto al inicio de cada página protegida.
-   * Si no hay sesión → login.
-   * Si el rol no coincide → dashboard correcto para ese rol.
-   */
   requireAuth(requiredRole = null) {
     if (!this.isAuthenticated()) {
-      window.location.href = getLoginUrl();
+      window.location.href = urlPage('pages/auth/login.html');
       return false;
     }
-
     if (requiredRole && this.getRole() !== requiredRole) {
-      window.location.href = getDashboardUrl(this.getRole());
+      const role = this.getRole();
+      window.location.href = role === CONFIG.ROLES.ADMIN
+        ? urlPage('pages/admin/dashboard.html')
+        : urlPage('pages/empleado/dashboard.html');
       return false;
     }
-
     return true;
   },
 
-  /**
-   * Llama esto en login.html.
-   * Si ya hay sesión redirige al dashboard del rol correcto.
-   */
   redirectIfAuthenticated() {
     if (!this.isAuthenticated()) return;
-    window.location.href = getDashboardUrl(this.getRole());
+    const role = this.getRole();
+    window.location.href = role === CONFIG.ROLES.ADMIN
+      ? urlPage('pages/admin/dashboard.html')
+      : urlPage('pages/empleado/dashboard.html');
   },
 };
