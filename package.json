@@ -1,0 +1,12 @@
+{
+  "name": "asistencia-control-pyme",
+  "version": "1.0.0",
+  "description": "Sistema de control de asistencia y nómina para Mipymes (Nicaragua)",
+  "scripts": {
+    "frontend": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
