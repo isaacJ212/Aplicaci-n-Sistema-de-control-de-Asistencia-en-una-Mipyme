@@ -137,8 +137,11 @@ public class GenerarPlanillaCommandHandler
             SalarioBruto       = totalIngresos,
             InssLaboral        = inssLaboral,
             IrLaboral          = irLaboral,
-            // Otras deducciones incluye tardanza + embargo + sindicato + extras
-            OtrasDeducciones   = deduccionTardanza + request.OtrasDeducciones + request.Embargo + request.Sindicato,
+            MinutosTardanzaMes = totalMinutosTardanza,
+            DeduccionTardanza  = deduccionTardanza,
+            Embargo            = request.Embargo,
+            Sindicato          = request.Sindicato,
+            OtrasDeducciones   = request.OtrasDeducciones,
             TotalDeducciones   = totalDeducciones,
             SalarioNeto        = salarioNeto,
             AcumuladoAguinaldo = acumuladoAguinaldo,
