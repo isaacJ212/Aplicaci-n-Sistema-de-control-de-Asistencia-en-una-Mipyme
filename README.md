@@ -157,7 +157,7 @@ El backend expone el puerto:
 
 ## link del deploy 
 
-https://aplicaci-n-sistema-de-control-de-74ff.onrender.com/pages/admin/rendimiento.html
-https://aplicaci-n-sistema-de-control-de.onrender.com/swagger/index.html
+- https://aplicaci-n-sistema-de-control-de-74ff.onrender.com/pages/admin/rendimiento.html
+- https://aplicaci-n-sistema-de-control-de.onrender.com/swagger/index.html
 
 
