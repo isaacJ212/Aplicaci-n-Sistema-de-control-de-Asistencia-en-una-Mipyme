@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosko QR — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Kiosko QR</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-fecha"></span>
+        <span id="reloj-topbar" style="font-family:monospace;font-size:var(--font-size-sm);font-weight:600;color:var(--color-primary)"></span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Estación de Marcaje QR</h1>
+          <p>Código QR en tiempo real para que los empleados escaneen desde su móvil. Se actualiza automáticamente.</p>
+        </div>
+        <div style="display:flex;gap:var(--space-2)">
+          <button class="btn btn-secondary" id="btn-refresh-qr">
+            <span style="margin-right:6px">↻</span> Renovar QR
+          </button>
+          <button class="btn btn-primary" id="btn-fs">
+            <span style="margin-right:6px">⛶</span> Pantalla Completa
+          </button>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="grid-template-columns: 1.1fr 1fr">
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📱 Código QR Activo</span>
+            <span class="qr-estado-inline" id="qr-estado-inline">
+              <span class="status-dot"></span>
+              <span id="qr-estado-texto">Conectando...</span>
+            </span>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;align-items:center;gap:var(--space-5)">
+
+            <div id="qr-wrapper" style="position:relative">
+              <div id="qr-container" style="
+                background:#fff;padding:24px;border-radius:20px;
+                box-shadow:0 10px 30px rgba(0,0,0,.15);
+                border:2px solid var(--color-border);
+                transition: all .3s ease;">
+                <div id="qr-placeholder" style="
+                  width:260px;height:260px;
+                  display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  gap:var(--space-3);color:var(--color-text-muted);font-size:.85rem;">
+                  <div style="
+                    width:42px;height:42px;
+                    border:3px solid rgba(100,116,139,.2);
+                    border-top-color:var(--color-primary);
+                    border-radius:50%;
+                    animation:spin .8s linear infinite"></div>
+                  <span>Generando código QR...</span>
+                </div>
+              </div>
+              <div id="qr-shine" style="
+                position:absolute;top:0;left:0;right:0;height:3px;
+                background:linear-gradient(90deg,transparent,var(--color-primary),var(--color-success),transparent);
+                border-radius:20px 20px 0 0;
+                animation: qrShine 3s linear infinite;
+                pointer-events:none;"></div>
+            </div>
+
+            <div class="info-qr-block">
+              <div class="info-qr-row">
+                <span class="info-qr-label">Sede</span>
+                <span class="info-qr-value" id="info-sede">—</span>
+              </div>
+              <div class="info-qr-row">
+                <span class="info-qr-label">Rango GPS</span>
+                <span class="info-qr-value" id="info-radio">—</span>
+              </div>
+              <div class="info-qr-row">
+                <span class="info-qr-label">Token (preview)</span>
+                <span class="info-qr-value mono" id="info-token">—</span>
+              </div>
+              <div class="info-qr-row">
+                <span class="info-qr-label">Última actualización</span>
+                <span class="info-qr-value" id="info-updated">—</span>
+              </div>
+            </div>
+
+            <div class="timers-inline">
+              <div class="timer-inline">
+                <div class="timer-inline-label">Próxima actualización</div>
+                <div class="timer-inline-value" id="timer-refresh">30 s</div>
+              </div>
+              <div class="timer-inline">
+                <div class="timer-inline-label">Válido por</div>
+                <div class="timer-inline-value" id="timer-expire">24 h 00 m</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">🧭 Instrucciones para los empleados</span></div>
+            <div class="card-body">
+              <ol class="instructions-list">
+                <li>
+                  <div class="inst-num">1</div>
+                  <div class="inst-text">
+                    <strong>Abre la app en tu celular</strong>
+                    <span>Inicia sesión en MipymeAsistencia con tu usuario y contraseña.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="inst-num">2</div>
+                  <div class="inst-text">
+                    <strong>Toca Marcar Asistencia</strong>
+                    <span>Dirígete al módulo "Marcar Asistencia" en el menú principal.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="inst-num">3</div>
+                  <div class="inst-text">
+                    <strong>Selecciona Escanear QR</strong>
+                    <span>Presiona el botón morado "Escanear QR con la cámara".</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="inst-num">4</div>
+                  <div class="inst-text">
+                    <strong>Apunta al código</strong>
+                    <span>El sistema detecta automáticamente: <em>Entrada → Almuerzo → Salida</em>.</span>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="card" style="background:var(--color-primary-light);border-color:var(--color-primary)">
+            <div class="card-title" style="color:var(--color-primary-dark);margin-bottom:var(--space-3)">
+              ℹ️ Información del sistema
+            </div>
+            <ul style="padding-left:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-size-sm);color:var(--color-primary-dark)">
+              <li>El QR se actualiza <strong>cada 30 segundos</strong> para mayor seguridad.</li>
+              <li>El empleado debe estar dentro del <strong>rango GPS permitido</strong> por la sede.</li>
+              <li>Cada escaneo registra <strong>tipo de marcaje, hora y coordenadas</strong>.</li>
+              <li>Las tardanzas y horas extras se calculan <strong>automáticamente</strong> en la planilla.</li>
+            </ul>
+          </div>
+
+          <div class="card error-card hidden" id="error-card" style="background:#FEF2F2;border-color:#EF4444">
+            <div style="color:#991B1B;font-weight:700;margin-bottom:var(--space-2)">⚠️ Error de conexión</div>
+            <div style="color:#B91C1C;font-size:var(--font-size-sm)" id="error-text">No se pudo obtener el QR. Reintentando...</div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes qrShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .qr-estado-inline {
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:var(--font-size-sm);font-weight:600;
+    padding:4px 12px;border-radius:999px;
+    background:var(--color-success-light);color:var(--color-success-dark);
+  }
+  .qr-estado-inline.error {
+    background:#FEE2E2;color:#991B1B;
+  }
+  .status-dot {
+    width:8px;height:8px;border-radius:50%;background:var(--color-success);
+    box-shadow:0 0 0 0 rgba(34,197,94,.5);animation:pulse 1.6s infinite;
+  }
+  .qr-estado-inline.error .status-dot {
+    background:#EF4444;animation:none;box-shadow:none;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(34,197,94,.5); }
+    50% { box-shadow:0 0 0 8px rgba(34,197,94,0); }
+  }
+  .info-qr-block {
+    width:100%;
+    background:var(--color-bg);
+    border:1px solid var(--color-border);
+    border-radius:var(--radius-lg);
+    padding:var(--space-4);
+    display:flex;flex-direction:column;gap:var(--space-2);
+  }
+  .info-qr-row {
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:var(--font-size-sm);
+    padding:var(--space-2) 0;
+    border-bottom:1px dashed var(--color-border);
+  }
+  .info-qr-row:last-child { border-bottom:none; }
+  .info-qr-label { color:var(--color-text-muted);font-weight:500; }
+  .info-qr-value { color:var(--color-text);font-weight:600;max-width:60%;text-align:right; }
+  .info-qr-value.mono { font-family:ui-monospace,monospace;font-size:.75rem; }
+  .timers-inline {
+    width:100%;
+    display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);
+  }
+  .timer-inline {
+    background:var(--color-bg);
+    border:1px solid var(--color-border);
+    border-radius:var(--radius-md);
+    padding:var(--space-3);text-align:center;
+  }
+  .timer-inline-label {
+    font-size:.65rem;color:var(--color-text-muted);
+    text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;
+  }
+  .timer-inline-value {
+    font-size:1.05rem;font-weight:700;color:var(--color-primary);
+  }
+  .timer-inline-value.warn { color:#B45309; }
+  .timer-inline-value.danger { color:#B91C1C; }
+  .instructions-list {
+    list-style:none;padding:0;margin:0;
+    display:flex;flex-direction:column;gap:var(--space-4);
+  }
+  .instructions-list li {
+    display:flex;gap:var(--space-3);align-items:flex-start;
+  }
+  .inst-num {
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,var(--color-primary),var(--color-accent));
+    color:#fff;font-weight:800;font-size:.8rem;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .inst-text {
+    display:flex;flex-direction:column;gap:2px;font-size:var(--font-size-sm);
+  }
+  .inst-text strong { color:var(--color-text);font-weight:700; }
+  .inst-text span { color:var(--color-text-muted); }
+  .inst-text em { color:var(--color-primary);font-style:normal;font-weight:600; }
+  .error-card { background:#FEF2F2;border:1px solid #FECACA; }
+  .hidden { display:none !important; }
+</style>
+
+<script type="module">
+import { initAdminLayout } from '../../modules/layout.js';
+import { asistenciaApi, sedeApi } from '../../modules/api.js';
+import { toast } from '../../modules/utils.js';
+
+await initAdminLayout('kiosko');
+
+const REFRESH_SECONDS = 30;
+const EXPIRE_HOURS = 24;
+
+const state = {
+  qrToken: null,
+  qrCreadoEn: null,
+  sede: null,
+  qrInstance: null,
+  segundosRestantes: REFRESH_SECONDS,
+  intervalRefresh: null,
+  intervalExpire: null,
+};
+
+const el = {
+  reloj: document.getElementById('reloj-topbar'),
+  fecha: document.getElementById('badge-fecha'),
+  qrWrap: document.getElementById('qr-container'),
+  qrPlaceholder: document.getElementById('qr-placeholder'),
+  estadoWrap: document.getElementById('qr-estado-inline'),
+  estadoTexto: document.getElementById('qr-estado-texto'),
+  infoSede: document.getElementById('info-sede'),
+  infoRadio: document.getElementById('info-radio'),
+  infoToken: document.getElementById('info-token'),
+  infoUpdated: document.getElementById('info-updated'),
+  timerRefresh: document.getElementById('timer-refresh'),
+  timerExpire: document.getElementById('timer-expire'),
+  errorCard: document.getElementById('error-card'),
+  errorText: document.getElementById('error-text'),
+};
+
+function actualizarReloj() {
+  const now = new Date();
+  el.reloj.textContent = now.toLocaleTimeString('es-NI', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+actualizarReloj();
+setInterval(actualizarReloj, 1000);
+el.fecha.textContent = new Intl.DateTimeFormat('es-NI', { dateStyle: 'full' }).format(new Date());
+
+function setEstado(ok, texto, errorMsg = '') {
+  el.estadoWrap.classList.toggle('error', !ok);
+  el.estadoTexto.textContent = texto;
+  if (!ok && errorMsg) {
+    el.errorCard.classList.remove('hidden');
+    el.errorText.textContent = errorMsg;
+  } else {
+    el.errorCard.classList.add('hidden');
+  }
+}
+
+function renderQR(token) {
+  el.qrWrap.innerHTML = '';
+  state.qrInstance = new QRCode(el.qrWrap, {
+    text: token,
+    width: 260,
+    height: 260,
+    colorDark: '#0F172A',
+    colorLight: '#FFFFFF',
+    correctLevel: QRCode.CorrectLevel.Q,
+  });
+}
+
+async function cargarSede() {
+  try {
+    const data = await sedeApi.get();
+    state.sede = data;
+    el.infoSede.textContent = data?.nombreSede ?? 'Sede Principal';
+    el.infoRadio.textContent = `${data?.radioToleranciaMetros ?? 200} metros`;
+  } catch (e) {
+    el.infoSede.textContent = 'Sede Principal';
+    el.infoRadio.textContent = '200 metros';
+  }
+}
+
+async function obtenerQR(forzarRotacion = false) {
+  setEstado(false, forzarRotacion ? 'Rotando QR...' : 'Actualizando QR...');
+  try {
+    let data;
+    if (forzarRotacion) {
+      try {
+        data = await asistenciaApi.rotarQrSede();
+      } catch {
+        data = await asistenciaApi.qrActual();
+      }
+    } else {
+      data = await asistenciaApi.qrActual();
+    }
+    const token = data?.tokenQrActual ?? data?.token ?? null;
+    if (!token) throw new Error('El servidor no devolvió un token QR válido.');
+
+    state.qrToken = token;
+    state.qrCreadoEn = data?.qrUltimaActualizacion ? new Date(data.qrUltimaActualizacion) : new Date();
+
+    renderQR(token);
+    el.infoToken.textContent = token.slice(0, 16) + '...';
+    el.infoUpdated.textContent = state.qrCreadoEn.toLocaleTimeString('es-NI');
+    setEstado(true, '✅ QR activo');
+    toast('QR actualizado correctamente', 'success', 1500);
+
+    state.segundosRestantes = REFRESH_SECONDS;
+    actualizarTimerExpire();
+    return true;
+  } catch (err) {
+    setEstado(false, '❌ Error de conexión', err.message);
+    return false;
+  }
+}
+
+function iniciarTimerRefresh() {
+  clearInterval(state.intervalRefresh);
+  state.intervalRefresh = setInterval(() => {
+    state.segundosRestantes--;
+    el.timerRefresh.textContent = `${state.segundosRestantes} s`;
+    el.timerRefresh.classList.toggle('warn', state.segundosRestantes <= 10);
+
+    if (state.segundosRestantes <= 0) {
+      obtenerQR(false);
+      state.segundosRestantes = REFRESH_SECONDS;
+    }
+  }, 1000);
+}
+
+function actualizarTimerExpire() {
+  if (!state.qrCreadoEn) { el.timerExpire.textContent = '-- h -- m'; return; }
+  const vence = new Date(state.qrCreadoEn.getTime() + EXPIRE_HOURS * 3600 * 1000);
+  const segs = Math.max(0, Math.floor((vence - Date.now()) / 1000));
+  const h = Math.floor(segs / 3600);
+  const m = Math.floor((segs % 3600) / 60);
+  const text = `${h} h ${String(m).padStart(2,'0')} m`;
+  el.timerExpire.textContent = text;
+  el.timerExpire.classList.toggle('warn', h <= 4 && h > 0);
+  el.timerExpire.classList.toggle('danger', h === 0);
+}
+state.intervalExpire = setInterval(actualizarTimerExpire, 60 * 1000);
+
+document.getElementById('btn-refresh-qr').addEventListener('click', async () => {
+  await obtenerQR(true);
+});
+
+document.getElementById('btn-fs').addEventListener('click', toggleFullscreen);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    obtenerQR(false);
+    actualizarTimerExpire();
+  }
+});
+
+await cargarSede();
+await obtenerQR(false);
+iniciarTimerRefresh();
+
+function toggleFullscreen() {
+  const docEl = document.documentElement;
+  const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+    req?.call(docEl);
+  } else {
+    exit?.call(document);
+  }
+}
+</script>
+</body>
+</html>

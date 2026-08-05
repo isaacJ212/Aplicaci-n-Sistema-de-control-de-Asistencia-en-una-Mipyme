@@ -6,10 +6,10 @@
   <title>Dashboard — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
 </head>
 <body>
 
@@ -69,9 +69,35 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><span class="card-title">Alertas de puntualidad</span></div>
+          <div class="card-header"><span class="card-title">Alertas de puntualidad — hoy</span></div>
           <div id="alertas-list" class="alerts-list">
             <div class="empty-alert">Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección reincidentes del mes -->
+      <div class="card" style="margin-top:var(--space-5)">
+        <div class="card-header" style="flex-wrap:wrap;gap:var(--space-3)">
+          <div>
+            <span class="card-title">⚠️ Reincidentes en tardanza — mes actual</span>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:2px">
+              Empleados con 3 o más tardanzas en el período. Se descuenta de la planilla.
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--space-3)">
+            <div class="form-group" style="margin:0">
+              <input type="month" class="form-input" id="filtro-periodo-alerta"
+                style="font-size:var(--font-size-sm);padding:var(--space-2) var(--space-3)" />
+            </div>
+            <span class="topbar-badge" id="badge-reincidentes" style="background:#FEF9C3;color:#854D0E">0 reincidentes</span>
+          </div>
+        </div>
+
+        <!-- Tabla de reincidentes -->
+        <div id="reincidentes-tabla">
+          <div style="padding:var(--space-5);text-align:center;color:var(--color-text-muted);font-size:var(--font-size-sm)">
+            Cargando alertas...
           </div>
         </div>
       </div>
@@ -82,19 +108,40 @@
 <div id="toast-container"></div>
 
 <script type="module">
-  import { initAdminLayout }           from '/frontend/modules/layout.js';
-  import { empleadoApi, asistenciaApi } from '/frontend/modules/api.js';
-  import { toast, formatDate }          from '/frontend/modules/utils.js';
+  import { initAdminLayout }                       from '../../modules/layout.js';
+  import { empleadoApi, asistenciaApi }             from '../../modules/api.js';
+  import { toast, formatDate, formatCurrency }      from '../../modules/utils.js';
 
   await initAdminLayout('dashboard');
 
-  // Fecha en la topbar
+  /* ── Fecha en topbar ─────────────────────────────────────── */
   document.getElementById('date-badge').textContent =
     new Intl.DateTimeFormat('es-NI', { dateStyle: 'full' }).format(new Date());
 
+  /* ── Default del filtro de periodo = mes actual ──────────── */
+  const hoy = new Date();
+  const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('filtro-periodo-alerta').value = mesActual;
+
+  /* ── Chip de estado ─────────────────────────────────────── */
+  const chip = (estado) => {
+    const m = { 'A Tiempo':'green','Tardanza':'yellow','Ausente':'red' };
+    const cls = m[estado] ?? 'blue';
+    const colors = {
+      green:  'background:#DCFCE7;color:#166534',
+      yellow: 'background:#FEF9C3;color:#854D0E',
+      red:    'background:#FEE2E2;color:#991B1B',
+      blue:   'background:#DBEAFE;color:#1E40AF',
+    };
+    return `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;
+                         font-size:.7rem;font-weight:600;${colors[cls]}">${estado}</span>`;
+  };
+
+  /* ══════════════════════════════════════════════════════════
+     MÉTRICAS DEL DÍA
+  ══════════════════════════════════════════════════════════ */
   async function loadDashboard() {
     try {
-      const hoy = new Date();
       const inicio = new Date(hoy); inicio.setHours(0,0,0,0);
       const fin    = new Date(hoy); fin.setHours(23,59,59,999);
 
@@ -112,27 +159,31 @@
       const tardanzas = asist.filter(a => (a.minutosTardanza ?? 0) > 0 || a.estadoAsistencia === 'Tardanza');
       const aTiempo   = asist.filter(a => a.estadoAsistencia === 'A Tiempo');
 
-      document.getElementById('stat-empleados').textContent  = emps.length;
-      document.getElementById('stat-registros').textContent  = asist.length;
-      document.getElementById('stat-tardanzas').textContent  = tardanzas.length;
-      document.getElementById('stat-a-tiempo').textContent   = aTiempo.length;
-      document.getElementById('sum-registros').textContent   = asist.length;
-      document.getElementById('sum-tardanzas').textContent   = tardanzas.length;
-      document.getElementById('sum-a-tiempo').textContent    = aTiempo.length;
+      document.getElementById('stat-empleados').textContent = emps.length;
+      document.getElementById('stat-registros').textContent = asist.length;
+      document.getElementById('stat-tardanzas').textContent = tardanzas.length;
+      document.getElementById('stat-a-tiempo').textContent  = aTiempo.length;
+      document.getElementById('sum-registros').textContent  = asist.length;
+      document.getElementById('sum-tardanzas').textContent  = tardanzas.length;
+      document.getElementById('sum-a-tiempo').textContent   = aTiempo.length;
 
-      const empMap = new Map(emps.map(e => [e.idEmpleado, `${e.nombres} ${e.apellidos}`]));
+      /* Alertas de hoy */
+      const empMap   = new Map(emps.map(e => [e.idEmpleado, `${e.nombres} ${e.apellidos}`]));
       const alertaEl = document.getElementById('alertas-list');
 
       if (!tardanzas.length) {
         alertaEl.innerHTML = '<div class="empty-alert">✅ Sin tardanzas registradas hoy.</div>';
       } else {
-        alertaEl.innerHTML = tardanzas.slice(0, 8).map(a => `
+        alertaEl.innerHTML = tardanzas.slice(0,8).map(a => `
           <div class="alert-item">
             <div>
               <div class="font-medium">${empMap.get(a.idEmpleado) ?? `Empleado #${a.idEmpleado}`}</div>
-              <div class="text-muted" style="font-size:.75rem">${formatDate(a.fecha)}</div>
+              <div style="font-size:.75rem;color:var(--color-text-muted)">${formatDate(a.fecha)}</div>
             </div>
-            <span class="alert-pill">${a.minutosTardanza ?? 0} min</span>
+            <div style="display:flex;align-items:center;gap:var(--space-2)">
+              ${chip(a.estadoAsistencia)}
+              <span class="alert-pill">${a.minutosTardanza ?? 0} min</span>
+            </div>
           </div>`).join('');
       }
     } catch (err) {
@@ -140,12 +191,96 @@
     }
   }
 
-  document.getElementById('refresh-btn').addEventListener('click', () => {
-    toast('Actualizando...', 'info', 800);
-    loadDashboard();
+  /* ══════════════════════════════════════════════════════════
+     REINCIDENTES DEL MES
+  ══════════════════════════════════════════════════════════ */
+  async function loadReincidentes(periodo = '') {
+    const tablaEl  = document.getElementById('reincidentes-tabla');
+    const badgeEl  = document.getElementById('badge-reincidentes');
+    tablaEl.innerHTML = `<div style="padding:var(--space-5);text-align:center;color:var(--color-text-muted);font-size:var(--font-size-sm)">⏳ Cargando alertas...</div>`;
+
+    try {
+      const data = await asistenciaApi.alertasTardanza(periodo, 3);
+      const lista = Array.isArray(data) ? data : [];
+
+      const reincidentes = lista.filter(a => a.esReincidente).length;
+      badgeEl.textContent = `${reincidentes} reincidente${reincidentes !== 1 ? 's' : ''}`;
+      badgeEl.style.background = reincidentes > 0 ? '#FEE2E2' : '#DCFCE7';
+      badgeEl.style.color      = reincidentes > 0 ? '#991B1B' : '#166534';
+
+      if (!lista.length) {
+        tablaEl.innerHTML = `
+          <div style="padding:var(--space-8);text-align:center;color:var(--color-text-muted)">
+            <div style="font-size:2rem;margin-bottom:var(--space-3)">✅</div>
+            <p>Sin tardanzas registradas en este período.</p>
+          </div>`;
+        return;
+      }
+
+      tablaEl.innerHTML = `
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:var(--color-bg)">
+                <th style="padding:var(--space-3) var(--space-4);text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);border-bottom:1px solid var(--color-border)">Empleado</th>
+                <th style="padding:var(--space-3) var(--space-4);text-align:center;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);border-bottom:1px solid var(--color-border)">Tardanzas</th>
+                <th style="padding:var(--space-3) var(--space-4);text-align:center;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);border-bottom:1px solid var(--color-border)">Minutos</th>
+                <th style="padding:var(--space-3) var(--space-4);text-align:right;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-danger);border-bottom:1px solid var(--color-border)">Deducción C$</th>
+                <th style="padding:var(--space-3) var(--space-4);text-align:center;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);border-bottom:1px solid var(--color-border)">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lista.map(a => `
+                <tr style="${a.esReincidente ? 'background:rgba(239,68,68,.04)' : ''}">
+                  <td style="padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-border)">
+                    <div style="font-weight:600;font-size:var(--font-size-sm)">${a.nombreEmpleado}</div>
+                    <div style="font-size:.75rem;color:var(--color-text-muted)">${a.cargoFuncion}</div>
+                  </td>
+                  <td style="padding:var(--space-3) var(--space-4);text-align:center;border-bottom:1px solid var(--color-border)">
+                    <span style="font-weight:700;font-size:var(--font-size-base);color:${a.totalTardanzas >= 3 ? 'var(--color-danger)' : 'var(--color-warning)'}">${a.totalTardanzas}</span>
+                  </td>
+                  <td style="padding:var(--space-3) var(--space-4);text-align:center;border-bottom:1px solid var(--color-border);font-size:var(--font-size-sm)">
+                    ${a.totalMinutos} min
+                  </td>
+                  <td style="padding:var(--space-3) var(--space-4);text-align:right;border-bottom:1px solid var(--color-border);font-weight:600;color:var(--color-danger)">
+                    - ${formatCurrency(a.deduccionTardanza)}
+                  </td>
+                  <td style="padding:var(--space-3) var(--space-4);text-align:center;border-bottom:1px solid var(--color-border)">
+                    ${a.esReincidente
+                      ? '<span style="background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700">⚠️ Reincidente</span>'
+                      : '<span style="background:#FEF9C3;color:#854D0E;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600">Tardanzas</span>'
+                    }
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:var(--space-3) var(--space-5);font-size:var(--font-size-xs);color:var(--color-text-muted);border-top:1px solid var(--color-border)">
+          💡 La deducción se aplica automáticamente al generar la planilla del período.
+          Reincidente = 3 o más tardanzas en el mes.
+        </div>`;
+
+    } catch (err) {
+      tablaEl.innerHTML = `<div style="padding:var(--space-5);color:var(--color-danger);font-size:var(--font-size-sm);text-align:center">
+        ⚠️ ${err.message}</div>`;
+    }
+  }
+
+  /* ── Filtro de periodo de alertas ───────────────────────── */
+  document.getElementById('filtro-periodo-alerta').addEventListener('change', (e) => {
+    loadReincidentes(e.target.value);
   });
 
+  /* ── Refresh total ───────────────────────────────────────── */
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    toast('Actualizando...', 'info', 800);
+    const periodo = document.getElementById('filtro-periodo-alerta').value;
+    Promise.all([loadDashboard(), loadReincidentes(periodo)]);
+  });
+
+  /* ── Carga inicial ───────────────────────────────────────── */
   loadDashboard();
+  loadReincidentes(mesActual);
 </script>
 </body>
 </html>

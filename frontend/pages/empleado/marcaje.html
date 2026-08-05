@@ -6,11 +6,11 @@
   <title>Marcar Asistencia — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -64,6 +64,24 @@
           <span class="btn-icon-big">🔵</span>
           <span>Registrar Salida</span>
           <span class="btn-hora" id="hora-salida-reg">—</span>
+        </button>
+      </div>
+
+      <!-- ═══ MODO ESCANEO QR AUTOMÁTICO ═══ -->
+      <div style="margin:var(--space-6) 0">
+        <button id="btn-escanear-qr" class="btn btn-secondary btn-full" style="
+          display:flex;align-items:center;justify-content:center;gap:var(--space-3);
+          padding:var(--space-4);font-size:var(--font-size-base);
+          background:linear-gradient(135deg,#7C3AED,#A78BFA);
+          color:#fff;border:none;box-shadow:0 6px 18px rgba(124,58,237,.3)">
+          <span style="font-size:1.4rem">📷</span>
+          <div style="text-align:left;line-height:1.2">
+            <strong style="font-size:var(--font-size-base)">Escanear QR con la cámara</strong>
+            <span style="font-size:.75rem;opacity:.9;display:block;margin-top:2px">
+              Marcaje automático: Entrada → Almuerzo → Salida (detecta tu estado)
+            </span>
+          </div>
+          <span style="background:rgba(255,255,255,.2);padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:700">RECOMENDADO</span>
         </button>
       </div>
 
@@ -146,21 +164,74 @@
   </div>
 </div>
 
+
+<!-- ═══ MODAL DE ESCANEO QR POR CÁMARA ═══ -->
+<div class="modal-overlay hidden" id="modal-escanear">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">📷 Escanea el QR del kiosco</span>
+      <button class="btn btn-ghost btn-sm" id="escanear-close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div id="scanner-container" style="
+        position:relative;width:100%;
+        background:#000;border-radius:var(--radius-lg);overflow:hidden;
+        display:flex;align-items:center;justify-content:center;">
+        <div id="html5qr-reader" style="width:100%"></div>
+        <div id="scanner-placeholder" style="
+          text-align:center;color:#94A3B8;font-size:.85rem;padding:var(--space-6)">
+          <div style="font-size:3rem;margin-bottom:var(--space-3)">📷</div>
+          <p style="margin-bottom:var(--space-2)"><strong>Preparando cámara...</strong></p>
+          <p style="font-size:.75rem;color:#64748B">Acepta los permisos de cámara cuando el navegador lo pida.</p>
+        </div>
+      </div>
+
+      <div id="scanner-status" style="
+        margin-top:var(--space-4);padding:var(--space-3) var(--space-4);
+        background:var(--color-bg);border-radius:var(--radius-md);
+        font-size:var(--font-size-sm);text-align:center;color:var(--color-text-muted)">
+        Esperando lectura de QR...
+      </div>
+
+      <div class="card" style="margin-top:var(--space-4);background:var(--color-primary-light);
+           border-color:var(--color-primary);padding:var(--space-4)">
+        <div style="font-weight:700;color:var(--color-primary-dark);margin-bottom:var(--space-2);font-size:var(--font-size-sm)">
+          🧠 Flujo automático del sistema:
+        </div>
+        <ul style="padding-left:var(--space-5);font-size:.8rem;color:var(--color-primary-dark);line-height:1.6">
+          <li><strong>1er escaneo del día →</strong> <span style="color:#16A34A">Entrada</span></li>
+          <li><strong>2do escaneo →</strong> <span style="color:#CA8A04">Inicio de Almuerzo</span></li>
+          <li><strong>3er escaneo →</strong> <span style="color:#CA8A04">Fin de Almuerzo</span></li>
+          <li><strong>4to escaneo →</strong> <span style="color:#2563EB">Salida</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="escanear-cancel">Cancelar</button>
+      <button class="btn btn-primary hidden" id="escanear-reintentar">Reintentar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script type="module">
-import { initEmpleadoLayout }        from '/frontend/modules/layout.js';
+import { initEmpleadoLayout }        from '../../modules/layout.js';
 import { asistenciaApi, sedeApi,
-         authApi }                    from '/frontend/modules/api.js';
-import { AuthService }               from '/frontend/modules/auth.js';
-import { toast, formatDate, show,
-         hide, formatCurrency }       from '/frontend/modules/utils.js';
+         authApi, empleadoApi }   from '../../modules/api.js';
+import { AuthService }               from '../../modules/auth.js';
+import { toast, show, hide }          from '../../modules/utils.js';
+import {
+  AsistenciaGPS,
+  AsistenciaService,
+  AsistenciaScanner,
+  cargarHtml5QrCode,
+} from '../../modules/asistencia.js';
 
 await initEmpleadoLayout('marcaje');
 
-/* ══════════════════════════════════════════════════════════
-   ESTADO GLOBAL
-══════════════════════════════════════════════════════════ */
+
 const state = {
   idEmpleado:    null,
   sede:          null,
@@ -186,9 +257,6 @@ setInterval(actualizarReloj, 1000);
 document.getElementById('badge-fecha').textContent =
   new Intl.DateTimeFormat('es-NI', { dateStyle: 'full' }).format(new Date());
 
-/* ══════════════════════════════════════════════════════════
-   OBTENER DATOS DEL EMPLEADO DESDE /auth/me
-══════════════════════════════════════════════════════════ */
 async function inicializar() {
   try {
     /* 1. Datos del usuario logueado */
@@ -199,7 +267,7 @@ async function inicializar() {
 
     /* Si la API /auth/me no devuelve idEmpleado, buscamos por idUsuario */
     if (!state.idEmpleado && me.idUsuario) {
-      const { empleadoApi } = await import('/frontend/modules/api.js');
+      const { empleadoApi } = await import('../../modules/api.js');
       const todos = await empleadoApi.getAll();
       const emp   = (Array.isArray(todos) ? todos : [])
                       .find(e => e.idUsuario === me.idUsuario || e.email === me.email);
@@ -238,32 +306,24 @@ async function inicializar() {
 /* ══════════════════════════════════════════════════════════
    GEOLOCALIZACIÓN
 ══════════════════════════════════════════════════════════ */
-function obtenerGPS() {
-  if (!navigator.geolocation) {
+async function obtenerGPS() {
+  const pos = await AsistenciaGPS.obtenerUbicacion(8000);
+  if (pos) {
+    state.gps.lat        = pos.lat;
+    state.gps.lon        = pos.lon;
+    state.gps.disponible = true;
+    document.getElementById('stat-gps').textContent = '✅ Disponible';
+    document.getElementById('f-lat').value = pos.lat.toFixed(6);
+    document.getElementById('f-lon').value = pos.lon.toFixed(6);
+    document.getElementById('gps-status').textContent =
+      `📍 Ubicación obtenida: ${pos.lat.toFixed(4)}, ${pos.lon.toFixed(4)}`;
+    calcularDistancia();
+  } else {
     state.gps.disponible = false;
-    document.getElementById('stat-gps').textContent = 'No disponible';
-    return;
+    document.getElementById('stat-gps').textContent = '⚠️ No obtenido';
+    document.getElementById('gps-status').textContent =
+      '⚠️ GPS no disponible. Ingresa las coordenadas manualmente.';
   }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      state.gps.lat        = pos.coords.latitude;
-      state.gps.lon        = pos.coords.longitude;
-      state.gps.disponible = true;
-      document.getElementById('stat-gps').textContent = '✅ Disponible';
-      document.getElementById('f-lat').value = pos.coords.latitude.toFixed(6);
-      document.getElementById('f-lon').value = pos.coords.longitude.toFixed(6);
-      document.getElementById('gps-status').textContent =
-        `📍 Ubicación obtenida: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-      calcularDistancia();
-    },
-    () => {
-      state.gps.disponible = false;
-      document.getElementById('stat-gps').textContent = '⚠️ No obtenido';
-      document.getElementById('gps-status').textContent =
-        '⚠️ GPS no disponible. Ingresa las coordenadas manualmente.';
-    },
-    { timeout: 8000, enableHighAccuracy: true }
-  );
 }
 
 function calcularDistancia() {
@@ -271,14 +331,10 @@ function calcularDistancia() {
     document.getElementById('stat-distancia').textContent = '—';
     return;
   }
-  const R = 6371000; // metros
-  const dLat = (state.sede.latitudSede - state.gps.lat) * Math.PI / 180;
-  const dLon = (state.sede.longitudSede - state.gps.lon) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 +
-            Math.cos(state.gps.lat * Math.PI/180) *
-            Math.cos(state.sede.latitudSede * Math.PI/180) *
-            Math.sin(dLon/2)**2;
-  const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  const dist = AsistenciaGPS.distanciaMetros(
+    state.gps.lat, state.gps.lon,
+    Number(state.sede.latitudSede), Number(state.sede.longitudSede)
+  );
   const enRango = dist <= (state.sede.radioToleranciaMetros ?? 200);
   document.getElementById('stat-distancia').textContent =
     `${dist} m ${enRango ? '✅' : '⚠️'}`;
@@ -451,13 +507,12 @@ document.getElementById('marcaje-confirm').addEventListener('click', async () =>
   text.textContent = 'Registrando...';
 
   try {
-    const result = await asistenciaApi.registrar({
-      idEmpleado:       state.idEmpleado,
-      tipoMarcaje:      state.tipoMarcaje,
-      latitudMarcaje:   lat,
-      longitudMarcaje:  lon,
-      tokenQrEscaneado: state.qrToken ?? '',
-      codigoOtpGenerado:'',
+    const result = await AsistenciaService.registrarMarcaje({
+      idEmpleado:  state.idEmpleado,
+      qrToken:     state.qrToken ?? '',
+      latitud:     lat,
+      longitud:    lon,
+      tipoMarcaje: state.tipoMarcaje,
     });
 
     toast(`✅ ${state.tipoMarcaje} registrada correctamente.`, 'success');
@@ -483,6 +538,123 @@ document.getElementById('marcaje-confirm').addEventListener('click', async () =>
 document.getElementById('modal-marcaje').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-marcaje'))
     hide(document.getElementById('modal-marcaje'));
+});
+
+/* ==========================================================
+   ESCANEO QR CON CAMARA — Flujo automatico (Fase 3)
+   Identifica el empleado por JWT, valida el QR escaneado
+   contra el token activo de la sede y registra la accion
+   segun el historial del dia (Entrada -> Almuerzo -> Salida).
+========================================================== */
+const scannerState = {
+  scanner: null,
+};
+
+async function abrirModalEscanear() {
+  await cargarHtml5QrCode();
+
+  const statusEl = document.getElementById('scanner-status');
+  const placeholder = document.getElementById('scanner-placeholder');
+  placeholder.style.display = 'none';
+
+  statusEl.textContent = 'Encendiendo cámara y obteniendo tu ubicación GPS...';
+  document.getElementById('escanear-reintentar').classList.add('hidden');
+
+  show(document.getElementById('modal-escanear'));
+
+  if (!state.gps.disponible) {
+    obtenerGPS();
+  }
+
+  scannerState.scanner = new AsistenciaScanner({
+    containerId: 'html5qr-reader',
+    videoConstraints: { facingMode: { ideal: 'environment' } },
+
+    onStatus: (msg, level = 'info') => {
+      const colors = {
+        info:    'color: var(--color-text-muted)',
+        success: 'color: #16A34A; font-weight: 600',
+        warning: 'color: #CA8A04',
+        error:   'color: #DC2626; font-weight: 600',
+      };
+      statusEl.innerHTML = `<span style="${colors[level] ?? colors.info}">${msg}</span>`;
+    },
+
+    onSuccess: (result, meta) => {
+      const minutosTardanza = result.minutosTardanza ?? 0;
+      statusEl.innerHTML =
+        '<div style="color:#16A34A;font-weight:700">✅ Marcaje exitoso!</div>' +
+        '<div style="margin-top:6px;font-size:.8rem">' + (result.mensaje ?? 'Acción registrada correctamente.') + '</div>' +
+        '<div style="margin-top:8px;padding:8px 12px;background:#F0FDF4;' +
+        'border-radius:8px;color:#166534;font-size:.75rem;text-align:left">' +
+        '<div><strong>Estado:</strong> ' + (result.estadoAsistencia ?? '--') + '</div>' +
+        '<div><strong>Hora:</strong> ' + new Date().toLocaleTimeString('es-NI') + '</div>' +
+        '<div><strong>Distancia a sede:</strong> ' + (result.distanciaCalculadaMetros ?? 0) + ' m</div>' +
+        (minutosTardanza > 0
+          ? '<div style="color:#991B1B;margin-top:4px"><strong>Tardanza:</strong> ' + minutosTardanza + ' min (se descuenta de planilla)</div>'
+          : '') +
+        '</div>';
+
+      toast('✅ ' + (result.mensaje ?? 'Marcaje registrado.'), 'success', 3000);
+      state.asistenciaHoy = result;
+      state.gps.lat = meta.latitud;
+      state.gps.lon = meta.longitud;
+      state.gps.disponible = true;
+      actualizarBotones();
+      actualizarTurno();
+      calcularDistancia();
+
+      setTimeout(() => {
+        detenerScannerYCerrar();
+      }, 2800);
+    },
+
+    onError: (err) => {
+      statusEl.innerHTML =
+        '<div style="color:#DC2626;font-weight:700">❌ Error al registrar</div>' +
+        '<div style="margin-top:4px;font-size:.8rem">' + (err.message || String(err)) + '</div>';
+      mostrarBotonReintentar();
+    },
+  });
+
+  try {
+    await scannerState.scanner.iniciar();
+  } catch (err) {
+    statusEl.innerHTML =
+      '<div style="color:#DC2626;font-weight:700">No se pudo acceder a la cámara</div>' +
+      '<div style="margin-top:4px;font-size:.8rem">' + err.message +
+      '<br>Verifica los permisos del navegador o usa el marcaje manual.</div>';
+    mostrarBotonReintentar();
+  }
+}
+
+function mostrarBotonReintentar() {
+  const btn = document.getElementById('escanear-reintentar');
+  btn.classList.remove('hidden');
+  btn.onclick = async () => {
+    btn.classList.add('hidden');
+    await scannerState.scanner?.detener();
+    abrirModalEscanear();
+  };
+}
+
+function detenerScannerYCerrar() {
+  scannerState.scanner?.detener();
+  scannerState.scanner = null;
+  hide(document.getElementById('modal-escanear'));
+}
+
+document.getElementById('btn-escanear-qr').addEventListener('click', abrirModalEscanear);
+
+['escanear-close','escanear-cancel'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('click', detenerScannerYCerrar);
+});
+
+document.getElementById('modal-escanear').addEventListener('click', function(e) {
+  if (e.target === document.getElementById('modal-escanear')) {
+    detenerScannerYCerrar();
+  }
 });
 
 /* ══════════════════════════════════════════════════════════

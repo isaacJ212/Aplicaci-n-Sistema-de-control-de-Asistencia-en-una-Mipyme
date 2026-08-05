@@ -6,10 +6,10 @@
   <title>Empleados — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
 </head>
 <body>
 
@@ -170,9 +170,24 @@
               placeholder="Ej. 12000.00" />
             <span class="form-error hidden" id="err-salario"></span>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="field-foto">URL de foto (opcional)</label>
-            <input type="text" class="form-input" id="field-foto" placeholder="https://..." />
+          <div class="form-group" id="wrap-foto">
+            <label class="form-label" for="field-foto">Foto del empleado (opcional)</label>
+            <!-- En creación: input file para subir a Supabase -->
+            <div id="foto-file-wrap">
+              <input type="file" class="form-input" id="field-foto-file"
+                accept="image/jpeg,image/png,image/webp"
+                style="padding:var(--space-2)" />
+              <span class="form-hint">JPG, PNG o WEBP · Máximo 5 MB. El nombre se asigna automáticamente.</span>
+            </div>
+            <!-- En edición: muestra la URL actual y permite cambiarla -->
+            <div id="foto-url-wrap" style="display:none">
+              <div id="foto-preview" style="margin-bottom:var(--space-2)"></div>
+              <input type="text" class="form-input" id="field-foto" placeholder="URL de la foto actual" />
+              <input type="file" class="form-input" id="field-foto-file-edit"
+                accept="image/jpeg,image/png,image/webp"
+                style="padding:var(--space-2);margin-top:var(--space-2)" />
+              <span class="form-hint">Sube una nueva foto para reemplazar la actual.</span>
+            </div>
           </div>
         </div>
       </form>
@@ -212,9 +227,10 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAdminLayout }         from '/frontend/modules/layout.js';
-import { empleadoApi, authApi }     from '/frontend/modules/api.js';
-import { toast, formatDate, formatCurrency, $, show, hide, debounce } from '/frontend/modules/utils.js';
+import { initAdminLayout }         from '../../modules/layout.js';
+import { empleadoApi, authApi }     from '../../modules/api.js';
+import { toast, formatDate, formatCurrency, $, show, hide, debounce } from '../../modules/utils.js';
+import { AuthService }              from '../../modules/auth.js';
 
 await initAdminLayout('empleados');
 
@@ -283,14 +299,20 @@ function renderTabla() {
 
   tbody.innerHTML = state.filtrados.map((e, i) => {
     const iniciales = `${(e.nombres ?? '')[0] ?? ''}${(e.apellidos ?? '')[0] ?? ''}`.toUpperCase();
+    // Avatar: foto real si existe, iniciales si no
+    const avatar = e.fotoUrl
+      ? `<img src="${e.fotoUrl}" alt="${e.nombres}"
+           style="width:34px;height:34px;border-radius:50%;object-fit:cover;
+                  border:2px solid var(--color-border);flex-shrink:0" />`
+      : `<div style="width:34px;height:34px;border-radius:50%;background:var(--color-primary-light);
+                     color:var(--color-primary-dark);display:flex;align-items:center;justify-content:center;
+                     font-weight:700;font-size:.75rem;flex-shrink:0">${iniciales}</div>`;
     return `
     <tr>
       <td class="text-muted">${i + 1}</td>
       <td>
         <div class="flex items-center gap-2">
-          <div style="width:34px;height:34px;border-radius:50%;background:var(--color-primary-light);
-                      color:var(--color-primary-dark);display:flex;align-items:center;justify-content:center;
-                      font-weight:700;font-size:.75rem;flex-shrink:0">${iniciales}</div>
+          ${avatar}
           <div>
             <div class="font-medium">${e.nombres} ${e.apellidos}</div>
           </div>
@@ -302,7 +324,7 @@ function renderTabla() {
       <td class="font-medium">${formatCurrency(e.salarioBaseMensual)}</td>
       <td>
         <div class="row-actions">
-          <a href="/frontend/pages/admin/empleado-detalle.html?id=${e.idEmpleado}"
+          <a href="../../pages/admin/empleado-detalle.html?id=${e.idEmpleado}"
              class="btn-icon" title="Ver expediente">
             👁
           </a>
@@ -333,6 +355,9 @@ document.getElementById('btn-nuevo').addEventListener('click', () => {
   show(document.getElementById('bloque-usuario'));
   show(document.getElementById('wrap-email'));
   show(document.getElementById('wrap-password'));
+  // En creación mostramos el input file
+  document.getElementById('foto-file-wrap').style.display = '';
+  document.getElementById('foto-url-wrap').style.display  = 'none';
   show(modalEmp);
 });
 
@@ -342,23 +367,35 @@ async function abrirEditar(id) {
   document.getElementById('modal-title').textContent = 'Editar empleado';
   document.getElementById('save-text').textContent   = 'Guardar cambios';
   limpiarForm();
-  // Oculta campos de cuenta (no se edita usuario desde aquí)
   hide(document.getElementById('bloque-usuario'));
   hide(document.getElementById('wrap-email'));
   hide(document.getElementById('wrap-password'));
+  // En edición mostramos la URL actual y opción de subir nueva foto
+  document.getElementById('foto-file-wrap').style.display = 'none';
+  document.getElementById('foto-url-wrap').style.display  = '';
   show(modalEmp);
 
   try {
     const emp = await empleadoApi.getById(id);
-    document.getElementById('field-id').value              = emp.idEmpleado;
-    document.getElementById('field-nombres').value         = emp.nombres ?? '';
-    document.getElementById('field-apellidos').value       = emp.apellidos ?? '';
-    document.getElementById('field-cedula').value          = emp.cedulaIdentificacion ?? '';
-    document.getElementById('field-cargo').value           = emp.cargoFuncion ?? '';
+    document.getElementById('field-id').value                = emp.idEmpleado;
+    document.getElementById('field-nombres').value           = emp.nombres ?? '';
+    document.getElementById('field-apellidos').value         = emp.apellidos ?? '';
+    document.getElementById('field-cedula').value            = emp.cedulaIdentificacion ?? '';
+    document.getElementById('field-cargo').value             = emp.cargoFuncion ?? '';
     document.getElementById('field-responsabilidades').value = emp.responsabilidades ?? '';
-    document.getElementById('field-contratacion').value    = (emp.fechaContratacion ?? '').split('T')[0];
-    document.getElementById('field-salario').value         = emp.salarioBaseMensual ?? '';
-    document.getElementById('field-foto').value            = emp.fotoUrl ?? '';
+    document.getElementById('field-contratacion').value      = (emp.fechaContratacion ?? '').split('T')[0];
+    document.getElementById('field-salario').value           = emp.salarioBaseMensual ?? '';
+    document.getElementById('field-foto').value              = emp.fotoUrl ?? '';
+
+    // Mostrar preview si tiene foto
+    const preview = document.getElementById('foto-preview');
+    if (emp.fotoUrl) {
+      preview.innerHTML = `<img src="${emp.fotoUrl}" alt="Foto actual"
+        style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid var(--color-border)" />
+        <span style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-left:var(--space-2)">Foto actual</span>`;
+    } else {
+      preview.innerHTML = '';
+    }
   } catch (err) {
     toast('No se pudo cargar el empleado: ' + err.message, 'error');
   }
@@ -395,11 +432,12 @@ document.getElementById('modal-save').addEventListener('click', async () => {
   const saveText = document.getElementById('save-text');
   saveBtn.disabled = true;
   const textoOrig = saveText.textContent;
-  saveText.textContent = 'Guardando...';
 
   try {
     if (state.editandoId) {
-      // ── Editar ──────────────────────────────────────────────
+      // ── Editar ────────────────────────────────────────────────────────────
+      saveText.textContent = 'Guardando...';
+
       const body = {
         nombres:              document.getElementById('field-nombres').value.trim(),
         apellidos:            document.getElementById('field-apellidos').value.trim(),
@@ -411,9 +449,19 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         fotoUrl:              document.getElementById('field-foto').value.trim() || null,
       };
       await empleadoApi.update(state.editandoId, body);
+
+      // Si hay nueva foto en edición, subirla después de actualizar
+      const archivoEdicion = document.getElementById('field-foto-file-edit')?.files[0];
+      if (archivoEdicion) {
+        saveText.textContent = 'Subiendo foto...';
+        await subirFoto(state.editandoId, archivoEdicion);
+      }
+
       toast('Empleado actualizado correctamente.', 'success');
+
     } else {
-      // ── Crear — primero registra usuario, luego empleado ────
+      // ── Crear — primero usuario, luego empleado, luego foto ────────────────
+      saveText.textContent = 'Creando usuario...';
       const email    = document.getElementById('field-email').value.trim();
       const password = document.getElementById('field-password').value;
 
@@ -421,6 +469,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       const usuario = await authApi.register({ email, password, role: 'Empleado' });
 
       // 2. Crea el expediente del empleado asociado al usuario creado
+      saveText.textContent = 'Creando expediente...';
       const body = {
         idUsuario:            usuario.idUsuario,
         nombres:              document.getElementById('field-nombres').value.trim(),
@@ -430,14 +479,23 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         responsabilidades:    document.getElementById('field-responsabilidades').value.trim(),
         fechaContratacion:    document.getElementById('field-contratacion').value,
         salarioBaseMensual:   parseFloat(document.getElementById('field-salario').value),
-        fotoUrl:              document.getElementById('field-foto').value.trim() || null,
+        fotoUrl:              null,   // se actualiza en el paso 3
       };
-      await empleadoApi.create(body);
+      const nuevoEmp = await empleadoApi.create(body);
+
+      // 3. Si se seleccionó foto, subirla a Supabase y guardar la URL en BD
+      const archivoCreacion = document.getElementById('field-foto-file')?.files[0];
+      if (archivoCreacion && nuevoEmp?.idEmpleado) {
+        saveText.textContent = 'Subiendo foto...';
+        await subirFoto(nuevoEmp.idEmpleado, archivoCreacion);
+      }
+
       toast('Empleado registrado correctamente.', 'success');
     }
 
     hide(modalEmp);
     cargar();
+
   } catch (err) {
     toast('Error: ' + err.message, 'error');
   } finally {
@@ -445,6 +503,33 @@ document.getElementById('modal-save').addEventListener('click', async () => {
     saveText.textContent = textoOrig;
   }
 });
+
+// ─── Subir foto a Supabase vía API ───────────────────────────────────────────
+async function subirFoto(idEmpleado, archivo) {
+  const formData = new FormData();
+  formData.append('foto', archivo);
+
+  const token = AuthService.getToken();
+
+  const res = await fetch(
+    `http://localhost:5244/api/empleado/${idEmpleado}/foto`,
+    {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body:    formData,
+    }
+  );
+
+  if (!res.ok) {
+    let msg = `Error ${res.status} al subir la foto.`;
+    try { const j = await res.json(); msg = j.message ?? msg; } catch { /* sin body */ }
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
+  toast(`📷 Foto subida: ${data?.data?.nombreArchivo ?? ''}`, 'success', 2500);
+  return data?.data?.fotoUrl ?? null;
+}
 
 // ─── Cerrar modales ───────────────────────────────────────────────────────────
 ['modal-close','modal-cancel'].forEach(id =>
@@ -477,6 +562,15 @@ function limpiarForm() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  // Limpiar inputs de archivo
+  const fotoFile = document.getElementById('field-foto-file');
+  if (fotoFile) fotoFile.value = '';
+  const fotoFileEdit = document.getElementById('field-foto-file-edit');
+  if (fotoFileEdit) fotoFileEdit.value = '';
+  // Limpiar preview
+  const preview = document.getElementById('foto-preview');
+  if (preview) preview.innerHTML = '';
+
   document.querySelectorAll('.form-error').forEach(el => { el.textContent = ''; hide(el); });
   document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
 }

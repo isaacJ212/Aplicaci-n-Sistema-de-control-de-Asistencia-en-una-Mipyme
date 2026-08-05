@@ -43,6 +43,10 @@ public class UpdateSedeCommandValidator : AbstractValidator<UpdateSedeCommand>
         RuleFor(x => x.DuracionAlmuerzoMinutos)
             .GreaterThan(0).WithMessage("La duración del almuerzo debe ser mayor a 0 minutos.")
             .LessThanOrEqualTo(180).WithMessage("La duración del almuerzo no puede superar 180 minutos.");
+
+        RuleFor(x => x.MinutosTolerancia)
+            .GreaterThanOrEqualTo(0).WithMessage("Los minutos de tolerancia no pueden ser negativos.")
+            .LessThanOrEqualTo(60).WithMessage("La tolerancia no puede superar 60 minutos.");
     }
 
     private static bool BeValidTime(string value)

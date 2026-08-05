@@ -32,6 +32,7 @@ public class GetSedeQueryHandler : IRequestHandler<GetSedeQuery, SedeResponseDto
             HoraEntradaOficial      = sede.HoraEntradaOficial.ToString(@"hh\:mm"),
             HoraSalidaOficial       = sede.HoraSalidaOficial.ToString(@"hh\:mm"),
             DuracionAlmuerzoMinutos = sede.DuracionAlmuerzoMinutos,
+            MinutosTolerancia = sede.MinutosTolerancia,
             TokenQrActual           = sede.TokenQrActual,
             QrUltimaActualizacion   = sede.QrUltimaActualizacion
         };

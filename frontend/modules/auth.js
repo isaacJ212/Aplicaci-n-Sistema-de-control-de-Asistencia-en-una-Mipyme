@@ -1,20 +1,24 @@
 /**
- * auth.js — Gestión de sesión: guardar/leer tokens, usuario, logout y guardia de rutas.
+ * auth.js — Gestión de sesión y guardia de rutas.
+ *
+ * Todas las redirecciones usan getBase() para construir URLs absolutas
+ * que funcionan con cualquier servidor/puerto (3000, 5500, etc.)
  */
 
 import CONFIG from './config.js';
+import { getLoginUrl, getDashboardUrl } from './routes.js';
 
 export const AuthService = {
 
-  // ── Persistencia ──────────────────────────────────────────────────────────
+  // ── Persistencia ─────────────────────────────────────────────────────────
 
-  saveSession(loginResponse) {
-    localStorage.setItem(CONFIG.STORAGE.TOKEN,         loginResponse.token);
-    localStorage.setItem(CONFIG.STORAGE.REFRESH_TOKEN, loginResponse.refreshToken);
-    localStorage.setItem(CONFIG.STORAGE.EXPIRATION,    loginResponse.expiration);
+  saveSession(data) {
+    localStorage.setItem(CONFIG.STORAGE.TOKEN,         data.token);
+    localStorage.setItem(CONFIG.STORAGE.REFRESH_TOKEN, data.refreshToken);
+    localStorage.setItem(CONFIG.STORAGE.EXPIRATION,    data.expiration);
     localStorage.setItem(CONFIG.STORAGE.USER, JSON.stringify({
-      email: loginResponse.email,
-      role:  loginResponse.role,
+      email: data.email,
+      role:  data.role,
     }));
   },
 
@@ -30,11 +34,11 @@ export const AuthService = {
     catch { return null; }
   },
 
-  getRole()           { return this.getUser()?.role ?? null; },
-  isAuthenticated()   { return !!this.getToken(); },
-  isAdmin()           { return this.getRole() === CONFIG.ROLES.ADMIN; },
+  getRole()         { return this.getUser()?.role ?? null; },
+  isAuthenticated() { return !!this.getToken(); },
+  isAdmin()         { return this.getRole() === CONFIG.ROLES.ADMIN; },
 
-  // ── Refresco automático de token ──────────────────────────────────────────
+  // ── Refresco del token ────────────────────────────────────────────────────
 
   async tryRefresh() {
     const rt = this.getRefreshToken();
@@ -60,34 +64,45 @@ export const AuthService = {
       try {
         await fetch(`${CONFIG.API_BASE_URL}/auth/logout`, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.getToken()}` },
-          body:    JSON.stringify({ refreshToken: rt }),
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${this.getToken()}`,
+          },
+          body: JSON.stringify({ refreshToken: rt }),
         });
       } catch { /* silencioso */ }
     }
     this.clearSession();
-    window.location.href = '/frontend/pages/auth/login.html';
+    window.location.href = getLoginUrl();
   },
 
   // ── Guardias de ruta ──────────────────────────────────────────────────────
 
+  /**
+   * Llama esto al inicio de cada página protegida.
+   * Si no hay sesión → login.
+   * Si el rol no coincide → dashboard correcto para ese rol.
+   */
   requireAuth(requiredRole = null) {
     if (!this.isAuthenticated()) {
-      window.location.href = '/frontend/pages/auth/login.html';
+      window.location.href = getLoginUrl();
       return false;
     }
+
     if (requiredRole && this.getRole() !== requiredRole) {
-      window.location.href = CONFIG.REDIRECT_AFTER_LOGIN[this.getRole()]
-                          ?? '/frontend/pages/auth/login.html';
+      window.location.href = getDashboardUrl(this.getRole());
       return false;
     }
+
     return true;
   },
 
+  /**
+   * Llama esto en login.html.
+   * Si ya hay sesión redirige al dashboard del rol correcto.
+   */
   redirectIfAuthenticated() {
-    if (this.isAuthenticated()) {
-      window.location.href = CONFIG.REDIRECT_AFTER_LOGIN[this.getRole()]
-                          ?? '/frontend/pages/auth/login.html';
-    }
+    if (!this.isAuthenticated()) return;
+    window.location.href = getDashboardUrl(this.getRole());
   },
 };

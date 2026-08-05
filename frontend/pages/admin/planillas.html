@@ -6,10 +6,10 @@
   <title>Planillas — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
   <style>
     .chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600; }
     .chip-green  { background:#DCFCE7;color:#166534; }
@@ -198,9 +198,9 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAdminLayout }               from '/frontend/modules/layout.js';
-import { planillaApi, empleadoApi }       from '/frontend/modules/api.js';
-import { toast, formatDate, formatCurrency, show, hide } from '/frontend/modules/utils.js';
+import { initAdminLayout }               from '../../modules/layout.js';
+import { planillaApi, empleadoApi }       from '../../modules/api.js';
+import { toast, formatDate, formatCurrency, show, hide } from '../../modules/utils.js';
 
 await initAdminLayout('planillas');
 

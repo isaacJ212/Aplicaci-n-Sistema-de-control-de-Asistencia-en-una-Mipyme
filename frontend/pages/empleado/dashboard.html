@@ -6,11 +6,11 @@
   <title>Mi Dashboard — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado.css" />
   <style>
     .bienvenida-card {
       background: linear-gradient(135deg,#064E3B 0%,#059669 100%);
@@ -96,9 +96,9 @@
           <p id="subtitulo">Cargando información...</p>
         </div>
         <div class="bienvenida-accesos">
-          <a href="/frontend/pages/empleado/marcaje.html"    class="acceso-btn">⏱ Marcar</a>
-          <a href="/frontend/pages/empleado/solicitudes.html" class="acceso-btn">🌴 Solicitudes</a>
-          <a href="/frontend/pages/empleado/nomina.html"     class="acceso-btn">💵 Mi Pago</a>
+          <a href="../../pages/empleado/marcaje.html"    class="acceso-btn">⏱ Marcar</a>
+          <a href="../../pages/empleado/solicitudes.html" class="acceso-btn">🌴 Solicitudes</a>
+          <a href="../../pages/empleado/nomina.html"     class="acceso-btn">💵 Mi Pago</a>
         </div>
       </div>
 
@@ -109,7 +109,7 @@
           <div class="turno-titulo" id="turno-titulo">Verificando turno de hoy...</div>
           <div class="turno-sub"   id="turno-sub"></div>
         </div>
-        <a href="/frontend/pages/empleado/marcaje.html" class="btn btn-primary btn-sm">
+        <a href="../../pages/empleado/marcaje.html" class="btn btn-primary btn-sm">
           Ir a Marcaje →
         </a>
       </div>
@@ -146,7 +146,7 @@
           <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
                display:flex;justify-content:space-between;align-items:center">
             <span class="card-title">Asistencias recientes</span>
-            <a href="/frontend/pages/empleado/historial.html"
+            <a href="../../pages/empleado/historial.html"
                style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver todo →</a>
           </div>
           <div id="lista-asistencias">
@@ -159,7 +159,7 @@
           <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
                display:flex;justify-content:space-between;align-items:center">
             <span class="card-title">Mis solicitudes recientes</span>
-            <a href="/frontend/pages/empleado/solicitudes.html"
+            <a href="../../pages/empleado/solicitudes.html"
                style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver todo →</a>
           </div>
           <div id="lista-solicitudes">
@@ -172,7 +172,7 @@
           <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
                display:flex;justify-content:space-between;align-items:center">
             <span class="card-title">Horas extras recientes</span>
-            <a href="/frontend/pages/empleado/horas-extras.html"
+            <a href="../../pages/empleado/horas-extras.html"
                style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver todo →</a>
           </div>
           <div id="lista-he">
@@ -185,7 +185,7 @@
           <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);
                display:flex;justify-content:space-between;align-items:center">
             <span class="card-title">Último recibo de pago</span>
-            <a href="/frontend/pages/empleado/nomina.html"
+            <a href="../../pages/empleado/nomina.html"
                style="font-size:var(--font-size-xs);color:var(--color-primary)">Ver detalle →</a>
           </div>
           <div id="ultimo-recibo">
@@ -201,11 +201,11 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initEmpleadoLayout }                            from '/frontend/modules/layout.js';
+import { initEmpleadoLayout }                            from '../../modules/layout.js';
 import { authApi, asistenciaApi, horasExtrasApi,
          permisoApi, planillaApi, empleadoApi,
-         sedeApi }                                        from '/frontend/modules/api.js';
-import { toast, formatDate, formatCurrency }              from '/frontend/modules/utils.js';
+         sedeApi }                                        from '../../modules/api.js';
+import { toast, formatDate, formatCurrency }              from '../../modules/utils.js';
 
 await initEmpleadoLayout('dashboard');
 

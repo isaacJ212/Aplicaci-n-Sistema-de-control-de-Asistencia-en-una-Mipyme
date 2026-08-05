@@ -6,10 +6,10 @@
   <title>Expediente — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
   <style>
     /* ── Perfil del empleado ─────────────────────────────── */
     .perfil-card {
@@ -106,7 +106,7 @@
   <main class="main-content">
     <header class="topbar">
       <div style="display:flex;align-items:center;gap:var(--space-3)">
-        <a href="/frontend/pages/admin/empleados.html"
+        <a href="../../pages/admin/empleados.html"
            style="color:var(--color-text-muted);font-size:var(--font-size-sm);display:flex;align-items:center;gap:4px">
           ← Empleados
         </a>
@@ -131,10 +131,10 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAdminLayout }                                         from '/frontend/modules/layout.js';
+import { initAdminLayout }                                         from '../../modules/layout.js';
 import { empleadoApi, asistenciaApi, horasExtrasApi,
-         planillaApi, permisoApi }                                 from '/frontend/modules/api.js';
-import { toast, formatDate, formatCurrency }                       from '/frontend/modules/utils.js';
+         planillaApi, permisoApi }                                 from '../../modules/api.js';
+import { toast, formatDate, formatCurrency }                       from '../../modules/utils.js';
 
 await initAdminLayout('empleados');
 
@@ -145,7 +145,7 @@ if (!idEmpleado) {
     `<div class="empty-state"><div class="empty-icon">⚠️</div>
      <h3>Empleado no especificado</h3>
      <p>Vuelve a la lista y selecciona un empleado.</p>
-     <a class="btn btn-primary" style="margin-top:var(--space-4)" href="/frontend/pages/admin/empleados.html">← Ir a empleados</a>
+     <a class="btn btn-primary" style="margin-top:var(--space-4)" href="../../pages/admin/empleados.html">← Ir a empleados</a>
      </div>`;
 }
 
@@ -391,7 +391,7 @@ try {
       <h3>Error al cargar el expediente</h3>
       <p>${err.message}</p>
       <a class="btn btn-primary" style="margin-top:var(--space-4)"
-         href="/frontend/pages/admin/empleados.html">← Volver a empleados</a>
+         href="../../pages/admin/empleados.html">← Volver a empleados</a>
     </div>`;
 }
 </script>

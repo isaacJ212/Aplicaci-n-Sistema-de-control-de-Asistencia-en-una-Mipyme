@@ -36,6 +36,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.HoraEntradaOficial).HasColumnName("hora_entrada_oficial");
             entity.Property(x => x.HoraSalidaOficial).HasColumnName("hora_salida_oficial");
             entity.Property(x => x.DuracionAlmuerzoMinutos).HasColumnName("duracion_almuerzo_minutos").HasDefaultValue(60);
+            entity.Property(x => x.MinutosTolerancia).HasColumnName("minutos_tolerancia").HasDefaultValue(10);
             entity.Property(x => x.TokenQrActual).HasColumnName("token_qr_actual");
             entity.Property(x => x.QrUltimaActualizacion).HasColumnName("qr_ultima_actualizacion");
         });

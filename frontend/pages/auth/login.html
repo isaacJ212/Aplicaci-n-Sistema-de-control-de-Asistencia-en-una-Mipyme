@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/login.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/login.css" />
 </head>
 <body>
 
@@ -144,6 +144,54 @@
 <!-- Toast container -->
 <div id="toast-container"></div>
 
-<script type="module" src="/frontend/assets/js/login.js"></script>
+<script type="module">
+// ════════════════════════════════════════════════════════════════
+// BOOTSTRAP DINÁMICO — evita errores 404 sin importar desde dónde
+// se inicie el servidor HTTP (root del proyecto o /frontend).
+//
+// Detecta automáticamente el path base hasta la carpeta frontend/
+// y luego carga los módulos + login.js con rutas correctas.
+// ════════════════════════════════════════════════════════════════
+(function bootstrapLogin() {
+  const pathParts = window.location.pathname.split('/');
+  const frontendIdx = pathParts.indexOf('frontend');
+  const basePrefix = (frontendIdx !== -1)
+    ? pathParts.slice(0, frontendIdx + 1).join('/') + '/'
+    : '/';
+
+  Promise.all([
+    import(`${basePrefix}modules/config.js`),
+    import(`${basePrefix}modules/utils.js`),
+    import(`${basePrefix}modules/auth.js`),
+    import(`${basePrefix}modules/api.js`),
+    import(`${basePrefix}assets/js/login.js`),
+  ]).then(([
+    { default: CONFIG },
+    utilsModule,
+    { AuthService },
+    apiModule,
+    { initLoginApp },
+  ]) => {
+    initLoginApp({
+      CONFIG,
+      utils: utilsModule,
+      AuthService,
+      authApi: apiModule.authApi,
+    });
+  }).catch((err) => {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div style="position:fixed;bottom:20px;left:20px;right:20px;z-index:99999
+                  background:#FEE2E2;color:#991B1B;padding:16px 20px;border-radius:12px;
+                  font-family:Inter,system-ui,sans-serif;font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.15)">
+        <strong>⚠️ Error al cargar módulos JS:</strong> ${err.message}<br/>
+        <small style="opacity:.85">
+          Ruta base detectada: <code>${basePrefix}</code> · Revisa que el servidor esté iniciado desde la carpeta correcta.
+        </small>
+      </div>
+    `);
+    console.error('[Bootstrap Login] Falló la carga de módulos. Path usado:', basePrefix, err);
+  });
+})();
+</script>
 </body>
 </html>

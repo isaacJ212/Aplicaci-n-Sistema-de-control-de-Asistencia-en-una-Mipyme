@@ -1,51 +1,58 @@
 /**
- * layout.js — Carga el sidebar compartido e inicializa el layout admin.
+ * layout.js — Carga el sidebar compartido e inicializa el layout admin o empleado.
  *
- * Live Preview sirve archivos estáticos desde la raíz del workspace.
- * Las rutas absolutas usan /frontend/ como prefijo.
+ * ESTRATEGIA DE RUTAS:
+ *   Los sidebars tienen data-nav="pages/admin/dashboard.html" (ruta relativa a frontend/).
+ *   usando resolvePageUrl() de routes.js, compatible con rutas cortas y /frontend/.
  */
+
 import { AuthService } from './auth.js';
 import { toast }       from './utils.js';
+import { getBase, resolvePageUrl } from './routes.js';
 
 /**
- * Inicializa el layout admin: carga el sidebar, marca el link activo,
- * rellena datos del usuario y conecta el botón de logout.
- *
- * @param {string} currentPage  Valor de data-page del link activo (ej: 'empleados')
+ * Carga el sidebar HTML, resuelve los data-nav a hrefs absolutos,
+ * marca el link activo e inicializa usuario + logout.
  */
-export async function initAdminLayout(currentPage = '') {
-  // 1. Guardia de ruta
-  if (!AuthService.requireAuth('Admin')) return;
-
-  // 2. Inyecta el sidebar en su contenedor
+async function loadSidebar(htmlFile, currentPage) {
   const container = document.getElementById('sidebar-container');
-  if (container) {
-    try {
-      // Ruta absoluta desde la raíz del workspace (funciona con Live Preview)
-      const res  = await fetch('/frontend/components/sidebar-admin.html');
-      const html = await res.text();
-      container.innerHTML = html;
-    } catch (e) {
-      console.warn('No se pudo cargar el sidebar:', e.message);
+  if (!container) return;
+
+  // 1. Fetch del sidebar HTML
+  try {
+    const base = getBase();
+    const res  = await fetch(`${base}/components/${htmlFile}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status} al cargar ${htmlFile}`);
+    container.innerHTML = await res.text();
+  } catch (e) {
+    console.warn('No se pudo cargar el sidebar:', e.message);
+    return;
+  }
+
+  // 2. Resolver data-nav → href correcto para TODOS los links del sidebar
+  container.querySelectorAll('[data-nav]').forEach(el => {
+    const navPath = el.getAttribute('data-nav');
+    if (navPath) {
+      el.setAttribute('href', resolvePageUrl(navPath));
     }
-  }
+  });
 
-  // 3. Marca el link activo DESPUÉS de inyectar el HTML
+  // 3. Marcar link activo según la página actual
   if (currentPage) {
-    document.querySelector(`.sidebar-link[data-page="${currentPage}"]`)
-            ?.classList.add('active');
+    container.querySelector(`.sidebar-link[data-page="${currentPage}"]`)
+             ?.classList.add('active');
   }
 
-  // 4. Rellena datos del usuario en el footer del sidebar
+  // 4. Rellenar datos del usuario en el footer del sidebar
   const user = AuthService.getUser();
   if (user) {
-    const emailEl  = document.getElementById('sidebar-email');
-    const avatarEl = document.getElementById('sidebar-avatar');
+    const emailEl  = container.querySelector('#sidebar-email');
+    const avatarEl = container.querySelector('#sidebar-avatar');
     if (emailEl)  emailEl.textContent  = user.email;
     if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
   }
 
-  // 5. Logout (delegado en document para capturarlo después del fetch)
+  // 5. Botón de logout
   document.addEventListener('click', (e) => {
     if (e.target.closest('#sidebar-logout-btn')) {
       toast('Cerrando sesión...', 'info', 800);
@@ -54,41 +61,14 @@ export async function initAdminLayout(currentPage = '') {
   });
 }
 
-/**
- * Inicializa el layout del portal del empleado.
- * @param {string} currentPage  Valor de data-page del link activo
- */
+/** Inicializa el layout del portal Admin. */
+export async function initAdminLayout(currentPage = '') {
+  if (!AuthService.requireAuth('Admin')) return;
+  await loadSidebar('sidebar-admin.html', currentPage);
+}
+
+/** Inicializa el layout del portal Empleado. */
 export async function initEmpleadoLayout(currentPage = '') {
   if (!AuthService.requireAuth('Empleado')) return;
-
-  const container = document.getElementById('sidebar-container');
-  if (container) {
-    try {
-      const res  = await fetch('/frontend/components/sidebar-empleado.html');
-      const html = await res.text();
-      container.innerHTML = html;
-    } catch (e) {
-      console.warn('No se pudo cargar el sidebar del empleado:', e.message);
-    }
-  }
-
-  if (currentPage) {
-    document.querySelector(`.sidebar-link[data-page="${currentPage}"]`)
-            ?.classList.add('active');
-  }
-
-  const user = AuthService.getUser();
-  if (user) {
-    const emailEl  = document.getElementById('sidebar-email');
-    const avatarEl = document.getElementById('sidebar-avatar');
-    if (emailEl)  emailEl.textContent  = user.email;
-    if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
-  }
-
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('#sidebar-logout-btn')) {
-      toast('Cerrando sesión...', 'info', 800);
-      setTimeout(() => AuthService.logout(), 600);
-    }
-  });
+  await loadSidebar('sidebar-empleado.html', currentPage);
 }

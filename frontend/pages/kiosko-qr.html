@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="refresh" content="3600" />
+  <title>🟢 Kiosco QR — Estación de Marcaje | MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --kiosko-primary:   #2563EB;
+      --kiosko-success:   #22C55E;
+      --kiosko-danger:    #EF4444;
+      --kiosko-warning:   #F59E0B;
+      --kiosko-bg:        #0F172A;
+      --kiosko-bg-2:      #1E293B;
+      --kiosko-card:      rgba(255,255,255,0.06);
+      --kiosko-border:    rgba(255,255,255,0.12);
+      --kiosko-text:      #F8FAFC;
+      --kiosko-text-muted:#94A3B8;
+      --kiosko-accent:    #60A5FA;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,.18), transparent 60%),
+        radial-gradient(900px 500px at 110% 110%, rgba(34,197,94,.12), transparent 60%),
+        linear-gradient(135deg, #0B1220 0%, #0F172A 40%, #1E3A5F 100%);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: var(--kiosko-text); overflow-x: hidden;
+    }
+
+    /* ── Fondo decorativo animado ────────────────────────── */
+    .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-orbs span {
+      position: absolute; border-radius: 50%;
+      background: radial-gradient(circle, rgba(96,165,250,.18), transparent 70%);
+      animation: floatOrb 14s ease-in-out infinite;
+      filter: blur(2px);
+    }
+    .bg-orbs span:nth-child(1) { width:520px;height:520px;top:-160px;left:-160px; animation-delay:0s; }
+    .bg-orbs span:nth-child(2) { width:380px;height:380px;bottom:-120px;right:-100px; animation-delay:-5s; }
+    .bg-orbs span:nth-child(3) { width:260px;height:260px;top:45%;right:8%; animation-delay:-9s; }
+    @keyframes floatOrb {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50%      { transform: translate(-12px,-20px) scale(1.06); }
+    }
+
+    /* ── Contenedor principal ────────────────────────────── */
+    .kiosko-wrap {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 28px; padding: 40px 32px 32px;
+      text-align: center; max-width: 560px; width: 100%;
+    }
+
+    /* ── Barra superior kiosco ───────────────────────────── */
+    .kiosko-topbar {
+      width: 100%;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 18px;
+      background: var(--kiosko-card);
+      border: 1px solid var(--kiosko-border);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+    .kiosko-brand { display: flex; align-items: center; gap: 12px; }
+    .kiosko-brand-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(37,99,235,.5), rgba(96,165,250,.2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+      border: 1px solid rgba(96,165,250,.3);
+    }
+    .kiosko-brand-name { font-weight: 800; font-size: 1rem; color: #fff; }
+    .kiosko-brand-sub  { font-size: .72rem; color: var(--kiosko-text-muted); letter-spacing: .04em; }
+
+    .topbar-actions { display: flex; gap: 10px; }
+    .icon-btn {
+      background: rgba(255,255,255,.05); border: 1px solid var(--kiosko-border);
+      color: #CBD5E1; border-radius: 10px; padding: 8px 12px;
+      font-size: .85rem; cursor: pointer; transition: all .15s ease;
+    }
+    .icon-btn:hover { background: rgba(37,99,235,.2); border-color: rgba(96,165,250,.4); color: #fff; }
+
+    /* ── Reloj / Fecha ───────────────────────────────────── */
+    .kiosko-timeblock {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 16px 28px;
+      background: linear-gradient(180deg, rgba(37,99,235,.1), transparent);
+      border: 1px solid rgba(96,165,250,.12);
+      border-radius: 20px;
+    }
+    .kiosko-reloj {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 3rem; font-weight: 800; letter-spacing: .06em;
+      background: linear-gradient(180deg, #fff, #93C5FD);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      line-height: 1;
+    }
+    .kiosko-fecha {
+      font-size: .85rem; color: var(--kiosko-text-muted);
+      text-transform: capitalize;
+    }
+
+    /* ── Header info sede ────────────────────────────────── */
+    .kiosko-header { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .kiosko-nombre-sede {
+      font-size: 1.3rem; font-weight: 700; color: #fff;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sede-pin { font-size: 1.1rem; }
+    .kiosko-estado-line {
+      font-size: .78rem; color: var(--kiosko-text-muted);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    /* ── Tarjeta QR ──────────────────────────────────────── */
+    .qr-card {
+      background: var(--kiosko-card);
+      border: 1px solid var(--kiosko-border);
+      border-radius: 28px;
+      padding: 32px 28px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 22px;
+      width: 100%;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      position: relative; overflow: hidden;
+    }
+    .qr-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, var(--kiosko-accent), var(--kiosko-success), transparent);
+      animation: shine 3s linear infinite;
+    }
+    @keyframes shine {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .qr-label {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .14em;
+      color: var(--kiosko-accent); font-weight: 700;
+      padding: 6px 14px;
+      background: rgba(96,165,250,.08);
+      border: 1px solid rgba(96,165,250,.2);
+      border-radius: 999px;
+    }
+
+    #qr-container {
+      background: #fff; border-radius: 22px; padding: 24px;
+      box-shadow: 0 12px 36px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.1) inset;
+      transition: opacity .3s ease, transform .3s ease;
+      position: relative;
+    }
+    #qr-container::after {
+      content: 'ESCANEA'; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      background: rgba(15,23,42,.9); color: #fff; padding: 6px 12px; border-radius: 6px;
+      font-size: .7rem; font-weight: 700; letter-spacing: .08em; opacity: 0;
+      transition: opacity .2s;
+    }
+    #qr-container:hover::after { opacity: 1; }
+    #qr-container.loading { opacity: .3; transform: scale(.98); }
+    #qr-container canvas, #qr-container img { display: block; border-radius: 4px; }
+
+    /* ── Estado / indicador activo ────────────────────────── */
+    .qr-estado {
+      display: flex; align-items: center; gap: 10px;
+      font-size: .8rem; color: #86EFAC; font-weight: 700;
+      padding: 8px 16px;
+      background: rgba(34,197,94,.08);
+      border: 1px solid rgba(34,197,94,.2);
+      border-radius: 999px;
+    }
+    .qr-estado.error { color: #FCA5A5; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.2); }
+    .estado-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #22C55E; animation: pulse 1.6s infinite;
+      box-shadow: 0 0 0 0 rgba(34,197,94,.5);
+    }
+    .qr-estado.error .estado-dot { background: #EF4444; animation: none; box-shadow: none; }
+    @keyframes pulse {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+      50%      { opacity: .75; box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+    }
+
+    /* ── Temporizadores ───────────────────────────────────── */
+    .timers-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;
+    }
+    .timer-box {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--kiosko-border);
+      border-radius: 14px; padding: 12px 14px;
+      text-align: center;
+    }
+    .timer-label { font-size: .65rem; color: var(--kiosko-text-muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+    .timer-value { font-size: 1rem; font-weight: 700; color: #E0F2FE; }
+    .timer-value.warn { color: #FCD34D; }
+    .timer-value.danger { color: #FCA5A5; }
+
+    /* ── Instrucciones / pasos ───────────────────────────── */
+    .instrucciones {
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--kiosko-border);
+      border-radius: 22px; padding: 22px 24px;
+      width: 100%;
+      text-align: left;
+    }
+    .instrucciones h3 {
+      font-size: .8rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--kiosko-accent); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .paso {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: .82rem; color: #CBD5E1; margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .paso:last-child { margin-bottom: 0; }
+    .paso-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(37,99,235,.5), rgba(96,165,250,.2));
+      color: #BFDBFE; font-weight: 800; font-size: .72rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      border: 1px solid rgba(96,165,250,.25);
+    }
+    .paso strong { color: #fff; }
+
+    /* ── Botones de acción ───────────────────────────────── */
+    .actions-row { display: flex; gap: 12px; width: 100%; }
+    .btn-primary-kiosko, .btn-secondary-kiosko {
+      flex: 1; padding: 12px 18px; border-radius: 14px;
+      font-size: .85rem; font-weight: 700; cursor: pointer;
+      transition: all .15s ease; border: none;
+    }
+    .btn-primary-kiosko {
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      color: #fff; box-shadow: 0 6px 20px rgba(37,99,235,.35);
+    }
+    .btn-primary-kiosko:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(37,99,235,.45); }
+    .btn-primary-kiosko:active { transform: translateY(0); }
+    .btn-secondary-kiosko {
+      background: rgba(255,255,255,.05); border: 1px solid var(--kiosko-border);
+      color: #CBD5E1;
+    }
+    .btn-secondary-kiosko:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    /* ── Estado de error ─────────────────────────────────── */
+    .error-card {
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: 18px; padding: 18px 20px; width: 100%;
+      font-size: .85rem; color: #FCA5A5; text-align: center;
+      display: none;
+    }
+    .error-card small { display: block; margin-top: 6px; color: rgba(252,165,165,.75); }
+
+    /* ── Modo a pantalla completa ────────────────────────── */
+    .fullscreen-hint {
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(15,23,42,.85); color: #CBD5E1;
+      padding: 6px 14px; border-radius: 999px;
+      font-size: .7rem; backdrop-filter: blur(6px);
+      border: 1px solid var(--kiosko-border);
+      z-index: 50; cursor: pointer;
+      animation: slideDownHint .5s ease;
+    }
+    @keyframes slideDownHint { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs"><span></span><span></span><span></span></div>
+
+<div class="fullscreen-hint" id="fs-hint" onclick="toggleFullscreen()">
+  ⛶ Toca aquí para poner en pantalla completa
+</div>
+
+<div class="kiosko-wrap">
+
+  <!-- Topbar -->
+  <div class="kiosko-topbar">
+    <div class="kiosko-brand">
+      <div class="kiosko-brand-icon">🏢</div>
+      <div>
+        <div class="kiosko-brand-name">MipymeAsistencia</div>
+        <div class="kiosko-brand-sub">ESTACIÓN DE MARCAJE · QR</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btn-fs" title="Pantalla completa">⛶</button>
+      <button class="icon-btn" id="btn-sound" title="Activar/Desactivar sonido">🔊</button>
+    </div>
+  </div>
+
+  <!-- Hora y fecha -->
+  <div class="kiosko-timeblock">
+    <div class="kiosko-reloj" id="reloj">--:--:--</div>
+    <div class="kiosko-fecha" id="fecha">--</div>
+  </div>
+
+  <!-- Sede -->
+  <div class="kiosko-header">
+    <div class="kiosko-nombre-sede">
+      <span class="sede-pin">📍</span>
+      <span id="nombre-sede">Cargando sede...</span>
+    </div>
+    <div class="kiosko-estado-line">
+      <span>Rango GPS permitido:</span>
+      <strong id="sede-radio">--</strong>
+    </div>
+  </div>
+
+  <!-- Tarjeta QR -->
+  <div class="qr-card">
+    <div class="qr-label">📱 Escanea este código QR</div>
+
+    <div id="qr-container" class="loading">
+      <div style="width:260px;height:260px;display:flex;align-items:center;justify-content:center;color:#64748B;font-size:.85rem">
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="width:42px;height:42px;border:3px solid rgba(100,116,139,.2);border-top-color:#64748B;border-radius:50%;animation:spin .8s linear infinite"></div>
+          <span>Generando código QR...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="qr-estado" id="qr-estado">
+      <div class="estado-dot" id="estado-dot"></div>
+      <span id="estado-texto">Conectando con el servidor...</span>
+    </div>
+
+    <div class="timers-row">
+      <div class="timer-box">
+        <div class="timer-label">Siguiente rotación</div>
+        <div class="timer-value" id="contador-rotacion">-- s</div>
+      </div>
+      <div class="timer-box">
+        <div class="timer-label">Válido por</div>
+        <div class="timer-value" id="contador-24h">-- h -- m</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error card -->
+  <div class="error-card" id="error-card">
+    ⚠️ No se pudo cargar el código QR del kiosco
+    <br><small>Verifica que el backend esté conectado e intenta renovar manualmente.</small>
+    <br><small id="error-detalle"></small>
+  </div>
+
+  <!-- Instrucciones -->
+  <div class="instrucciones">
+    <h3>🧭 ¿Cómo marcar tu asistencia?</h3>
+    <div class="paso">
+      <div class="paso-num">1</div>
+      <span>Abre la app <strong>MipymeAsistencia</strong> en tu teléfono e inicia sesión con tu usuario.</span>
+    </div>
+    <div class="paso">
+      <div class="paso-num">2</div>
+      <span>Toca <strong>"Marcar Asistencia"</strong> y luego el botón <strong>"Escanear QR"</strong>.</span>
+    </div>
+    <div class="paso">
+      <div class="paso-num">3</div>
+      <span>Apunta la cámara al código QR de esta pantalla. <strong>El sistema detectará automáticamente</strong> si es Entrada, Almuerzo o Salida según tu jornada.</span>
+    </div>
+    <div class="paso">
+      <div class="paso-num">4</div>
+      <span>Recibirás una confirmación en tu teléfono. ¡Listo! El QR se renueva periódicamente por seguridad.</span>
+    </div>
+  </div>
+
+  <!-- Acciones -->
+  <div class="actions-row">
+    <button class="btn-secondary-kiosko" id="btn-refresh">🔄 Renovar QR ahora</button>
+    <button class="btn-primary-kiosko" id="btn-reset">🛠 Reiniciar conexión</button>
+  </div>
+
+</div>
+
+<script type="module">
+// ═══════════════════════════════════════════════════════════════════════════
+// KIOSCO QR DE MARCAJE — Estación pública (sin login).
+// Consume endpoints públicos:
+//   GET  /api/Asistencia/qr-actual       (obtener QR activo)
+//   POST /api/Asistencia/rotar-qr-sede   (renovar QR manualmente)
+//   GET  /api/Sede/configuracion         (info de sede: nombre, radio, etc.)
+// ═══════════════════════════════════════════════════════════════════════════
+(function bootstrapKiosko() {
+  const pathParts = window.location.pathname.split('/');
+  const frontendIdx = pathParts.indexOf('frontend');
+  const basePrefix = (frontendIdx !== -1)
+    ? pathParts.slice(0, frontendIdx + 1).join('/') + '/'
+    : '/';
+
+  import(`${basePrefix}modules/config.js`)
+    .then(async ({ default: CONFIG }) => await runKiosko(CONFIG))
+    .catch((err) => {
+      document.body.insertAdjacentHTML('beforeend',
+        `<div style="position:fixed;bottom:20px;left:20px;right:20px;z-index:99999
+            background:#FEE2E2;color:#991B1B;padding:14px 18px;border-radius:12px;
+            font-family:Inter,system-ui,sans-serif;font-size:.85rem">
+          <strong>⚠️ Error kiosco:</strong> ${err.message}
+        </div>`);
+    });
+})();
+
+async function runKiosko(CONFIG) {
+  const API = CONFIG.API_BASE_URL;
+  const ROTATION_SECS = 30;       // segundos entre actualizaciones de polling
+  const QR_EXPIRE_HS  = 24;       // horas de duración del QR (como el backend)
+
+  // ── Elementos DOM ────────────────────────────────────────────────────────
+  const el = {
+    reloj:        document.getElementById('reloj'),
+    fecha:        document.getElementById('fecha'),
+    sede:         document.getElementById('nombre-sede'),
+    radio:        document.getElementById('sede-radio'),
+    qrWrap:       document.getElementById('qr-container'),
+    estadoWrap:   document.getElementById('qr-estado'),
+    dot:          document.getElementById('estado-dot'),
+    texto:        document.getElementById('estado-texto'),
+    cntRot:       document.getElementById('contador-rotacion'),
+    cnt24:        document.getElementById('contador-24h'),
+    errCard:      document.getElementById('error-card'),
+    errDet:       document.getElementById('error-detalle'),
+  };
+
+  const state = {
+    qrToken:      null,
+    qrCreadoEn:   null,
+    sede:         null,
+    qrInstance:   null,
+    segundosRot:  ROTATION_SECS,
+    sonido:       true,
+    audioReady:   false,
+  };
+
+  let audioCtx = null;
+
+  function prepareAudio() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    audioCtx ??= new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    state.audioReady = audioCtx.state === 'running';
+  }
+
+  // ── Pantalla completa ────────────────────────────────────────────────────
+  document.getElementById('btn-fs').onclick     = toggleFullscreen;
+  document.getElementById('fs-hint')?.remove();
+
+  document.getElementById('btn-sound').onclick = (e) => {
+    prepareAudio();
+    state.sonido = !state.sonido;
+    e.currentTarget.textContent = state.sonido ? '🔊' : '🔇';
+  };
+
+  document.addEventListener('click', prepareAudio, { once: true });
+
+  // ── Reloj digital ────────────────────────────────────────────────────────
+  function actualizarReloj() {
+    const now = new Date();
+    el.reloj.textContent = now.toLocaleTimeString('es-NI', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    el.fecha.textContent = now.toLocaleDateString('es-NI', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  }
+  actualizarReloj();
+  setInterval(actualizarReloj, 1000);
+
+  // ── Estado visual ────────────────────────────────────────────────────────
+  function setEstado(ok, texto, detalle = '') {
+    el.estadoWrap.classList.toggle('error', !ok);
+    el.texto.textContent = texto;
+    if (!ok && detalle) {
+      el.errCard.style.display = 'block';
+      el.errDet.textContent = detalle;
+    } else {
+      el.errCard.style.display = 'none';
+    }
+  }
+
+  // ── Renderizar QR ────────────────────────────────────────────────────────
+  function renderQR(token) {
+    el.qrWrap.innerHTML = '';
+    el.qrWrap.classList.remove('loading');
+    state.qrInstance = new QRCode(el.qrWrap, {
+      text:         token,
+      width:        260,
+      height:       260,
+      colorDark:    '#0F172A',
+      colorLight:   '#FFFFFF',
+      correctLevel: QRCode.CorrectLevel.Q,
+    });
+    if (state.sonido) beep(880, 60);
+  }
+
+  function beep(freq = 600, ms = 50) {
+    if (!state.sonido || !state.audioReady || !audioCtx) return;
+    try {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + ms/1000);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + ms/1000);
+    } catch { /* silent */ }
+  }
+
+  // ── Cargar datos de sede ─────────────────────────────────────────────────
+  async function cargarSede() {
+    try {
+      const res = await fetch(`${API}/Sede/configuracion`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const body = await res.json();
+        const data = body?.data ?? body;
+        if (data) {
+          state.sede = data;
+          el.sede.textContent  = data.nombreSede ?? 'Sede Principal';
+          el.radio.textContent = `${data.radioToleranciaMetros ?? 200} metros`;
+          return;
+        }
+      }
+    } catch { /* silent */ }
+    el.sede.textContent = 'Sede Principal';
+    el.radio.textContent = '200 metros';
+  }
+
+  // ── Obtener / actualizar QR desde el backend ─────────────────────────────
+  async function obtenerQR(usarRotarEndpoint = false) {
+    el.errCard.style.display = 'none';
+    el.qrWrap.classList.add('loading');
+    setEstado(false, 'Actualizando QR del kiosco...');
+
+    try {
+      const url    = usarRotarEndpoint ? `${API}/Asistencia/rotar-qr-sede` : `${API}/Asistencia/qr-actual`;
+      const method = usarRotarEndpoint ? 'POST' : 'GET';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body  = await res.json();
+      const data  = body?.data ?? body;
+      const token = data?.tokenQrActual ?? data?.token ?? null;
+
+      if (!token) throw new Error('Respuesta sin token QR.');
+
+      state.qrToken    = token;
+      state.qrCreadoEn  = data?.qrUltimaActualizacion ? new Date(data.qrUltimaActualizacion) : new Date();
+
+      renderQR(token);
+      actualizarContador24h();
+      setEstado(true, '✅ QR activo · Escanea para marcar');
+
+      return true;
+    } catch (err) {
+      el.qrWrap.classList.remove('loading');
+      el.qrWrap.innerHTML = `
+        <div style="width:260px;height:260px;display:flex;flex-direction:column;align-items:center;
+             justify-content:center;gap:14px;color:#EF4444;font-size:.82rem;text-align:center;padding:20px">
+          <span style="font-size:2.4rem">🔌</span>
+          <span><strong>Sin conexión con el servidor</strong><br/>Reintentando automáticamente...</span>
+        </div>`;
+      setEstado(false, '❌ Error de conexión', err.message);
+      if (state.sonido) beep(220, 120);
+      return false;
+    }
+  }
+
+  // ── Contador regresivo rotación / validez 24h ────────────────────────────
+  function actualizarContador24h() {
+    if (!state.qrCreadoEn) { el.cnt24.textContent = '-- h -- m'; return; }
+    const vence = new Date(state.qrCreadoEn.getTime() + QR_EXPIRE_HS * 3600 * 1000);
+    const segs = Math.max(0, Math.floor((vence - Date.now()) / 1000));
+    const h = Math.floor(segs / 3600);
+    const m = Math.floor((segs % 3600) / 60);
+    const text = `${h} h ${String(m).padStart(2,'0')} m`;
+    el.cnt24.textContent = text;
+    el.cnt24.classList.toggle('warn', h <= 4 && h > 0);
+    el.cnt24.classList.toggle('danger', h === 0);
+  }
+
+  function iniciarContadorRotacion() {
+    state.segundosRot = ROTATION_SECS;
+    el.cntRot.textContent = `${state.segundosRot} s`;
+
+    const timer = setInterval(() => {
+      state.segundosRot--;
+      el.cntRot.textContent = `${state.segundosRot} s`;
+      el.cntRot.classList.toggle('warn', state.segundosRot <= 10);
+
+      if (state.segundosRot <= 0) {
+        clearInterval(timer);
+        // Polling: simplemente comprobamos si el QR cambió, no regeneramos a menos que se requiera
+        obtenerQR(false).then(() => actualizarContador24h());
+        iniciarContadorRotacion();
+      }
+    }, 1000);
+  }
+
+  // ── Contador global de validez 24h (cada minuto) ─────────────────────────
+  setInterval(actualizarContador24h, 60 * 1000);
+
+  // ── Botones manuales ─────────────────────────────────────────────────────
+  document.getElementById('btn-refresh').addEventListener('click', async () => {
+    await obtenerQR(true);   // fuerza rotación
+    iniciarContadorRotacion();
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', async () => {
+    await cargarSede();
+    await obtenerQR(true);
+    iniciarContadorRotacion();
+  });
+
+  // ── Visibility change: recargar al volver a primer plano ─────────────────
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      obtenerQR(false);
+      actualizarContador24h();
+    }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  await cargarSede();
+  await obtenerQR(false);
+  iniciarContadorRotacion();
+  actualizarContador24h();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS GLOBALES (fullscreen)
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleFullscreen() {
+  const doc = window.document;
+  const docEl = doc.documentElement;
+  const request = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+  const exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+  if (!doc.fullscreenElement && !doc.webkitFullscreenElement && !doc.mozFullScreenElement && !doc.msFullscreenElement) {
+    request?.call(docEl);
+  } else {
+    exit?.call(doc);
+  }
+}
+</script>
+</body>
+</html>

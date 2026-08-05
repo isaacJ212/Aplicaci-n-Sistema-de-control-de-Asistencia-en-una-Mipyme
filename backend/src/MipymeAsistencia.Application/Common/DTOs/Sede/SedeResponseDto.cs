@@ -19,6 +19,7 @@ public class SedeResponseDto
     public string HoraSalidaOficial { get; set; } = string.Empty;
 
     public int DuracionAlmuerzoMinutos { get; set; }
+    public int MinutosTolerancia { get; set; }
 
     /// <summary>Token QR activo en la pantalla de marcaje. Null si aún no se ha generado.</summary>
     public string? TokenQrActual { get; set; }

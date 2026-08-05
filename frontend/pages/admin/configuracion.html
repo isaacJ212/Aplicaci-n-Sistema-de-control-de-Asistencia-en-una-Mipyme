@@ -6,10 +6,10 @@
   <title>Configuración — MipymeAsistencia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/frontend/assets/css/variables.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/reset.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/components.css" />
-  <link rel="stylesheet" href="/frontend/assets/css/admin.css" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
   <!-- QRCode.js para generar el QR en el navegador -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
@@ -161,6 +161,12 @@
             <span class="form-hint">Rango permitido: 1–180 minutos</span>
             <span class="form-error hidden" id="err-almuerzo"></span>
           </div>
+          <div class="form-group full">
+            <label class="form-label">Margen de tolerancia de llegada (minutos)</label>
+            <input type="number" class="form-input" id="f-tolerancia" min="0" max="60" placeholder="Ej. 10" />
+            <span class="form-hint">Tiempo adicional antes de marcar como Tardanza. Rango 0-60 min (default 10).</span>
+            <span class="form-error hidden" id="err-tolerancia"></span>
+          </div>
         </div>
 
       </form>
@@ -177,9 +183,9 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAdminLayout }     from '/frontend/modules/layout.js';
-import { sedeApi }              from '/frontend/modules/api.js';
-import { toast, show, hide, formatDate } from '/frontend/modules/utils.js';
+import { initAdminLayout }     from '../../modules/layout.js';
+import { sedeApi }              from '../../modules/api.js';
+import { toast, show, hide, formatDate } from '../../modules/utils.js';
 
 await initAdminLayout('configuracion');
 
@@ -225,12 +231,16 @@ function renderSede(s) {
               <span class="sede-info-value font-bold">${s.horaEntradaOficial}</span>
             </div>
             <div class="sede-info-row">
+            <div class="sede-info-row">
               <span class="sede-info-label">Hora de salida</span>
               <span class="sede-info-value font-bold">${s.horaSalidaOficial}</span>
             </div>
-            <div class="sede-info-row">
               <span class="sede-info-label">Duración almuerzo</span>
               <span class="sede-info-value">${s.duracionAlmuerzoMinutos} minutos</span>
+            </div>
+            <div class="sede-info-row" style="border-top:1px dashed var(--color-border)">
+              <span class="sede-info-label" style="color:var(--color-primary)">Margen tolerancia</span>
+              <span class="sede-info-value font-bold" style="color:var(--color-success)">${s.minutosTolerancia ?? 10} minutos</span>
             </div>
           </div>
         </div>
@@ -300,7 +310,7 @@ function renderSede(s) {
 /* ── Cargar empleados para el select QR ──────────── */
 async function loadEmpleadosQR() {
   try {
-    const { empleadoApi } = await import('/frontend/modules/api.js');
+    const { empleadoApi } = await import('../../modules/api.js');
     const emps = await empleadoApi.getAll();
     const sel = document.getElementById('sel-emp-qr');
     if (!sel) return;
@@ -313,7 +323,7 @@ async function loadEmpleadosQR() {
 
 /* ── Generar QR de empleado ──────────────────────── */
 async function generarQR() {
-  const { asistenciaApi } = await import('/frontend/modules/api.js');
+  const { asistenciaApi } = await import('../../modules/api.js');
   const sel = document.getElementById('sel-emp-qr');
   const id  = sel?.value;
   if (!id) { toast('Selecciona un empleado.', 'warning'); return; }
@@ -376,6 +386,7 @@ document.getElementById('btn-editar').addEventListener('click', () => {
   document.getElementById('f-entrada').value  = sedeActual.horaEntradaOficial  ?? '';
   document.getElementById('f-salida').value   = sedeActual.horaSalidaOficial   ?? '';
   document.getElementById('f-almuerzo').value = sedeActual.duracionAlmuerzoMinutos ?? '';
+  document.getElementById('f-tolerancia').value = sedeActual.minutosTolerancia ?? 10;
 
   document.querySelectorAll('.form-error').forEach(el => { el.textContent=''; hide(el); });
   document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
@@ -403,6 +414,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       horaEntradaOficial:      entrada,
       horaSalidaOficial:       salida,
       duracionAlmuerzoMinutos: parseInt(document.getElementById('f-almuerzo').value),
+      minutosTolerancia: parseInt(document.getElementById('f-tolerancia').value || '10'),
     });
 
     toast('Configuración actualizada correctamente.', 'success');
@@ -451,6 +463,9 @@ function validar() {
     { showErr('f-salida','err-salida','La salida debe ser posterior a la entrada.'); ok=false; }
   if (!almuerzo || almuerzo < 1 || almuerzo > 180)
     { showErr('f-almuerzo','err-almuerzo','Duración entre 1 y 180 minutos.'); ok=false; }
+  const tolerancia = parseInt(document.getElementById('f-tolerancia').value || '10');
+  if (isNaN(tolerancia) || tolerancia < 0 || tolerancia > 60)
+    { showErr('f-tolerancia','err-tolerancia','Tolerancia entre 0 y 60 minutos.'); ok=false; }
 
   return ok;
 }

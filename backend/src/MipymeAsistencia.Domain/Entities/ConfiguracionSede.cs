@@ -10,6 +10,7 @@ public class ConfiguracionSede
     public TimeSpan HoraEntradaOficial { get; set; } = new(8, 0, 0);
     public TimeSpan HoraSalidaOficial { get; set; } = new(17, 0, 0);
     public int DuracionAlmuerzoMinutos { get; set; } = 60;
+    public int MinutosTolerancia { get; set; } = 10;
     public string? TokenQrActual { get; set; }
     public DateTime? QrUltimaActualizacion { get; set; }
 }
