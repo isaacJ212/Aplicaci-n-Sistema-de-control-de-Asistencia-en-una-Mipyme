@@ -207,6 +207,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.SalarioBruto).HasColumnName("salario_bruto").HasPrecision(12, 2);
             entity.Property(x => x.InssLaboral).HasColumnName("inss_laboral").HasPrecision(12, 2);
             entity.Property(x => x.IrLaboral).HasColumnName("ir_laboral").HasPrecision(12, 2);
+            entity.Property(x => x.MinutosTardanzaMes).HasColumnName("minutos_tardanza_mes").HasDefaultValue(0);
+            entity.Property(x => x.DeduccionTardanza).HasColumnName("deduccion_tardanza").HasPrecision(12, 2).HasDefaultValue(0m);
+            entity.Property(x => x.Embargo).HasColumnName("embargo").HasPrecision(12, 2).HasDefaultValue(0m);
+            entity.Property(x => x.Sindicato).HasColumnName("sindicato").HasPrecision(12, 2).HasDefaultValue(0m);
             entity.Property(x => x.OtrasDeducciones).HasColumnName("otras_deducciones").HasPrecision(12, 2).HasDefaultValue(0m);
             entity.Property(x => x.TotalDeducciones).HasColumnName("total_deducciones").HasPrecision(12, 2);
             entity.Property(x => x.SalarioNeto).HasColumnName("salario_neto").HasPrecision(12, 2);
