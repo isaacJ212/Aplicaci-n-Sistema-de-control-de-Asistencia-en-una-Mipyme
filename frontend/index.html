@@ -41,17 +41,14 @@
   </div>
 
  <script type="module">
-    // Eliminamos "/frontend" y usamos rutas relativas correctas
+    
     import { AuthService } from './modules/auth.js';
-    import CONFIG          from './modules/config.js';
+    import { getDashboardUrl, getLoginUrl } from './modules/routes.js';
 
-    // Redirige al dashboard correcto si hay sesión, o al login
     if (AuthService.isAuthenticated()) {
-      const dest = CONFIG.REDIRECT_AFTER_LOGIN[AuthService.getRole()]
-                ?? './pages/auth/login.html';
-      window.location.replace(dest);
+      window.location.replace(getDashboardUrl(AuthService.getRole()));
     } else {
-      window.location.replace('./pages/auth/login.html');
+      window.location.replace(getLoginUrl());
     }
 </script>
 

@@ -26,6 +26,16 @@ const app     = express();
 const PORT       = process.env.PORT || 3000;
 const FRONT_DIR  = path.join(__dirname, 'frontend');
 
+const ADMIN_PAGES = [
+  'dashboard', 'empleados', 'empleado-detalle', 'planillas',
+  'aprobaciones', 'rendimiento', 'expedientes', 'configuracion',
+];
+
+const EMPLEADO_PAGES = [
+  'dashboard', 'marcaje', 'historial', 'nomina',
+  'solicitudes', 'horas-extras',
+];
+
 // ── Middleware: Log de peticiones ─────────────────────────────────────────────
 app.use((req, _res, next) => {
   const ts = new Date().toISOString().slice(11, 19);
@@ -42,6 +52,23 @@ app.get('/login', (_req, res) => {
   res.sendFile(path.join(FRONT_DIR, 'pages', 'auth', 'login.html'));
 });
 
+// Alias /pages/* — enlaces internos en HTML y compatibilidad con rutas legacy
+app.get('/pages/auth/login.html', (_req, res) => {
+  res.sendFile(path.join(FRONT_DIR, 'pages', 'auth', 'login.html'));
+});
+
+ADMIN_PAGES.forEach(page => {
+  app.get(`/pages/admin/${page}.html`, (_req, res) => {
+    res.sendFile(path.join(FRONT_DIR, 'pages', 'admin', `${page}.html`));
+  });
+});
+
+EMPLEADO_PAGES.forEach(page => {
+  app.get(`/pages/empleado/${page}.html`, (_req, res) => {
+    res.sendFile(path.join(FRONT_DIR, 'pages', 'empleado', `${page}.html`));
+  });
+});
+
 app.get('/kiosko-qr', (_req, res) => {
   res.sendFile(path.join(FRONT_DIR, 'pages', 'kiosko-qr.html'));
 });
@@ -51,10 +78,6 @@ app.get('/asistencia/estacion-qr', (_req, res) => {
 });
 
 // ── Rutas admin ───────────────────────────────────────────────────────────────
-const ADMIN_PAGES = [
-  'dashboard', 'empleados', 'empleado-detalle', 'planillas',
-  'aprobaciones', 'rendimiento', 'expedientes', 'configuracion',
-];
 ADMIN_PAGES.forEach(page => {
   app.get(`/admin/${page}`, (_req, res) => {
     res.sendFile(path.join(FRONT_DIR, 'pages', 'admin', `${page}.html`));
@@ -62,10 +85,6 @@ ADMIN_PAGES.forEach(page => {
 });
 
 // ── Rutas empleado ────────────────────────────────────────────────────────────
-const EMPLEADO_PAGES = [
-  'dashboard', 'marcaje', 'historial', 'nomina',
-  'solicitudes', 'horas-extras',
-];
 EMPLEADO_PAGES.forEach(page => {
   app.get(`/empleado/${page}`, (_req, res) => {
     res.sendFile(path.join(FRONT_DIR, 'pages', 'empleado', `${page}.html`));

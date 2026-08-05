@@ -1,38 +1,19 @@
-/**
- * auth.js — Gestión de sesión: guardar/leer tokens, usuario, logout y guardia de rutas.
- *
- * IMPORTANTE sobre redirecciones:
- *   Las rutas de navegación se resuelven con window.location.href relativo
- *   a la raíz del origen actual (origin + path). Para que funcionen en
- *   cualquier servidor (puerto 3000, 5500, Live Preview, etc.) usamos
- *   rutas relativas a la raíz del servidor con getBasePath().
- */
+
 
 import CONFIG from './config.js';
-
-/** Devuelve el path base hasta la carpeta frontend/ */
-function getBase() {
-  // window.location.pathname ejemplo: /frontend/pages/auth/login.html
-  // Buscamos el segmento "frontend" y cortamos hasta ahí
-  const path = window.location.pathname;
-  const idx  = path.indexOf('/frontend');
-  if (idx !== -1) return path.slice(0, idx + '/frontend'.length);
-  // Si el servidor sirve desde dentro de frontend/ el path empieza en /
-  // En ese caso no hay prefijo /frontend
-  return '';
-}
+import { getLoginUrl, getDashboardUrl } from './routes.js';
 
 export const AuthService = {
 
-  // ── Persistencia ──────────────────────────────────────────────────────────
+  // ── Persistencia ─────────────────────────────────────────────────────────
 
-  saveSession(loginResponse) {
-    localStorage.setItem(CONFIG.STORAGE.TOKEN,         loginResponse.token);
-    localStorage.setItem(CONFIG.STORAGE.REFRESH_TOKEN, loginResponse.refreshToken);
-    localStorage.setItem(CONFIG.STORAGE.EXPIRATION,    loginResponse.expiration);
+  saveSession(data) {
+    localStorage.setItem(CONFIG.STORAGE.TOKEN,         data.token);
+    localStorage.setItem(CONFIG.STORAGE.REFRESH_TOKEN, data.refreshToken);
+    localStorage.setItem(CONFIG.STORAGE.EXPIRATION,    data.expiration);
     localStorage.setItem(CONFIG.STORAGE.USER, JSON.stringify({
-      email: loginResponse.email,
-      role:  loginResponse.role,
+      email: data.email,
+      role:  data.role,
     }));
   },
 
@@ -52,7 +33,7 @@ export const AuthService = {
   isAuthenticated() { return !!this.getToken(); },
   isAdmin()         { return this.getRole() === CONFIG.ROLES.ADMIN; },
 
-  // ── Refresco automático de token ──────────────────────────────────────────
+  // ── Refresco del token ────────────────────────────────────────────────────
 
   async tryRefresh() {
     const rt = this.getRefreshToken();
@@ -78,46 +59,45 @@ export const AuthService = {
       try {
         await fetch(`${CONFIG.API_BASE_URL}/auth/logout`, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.getToken()}` },
-          body:    JSON.stringify({ refreshToken: rt }),
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${this.getToken()}`,
+          },
+          body: JSON.stringify({ refreshToken: rt }),
         });
       } catch { /* silencioso */ }
     }
     this.clearSession();
-    // Redirige a login usando ruta relativa al origen actual
-    const base = getBase();
-    window.location.href = `${base}/pages/auth/login.html`;
+    window.location.href = getLoginUrl();
   },
 
   // ── Guardias de ruta ──────────────────────────────────────────────────────
 
+  /**
+   * Llama esto al inicio de cada página protegida.
+   * Si no hay sesión → login.
+   * Si el rol no coincide → dashboard correcto para ese rol.
+   */
   requireAuth(requiredRole = null) {
     if (!this.isAuthenticated()) {
-      const base = getBase();
-      window.location.href = `${base}/pages/auth/login.html`;
+      window.location.href = getLoginUrl();
       return false;
     }
+
     if (requiredRole && this.getRole() !== requiredRole) {
-      const base = getBase();
-      const dest = CONFIG.REDIRECT_AFTER_LOGIN[this.getRole()];
-      // dest es relativo a login.html (../../pages/...) pero desde aquí usamos base
-      const role = this.getRole();
-      if (role === CONFIG.ROLES.ADMIN)
-        window.location.href = `${base}/pages/admin/dashboard.html`;
-      else
-        window.location.href = `${base}/pages/empleado/dashboard.html`;
+      window.location.href = getDashboardUrl(this.getRole());
       return false;
     }
+
     return true;
   },
 
+  /**
+   * Llama esto en login.html.
+   * Si ya hay sesión redirige al dashboard del rol correcto.
+   */
   redirectIfAuthenticated() {
     if (!this.isAuthenticated()) return;
-    const base = getBase();
-    const role = this.getRole();
-    if (role === CONFIG.ROLES.ADMIN)
-      window.location.href = `${base}/pages/admin/dashboard.html`;
-    else
-      window.location.href = `${base}/pages/empleado/dashboard.html`;
+    window.location.href = getDashboardUrl(this.getRole());
   },
 };
