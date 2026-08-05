@@ -65,12 +65,63 @@ async function request(endpoint, options = {}) {
 
 // ── Métodos convenientes ──────────────────────────────────────────────────────
 
+async function requestBlob(endpoint, options = {}) {
+  const url     = `${CONFIG.API_BASE_URL}${endpoint}`;
+  const headers = { ...options.headers };
+
+  const token = AuthService.getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+  } catch (networkError) {
+    const err = new Error(
+      'No se pudo conectar al servidor. Verifica que el backend esté corriendo en ' +
+      CONFIG.API_BASE_URL
+    );
+    err.statusCode = 0;
+    throw err;
+  }
+
+  if (response.status === 401 && !options._retry) {
+    const renewed = await AuthService.tryRefresh();
+    if (renewed) {
+      return requestBlob(endpoint, { ...options, _retry: true });
+    } else {
+      AuthService.logout();
+      return;
+    }
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    let errorMessage = text;
+    try {
+      const json = JSON.parse(text);
+      errorMessage = json?.message || text;
+    } catch {
+      // ignore invalid json
+    }
+    const err = new Error(errorMessage || 'Error desconocido del servidor.');
+    err.statusCode = response.status;
+    throw err;
+  }
+
+  return response.blob();
+}
+
 export const api = {
   get:    (url, opts = {})       => request(url, { method: 'GET',    ...opts }),
   post:   (url, body, opts = {}) => request(url, { method: 'POST',   body, ...opts }),
   put:    (url, body, opts = {}) => request(url, { method: 'PUT',    body, ...opts }),
   patch:  (url, body, opts = {}) => request(url, { method: 'PATCH',  body, ...opts }),
   delete: (url, opts = {})       => request(url, { method: 'DELETE', ...opts }),
+  download: (url, opts = {})     => requestBlob(url, { method: 'GET', ...opts }),
 };
 
 // ── Endpoints por módulo ──────────────────────────────────────────────────────
@@ -120,6 +171,7 @@ export const planillaApi = {
   getByEmpleado: (id, periodo = '') =>
     api.get(`/planilla/empleado/${id}${periodo ? `?periodo=${periodo}` : ''}`),
   generar:       (body)        => api.post('/planilla', body),
+  export:        (params = '') => api.download(`/planilla/export${params}`),
 };
 
 export const permisoApi = {
