@@ -155,9 +155,9 @@ El backend expone el puerto:
 * `docker-compose.yml` — despliegue Docker
 * `backend/MipymeAsistencia.sln` — solución .NET
 
----
+## link del deploy 
 
-## 💡 Notas finales
-* El proyecto está desarrollado como evaluación fullstack para Proyecto de TI II.
-* Ajusta `frontend/modules/config.js` si el backend corre en otro puerto o host.
-* Si cambias el puerto backend, actualiza también las rutas y `server.js` si es necesario.
+https://aplicaci-n-sistema-de-control-de-74ff.onrender.com/pages/admin/rendimiento.html
+https://aplicaci-n-sistema-de-control-de.onrender.com/swagger/index.html
+
+
