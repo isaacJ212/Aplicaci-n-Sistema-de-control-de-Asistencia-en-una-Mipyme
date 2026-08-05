@@ -113,6 +113,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+/*using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<MipymeAsistencia.Infrastructure.Persistence.ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
+    Console.WriteLine("=== Migraciones aplicadas correctamente ===");
+}*/
+
 // Middleware global de excepciones — debe ser el primero en el pipeline
 app.UseMiddleware<MipymeAsistencia.WebApi.Middleware.ExceptionHandlingMiddleware>();
 
