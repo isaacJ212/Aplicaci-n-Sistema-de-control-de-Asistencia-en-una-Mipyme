@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../../assets/css/components.css" />
   <link rel="stylesheet" href="../../assets/css/admin.css" />
   <link rel="stylesheet" href="../../assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado-pages.css" />
 </head>
 <body>
 <div class="admin-layout">
@@ -57,8 +58,8 @@
       </div>
 
       <!-- Tabla -->
-      <div class="card" style="padding:0">
-        <div class="table-wrapper" style="border:none;border-radius:0">
+      <div class="card card-no-padding">
+        <div class="table-wrapper table-wrapper-no-border">
           <table class="data-table">
             <thead>
               <tr>
@@ -76,13 +77,13 @@
 
 <!-- MODAL REGISTRAR -->
 <div class="modal-overlay hidden" id="modal-he">
-  <div class="modal" style="max-width:480px">
+  <div class="modal modal-max-480">
     <div class="modal-header">
       <span class="modal-title">Registrar Horas Extras</span>
       <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <div style="background:var(--color-primary-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--font-size-sm);color:var(--color-primary-dark);margin-bottom:var(--space-5)">
+      <div class="info-callout">
         💡 El monto se calcula automáticamente: <strong>(Salario/240) × Factor × Horas</strong> según Arto. 62 Ley 185.
       </div>
       <form id="form-he" novalidate>
@@ -108,7 +109,7 @@
           </div>
           <div class="form-group full">
             <label class="form-label">Motivo / justificación *</label>
-            <textarea class="form-input" id="f-motivo" rows="3" placeholder="Describe el motivo de las horas extras..." style="resize:vertical"></textarea>
+            <textarea class="form-input resize-vertical" id="f-motivo" rows="3" placeholder="Describe el motivo de las horas extras..."></textarea>
             <span class="form-error hidden" id="err-motivo"></span>
           </div>
         </div>
@@ -174,7 +175,7 @@ async function cargar() {
         <td class="font-medium">${h.cantidadHoras}h</td>
         <td>${h.factorRecargo ? h.factorRecargo+'×' : '—'}</td>
         <td class="font-medium">${formatCurrency(h.montoPagar)}</td>
-        <td style="max-width:200px;white-space:normal">${h.motivo??'—'}</td>
+        <td class="text-wrap-normal">${h.motivo??'—'}</td>
         <td>${chip(h.estado)}</td>
         <td>${h.nombreAprobador??'—'}</td>
       </tr>`).join('');

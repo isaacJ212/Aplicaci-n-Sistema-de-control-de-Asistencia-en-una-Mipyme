@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Security.Cryptography;
 using MediatR;
 using MipymeAsistencia.Application.Common.DTOs;
@@ -31,6 +32,26 @@ public class AsistenciaController : ControllerBase
         _context = context;
     }
 
+    private async Task<int?> ObtenerIdEmpleadoDelJwt(CancellationToken ct = default)
+    {
+        // 1. Intentar desde claim "idEmpleado" (si en el futuro se agrega al JWT)
+        var claim = User.Claims.FirstOrDefault(c => c.Type == "idEmpleado");
+        if (claim is not null && int.TryParse(claim.Value, out var id))
+            return id;
+
+        // 2. Resolver desde el email del JWT (siempre disponible)
+        var email = User.FindFirstValue(ClaimTypes.Email)
+                 ?? User.FindFirstValue("sub");
+
+        if (string.IsNullOrWhiteSpace(email)) return null;
+
+        var empleado = await _context.Empleados
+            .Include(e => e.Usuario)
+            .FirstOrDefaultAsync(e => e.Usuario != null && e.Usuario.Email == email, ct);
+
+        return empleado?.IdEmpleado;
+    }
+
     [HttpGet("qr-actual")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<QrActualResponseDto>), StatusCodes.Status200OK)]
@@ -41,10 +62,6 @@ public class AsistenciaController : ControllerBase
         return Ok(ApiResponse<QrActualResponseDto>.Ok(data, "QR actual obtenido correctamente."));
     }
 
-    /// <summary>
-    /// Rota/renueva el token QR de la sede (ENDPOINT PÚBLICO — kioscos/tabletas).
-    /// Genera un nuevo token inmediato y lo persiste como activo para la sede.
-    /// </summary>
     [HttpPost("rotar-qr-sede")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<QrActualResponseDto>), StatusCodes.Status200OK)]
@@ -112,21 +129,30 @@ public class AsistenciaController : ControllerBase
 
     [HttpPost("registrar")]
     [ProducesResponseType(typeof(ApiResponse<AsistenciaResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Registrar([FromBody] RegistrarAsistenciaRequestDto request)
+    public async Task<IActionResult> Registrar(
+        [FromBody] RegistrarAsistenciaRequestDto request,
+        CancellationToken cancellationToken)
     {
+        // Resuelve idEmpleado desde el JWT (email → empleado)
+        var idEmpleado = await ObtenerIdEmpleadoDelJwt(cancellationToken);
+        if (!idEmpleado.HasValue)
+            return BadRequest(ApiResponse<object>.BadRequest(
+                "Tu usuario no tiene un expediente de empleado asociado. Contacta al administrador."));
+
         var data = await _mediator.Send(new RegistrarAsistenciaCommand
         {
-            IdEmpleado = request.IdEmpleado,
-            TipoMarcaje = request.TipoMarcaje,
-            LatitudMarcaje = request.LatitudMarcaje,
-            LongitudMarcaje = request.LongitudMarcaje,
-            TokenQrEscaneado = request.TokenQrEscaneado,
+            IdEmpleado        = idEmpleado.Value,
+            TipoMarcaje       = request.TipoMarcaje,
+            LatitudMarcaje    = request.LatitudMarcaje,
+            LongitudMarcaje   = request.LongitudMarcaje,
+            TokenQrEscaneado  = request.TokenQrEscaneado,
             CodigoOtpGenerado = request.CodigoOtpGenerado
         });
 
-        return Ok(ApiResponse<AsistenciaResponseDto>.Ok(data, "Asistencia registrada correctamente."));
+        return Ok(ApiResponse<AsistenciaResponseDto>.Ok(data, data.Mensaje ?? "Asistencia registrada correctamente."));
     }
 
     [HttpGet("historial/{idEmpleado:int}")]
@@ -138,11 +164,6 @@ public class AsistenciaController : ControllerBase
         return Ok(ApiResponse<List<AsistenciaResponseDto>>.Ok(data, "Historial de asistencia obtenido correctamente."));
     }
 
-    /// <summary>
-    /// Obtiene todos los registros de asistencia del sistema.
-    /// Filtros opcionales: empleado, rango de fechas y estado.
-    /// Solo accesible por Admin.
-    /// </summary>
     [HttpGet]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<List<AsistenciaResponseDto>>), StatusCodes.Status200OK)]
@@ -164,11 +185,6 @@ public class AsistenciaController : ControllerBase
             data, $"Se encontraron {data.Count} registros de asistencia."));
     }
 
-    /// <summary>
-    /// Retorna empleados con tardanzas en el período, calcula la deducción salarial
-    /// y marca como reincidentes a quienes superen el umbral (default: 3 tardanzas).
-    /// Solo accesible por Admin.
-    /// </summary>
     [HttpGet("alertas-tardanza")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<List<AlertaTardanzaDto>>), StatusCodes.Status200OK)]

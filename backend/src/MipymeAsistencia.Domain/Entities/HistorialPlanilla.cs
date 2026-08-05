@@ -11,6 +11,10 @@ public class HistorialPlanilla
     public decimal SalarioBruto { get; set; }
     public decimal InssLaboral { get; set; }
     public decimal IrLaboral { get; set; }
+    public int MinutosTardanzaMes { get; set; }
+    public decimal DeduccionTardanza { get; set; }
+    public decimal Embargo { get; set; }
+    public decimal Sindicato { get; set; }
     public decimal OtrasDeducciones { get; set; }
     public decimal TotalDeducciones { get; set; }
     public decimal SalarioNeto { get; set; }

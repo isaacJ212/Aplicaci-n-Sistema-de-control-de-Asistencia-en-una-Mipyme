@@ -34,7 +34,6 @@ public class ExceptionHandlingMiddleware
         }
         catch (ValidationException ex)
         {
-            // FluentValidation — 422 Unprocessable Entity con todos los mensajes
             var errores = ex.Errors
                 .Select(e => e.ErrorMessage)
                 .Distinct()
@@ -49,6 +48,11 @@ public class ExceptionHandlingMiddleware
             };
 
             await WriteResponseAsync(context, HttpStatusCode.UnprocessableEntity, response);
+        }
+        catch (ArgumentException ex)
+        {
+            var response = ApiResponse<object>.BadRequest(ex.Message);
+            await WriteResponseAsync(context, HttpStatusCode.BadRequest, response);
         }
         catch (UnauthorizedAccessException ex)
         {

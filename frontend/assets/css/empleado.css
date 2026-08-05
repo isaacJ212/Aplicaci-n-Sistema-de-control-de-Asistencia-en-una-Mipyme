@@ -102,11 +102,173 @@
 .sidebar-emp .sidebar-user-role   { color: #6EE7B7; }
 .sidebar-emp .sidebar-logout:hover { color: var(--color-danger); }
 
+/* ── Dashboard empleado ───────────────────────────────────── */
+.bienvenida-card {
+  background: linear-gradient(135deg,#064E3B 0%,#059669 100%);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6) var(--space-8);
+  display: flex; align-items: center; gap: var(--space-6);
+  margin-bottom: var(--space-6);
+  color: #fff;
+  flex-wrap: wrap;
+}
+.bienvenida-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 700; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,.3);
+}
+.bienvenida-texto h2 { font-size: var(--font-size-xl); font-weight: 700; }
+.bienvenida-texto p  { font-size: var(--font-size-sm); opacity: .75; margin-top: 2px; }
+.bienvenida-accesos {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.acceso-btn {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.acceso-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+
+.turno-hoy {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  display: flex; align-items: center; gap: var(--space-5);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+.turno-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.turno-dot.activo   { background: var(--color-accent); animation: pulseG 2s infinite; }
+.turno-dot.inactivo { background: var(--color-border); }
+.turno-dot.almuerzo { background: var(--color-warning); animation: pulseG 2s infinite; }
+@keyframes pulseG { 0%,100%{ box-shadow:0 0 0 0 rgba(16,185,129,.4); } 50%{ box-shadow:0 0 0 6px rgba(16,185,129,0); } }
+.turno-info { flex: 1; }
+.turno-titulo { font-weight: 600; }
+.turno-sub { font-size: var(--font-size-sm); color: var(--color-text-muted); margin-top: 2px; }
+
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+
+/* ── Nómina empleado ─────────────────────────────────────── */
+.recibo { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-md); }
+.recibo-header {
+  background: linear-gradient(135deg,#064E3B,#059669);
+  padding: var(--space-6);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.recibo-empresa { font-size: var(--font-size-xl); font-weight: 700; }
+.recibo-periodo { font-size: var(--font-size-sm); opacity: .8; margin-top: 2px; }
+.recibo-empleado { text-align: right; }
+.recibo-nombre { font-size: var(--font-size-base); font-weight: 600; }
+.recibo-cargo  { font-size: var(--font-size-xs); opacity: .7; }
+.recibo-body   { padding: var(--space-6); }
+.recibo-section-title {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+.recibo-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  font-size: var(--font-size-sm);
+}
+.recibo-fila .label { color: var(--color-text-muted); }
+.recibo-fila .valor { font-weight: 500; }
+.recibo-fila .valor.danger { color: var(--color-danger); }
+.recibo-fila .valor.accent { color: var(--color-accent); font-weight: 700; font-size: var(--font-size-base); }
+.recibo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-bottom: var(--space-5); }
+.recibo-neto {
+  background: var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.recibo-neto-label { color: #fff; font-weight: 600; }
+.recibo-neto-valor { color: #fff; font-size: var(--font-size-2xl); font-weight: 700; }
+.recibo-neto-footer {
+  background: var(--color-accent);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  padding: var(--space-3) var(--space-5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.recibo-neto-footer .label { color: #fff; font-weight: 600; }
+.recibo-neto-footer .value { color: #fff; font-weight: 700; font-size: var(--font-size-base); }
+.page-header-actions { display: flex; gap: var(--space-3); align-items: flex-end; flex-wrap: wrap; }
+.card-no-padding { padding: 0; }
+.text-link-small { font-size: var(--font-size-xs); color: var(--color-primary); }
+
+/* ── Estilo app móvil empleado ───────────────────────────── */
+.mobile-menu-toggle { display: none; }
 @media(max-width:1024px) {
-  .sidebar-emp { transform: translateX(-100%); }
-  .sidebar-emp.open { transform: translateX(0); }
+  .main-content { margin-left: 0; }
+  .mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    padding: var(--space-3);
+    margin: 0 var(--space-2) 0 0;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  .mobile-menu-toggle:hover { background: rgba(255,255,255,.08); }
+  .mobile-menu-toggle svg { width: 24px; height: 24px; }
+  .sidebar-emp {
+    width: min(300px, calc(100vw - 2rem));
+    transform: translateX(-110%);
+    transition: transform var(--transition);
+    will-change: transform;
+  }
+  .sidebar-emp.open {
+    transform: translateX(0);
+    box-shadow: 0 24px 40px rgba(0,0,0,.18);
+  }
+  .topbar { padding: 0 var(--space-4); }
+}
+@media(max-width:768px) {
+  .page-content { padding: var(--space-4); }
+  .page-header { gap: var(--space-3); }
+  .page-header-text h1 { font-size: var(--font-size-xl); }
 }
 @media(max-width:640px) {
+  .bienvenida-card { padding: var(--space-5); }
+  .dashboard-grid { gap: var(--space-4); }
+  .recibo-header { flex-direction: column; align-items: flex-start; }
+  .recibo-empleado { text-align: left; width: 100%; }
+  .recibo-grid { grid-template-columns: 1fr; }
+  .page-header-actions { flex-direction: column; align-items: stretch; }
   .marcaje-grid { grid-template-columns: 1fr; }
-  .turno-card   { flex-wrap: wrap; }
-}
+  .turno-card { flex-wrap: wrap; }

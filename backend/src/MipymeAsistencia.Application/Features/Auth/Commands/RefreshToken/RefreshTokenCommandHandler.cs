@@ -36,9 +36,11 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, L
         // Marca el token actual como utilizado (rotación de tokens)
         storedToken.FueUtilizado = true;
 
-        // Genera el nuevo par JWT + RefreshToken
+        var empleado = await _context.Empleados
+            .FirstOrDefaultAsync(e => e.IdUsuario == usuario.IdUsuario, cancellationToken);
+
         var rolNombre  = usuario.Rol?.NombreRol ?? "Empleado";
-        var nuevoJwt   = _tokenService.GenerateToken(usuario.Email, rolNombre);
+        var nuevoJwt   = _tokenService.GenerateToken(usuario.Email, rolNombre, usuario.IdUsuario, empleado?.IdEmpleado);
         var expiracion = DateTime.UtcNow.AddMinutes(120);
 
         var nuevoRefreshTokenValor = _tokenService.GenerateRefreshToken();
@@ -59,7 +61,8 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, L
             RefreshToken = nuevoRefreshTokenValor,
             Expiration   = expiracion,
             Email        = usuario.Email,
-            Role         = rolNombre
+            Role         = rolNombre,
+            IdEmpleado   = empleado?.IdEmpleado
         };
     }
 }

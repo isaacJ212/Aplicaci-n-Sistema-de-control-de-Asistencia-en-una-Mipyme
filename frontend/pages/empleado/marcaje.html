@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../../assets/css/components.css" />
   <link rel="stylesheet" href="../../assets/css/admin.css" />
   <link rel="stylesheet" href="../../assets/css/empleado.css" />
+  <link rel="stylesheet" href="../../assets/css/empleado-pages.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -23,7 +24,7 @@
       <span class="topbar-title">Marcar Asistencia</span>
       <div class="topbar-right">
         <span class="topbar-badge" id="badge-fecha"></span>
-        <span id="reloj-topbar" style="font-family:monospace;font-size:var(--font-size-sm);font-weight:600;color:var(--color-primary)"></span>
+        <span id="reloj-topbar" class="topbar-clock"></span>
       </div>
     </header>
 
@@ -68,25 +69,19 @@
       </div>
 
       <!-- ═══ MODO ESCANEO QR AUTOMÁTICO ═══ -->
-      <div style="margin:var(--space-6) 0">
-        <button id="btn-escanear-qr" class="btn btn-secondary btn-full" style="
-          display:flex;align-items:center;justify-content:center;gap:var(--space-3);
-          padding:var(--space-4);font-size:var(--font-size-base);
-          background:linear-gradient(135deg,#7C3AED,#A78BFA);
-          color:#fff;border:none;box-shadow:0 6px 18px rgba(124,58,237,.3)">
-          <span style="font-size:1.4rem">📷</span>
-          <div style="text-align:left;line-height:1.2">
-            <strong style="font-size:var(--font-size-base)">Escanear QR con la cámara</strong>
-            <span style="font-size:.75rem;opacity:.9;display:block;margin-top:2px">
-              Marcaje automático: Entrada → Almuerzo → Salida (detecta tu estado)
-            </span>
+      <div class="mt-6">
+        <button id="btn-escanear-qr" class="btn btn-secondary btn-full scan-cta">
+          <span class="icon">📷</span>
+          <div class="text-left">
+            <strong>Escanear QR con la cámara</strong>
+            <span class="text-wrap-normal">Marcaje automático: Entrada → Almuerzo → Salida (detecta tu estado)</span>
           </div>
-          <span style="background:rgba(255,255,255,.2);padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:700">RECOMENDADO</span>
+          <span class="scan-badge">RECOMENDADO</span>
         </button>
       </div>
 
       <!-- Info de hoy -->
-      <div class="stats-grid" style="margin-bottom:var(--space-6)">
+      <div class="stats-grid mb-6">
         <div class="stat-card">
           <div class="stat-card-top"><div class="stat-icon green">📍</div></div>
           <div class="stat-value" id="stat-gps">—</div>
@@ -105,9 +100,9 @@
       </div>
 
       <!-- Instrucciones -->
-      <div class="card" style="background:var(--color-primary-light);border-color:var(--color-primary)">
-        <div class="card-title" style="color:var(--color-primary-dark);margin-bottom:var(--space-3)">📋 ¿Cómo funciona el marcaje?</div>
-        <ol style="padding-left:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-size-sm);color:var(--color-primary-dark)">
+      <div class="card card-info">
+        <div class="card-title">📋 ¿Cómo funciona el marcaje?</div>
+        <ol class="info-list">
           <li>El sistema obtiene tu ubicación GPS automáticamente.</li>
           <li>Se consulta el <strong>QR activo de la sede</strong> que muestra el kiosco en la entrada.</li>
           <li>Haz clic en el botón correspondiente: <strong>Entrada</strong> al llegar, <strong>Almuerzo</strong> al salir y volver, <strong>Salida</strong> al terminar.</li>
@@ -121,7 +116,7 @@
 
 <!-- ═══ MODAL DE MARCAJE ═══ -->
 <div class="modal-overlay hidden" id="modal-marcaje">
-  <div class="modal" style="max-width:460px">
+  <div class="modal modal-max-460">
     <div class="modal-header">
       <span class="modal-title" id="modal-marcaje-titulo">Confirmar marcaje</span>
       <button class="btn btn-ghost btn-sm" id="marcaje-close">✕</button>
@@ -135,7 +130,7 @@
       </div>
 
       <!-- Datos del marcaje -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);margin-top:var(--space-4)">
+      <div class="form-grid-2">
         <div class="form-group">
           <label class="form-label">Latitud GPS</label>
           <input type="number" class="form-input" id="f-lat" step="0.000001" placeholder="12.13500" />
@@ -146,13 +141,11 @@
         </div>
       </div>
 
-      <div id="gps-status" style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2)">
+      <div id="gps-status" class="status-note">
         📡 Obteniendo ubicación GPS...
       </div>
 
-      <div id="marcaje-info" style="margin-top:var(--space-4);padding:var(--space-3) var(--space-4);
-           background:var(--color-bg);border-radius:var(--radius-md);font-size:var(--font-size-sm);
-           color:var(--color-text-muted)">
+      <div id="marcaje-info" class="info-box">
       </div>
     </div>
     <div class="modal-footer">
@@ -167,43 +160,35 @@
 
 <!-- ═══ MODAL DE ESCANEO QR POR CÁMARA ═══ -->
 <div class="modal-overlay hidden" id="modal-escanear">
-  <div class="modal" style="max-width:560px">
+  <div class="modal modal-max-560">
     <div class="modal-header">
       <span class="modal-title">📷 Escanea el QR del kiosco</span>
       <button class="btn btn-ghost btn-sm" id="escanear-close">✕</button>
     </div>
     <div class="modal-body">
 
-      <div id="scanner-container" style="
-        position:relative;width:100%;
-        background:#000;border-radius:var(--radius-lg);overflow:hidden;
-        display:flex;align-items:center;justify-content:center;">
-        <div id="html5qr-reader" style="width:100%"></div>
-        <div id="scanner-placeholder" style="
-          text-align:center;color:#94A3B8;font-size:.85rem;padding:var(--space-6)">
-          <div style="font-size:3rem;margin-bottom:var(--space-3)">📷</div>
-          <p style="margin-bottom:var(--space-2)"><strong>Preparando cámara...</strong></p>
-          <p style="font-size:.75rem;color:#64748B">Acepta los permisos de cámara cuando el navegador lo pida.</p>
+      <div id="scanner-container" class="scanner-wrapper">
+        <div id="html5qr-reader" class="scanner-inner"></div>
+        <div id="scanner-placeholder" class="scanner-placeholder">
+          <div class="icon">📷</div>
+          <p class="scanner-placeholder-title"><strong>Preparando cámara...</strong></p>
+          <p class="scanner-placeholder-note">Acepta los permisos de cámara cuando el navegador lo pida.</p>
         </div>
       </div>
 
-      <div id="scanner-status" style="
-        margin-top:var(--space-4);padding:var(--space-3) var(--space-4);
-        background:var(--color-bg);border-radius:var(--radius-md);
-        font-size:var(--font-size-sm);text-align:center;color:var(--color-text-muted)">
+      <div id="scanner-status" class="scanner-status">
         Esperando lectura de QR...
       </div>
 
-      <div class="card" style="margin-top:var(--space-4);background:var(--color-primary-light);
-           border-color:var(--color-primary);padding:var(--space-4)">
-        <div style="font-weight:700;color:var(--color-primary-dark);margin-bottom:var(--space-2);font-size:var(--font-size-sm)">
+      <div class="card card-info mt-4">
+        <div class="card-title card-title-accent">
           🧠 Flujo automático del sistema:
         </div>
-        <ul style="padding-left:var(--space-5);font-size:.8rem;color:var(--color-primary-dark);line-height:1.6">
-          <li><strong>1er escaneo del día →</strong> <span style="color:#16A34A">Entrada</span></li>
-          <li><strong>2do escaneo →</strong> <span style="color:#CA8A04">Inicio de Almuerzo</span></li>
-          <li><strong>3er escaneo →</strong> <span style="color:#CA8A04">Fin de Almuerzo</span></li>
-          <li><strong>4to escaneo →</strong> <span style="color:#2563EB">Salida</span></li>
+        <ul class="info-list">
+          <li><strong>1er escaneo del día →</strong> <span class="text-success">Entrada</span></li>
+          <li><strong>2do escaneo →</strong> <span class="text-warning">Inicio de Almuerzo</span></li>
+          <li><strong>3er escaneo →</strong> <span class="text-warning">Fin de Almuerzo</span></li>
+          <li><strong>4to escaneo →</strong> <span class="text-accent">Salida</span></li>
         </ul>
       </div>
     </div>
@@ -449,16 +434,8 @@ function abrirModalMarcaje(tipo) {
       `Token: ${state.qrToken.slice(0,30)}...`;
   } else {
     qrDisplay.innerHTML =
-      '<div style="padding:var(--space-6);color:var(--color-text-muted);font-size:.8rem;text-align:center">⚠️ QR no disponible.<br>Contacta al administrador.</div>';
-    document.getElementById('qr-token-display').textContent = '';
+      '<div class="qr-unavailable-message">⚠️ QR no disponible.<br>Contacta al administrador.</div>';
   }
-
-  /* Info resumen */
-  document.getElementById('marcaje-info').innerHTML = `
-    <strong>Tipo de marcaje:</strong> ${tipo}<br>
-    <strong>Hora actual:</strong> ${new Date().toLocaleTimeString('es-NI')}<br>
-    <strong>Sede:</strong> ${state.sede?.nombreSede ?? '—'}
-  `;
 
   /* GPS en el form */
   if (state.gps.disponible) {
@@ -571,27 +548,26 @@ async function abrirModalEscanear() {
     videoConstraints: { facingMode: { ideal: 'environment' } },
 
     onStatus: (msg, level = 'info') => {
-      const colors = {
-        info:    'color: var(--color-text-muted)',
-        success: 'color: #16A34A; font-weight: 600',
-        warning: 'color: #CA8A04',
-        error:   'color: #DC2626; font-weight: 600',
+      const classes = {
+        info:    'status-info',
+        success: 'status-success',
+        warning: 'status-warning',
+        error:   'status-error',
       };
-      statusEl.innerHTML = `<span style="${colors[level] ?? colors.info}">${msg}</span>`;
+      statusEl.innerHTML = `<span class="${classes[level] ?? classes.info}">${msg}</span>`;
     },
 
     onSuccess: (result, meta) => {
       const minutosTardanza = result.minutosTardanza ?? 0;
       statusEl.innerHTML =
-        '<div style="color:#16A34A;font-weight:700">✅ Marcaje exitoso!</div>' +
-        '<div style="margin-top:6px;font-size:.8rem">' + (result.mensaje ?? 'Acción registrada correctamente.') + '</div>' +
-        '<div style="margin-top:8px;padding:8px 12px;background:#F0FDF4;' +
-        'border-radius:8px;color:#166534;font-size:.75rem;text-align:left">' +
+        '<div class="status-success">✅ Marcaje exitoso!</div>' +
+        '<div class="text-xs mt-2">' + (result.mensaje ?? 'Acción registrada correctamente.') + '</div>' +
+        '<div class="status-box">' +
         '<div><strong>Estado:</strong> ' + (result.estadoAsistencia ?? '--') + '</div>' +
         '<div><strong>Hora:</strong> ' + new Date().toLocaleTimeString('es-NI') + '</div>' +
         '<div><strong>Distancia a sede:</strong> ' + (result.distanciaCalculadaMetros ?? 0) + ' m</div>' +
         (minutosTardanza > 0
-          ? '<div style="color:#991B1B;margin-top:4px"><strong>Tardanza:</strong> ' + minutosTardanza + ' min (se descuenta de planilla)</div>'
+          ? '<div class="status-error mt-2"><strong>Tardanza:</strong> ' + minutosTardanza + ' min (se descuenta de planilla)</div>'
           : '') +
         '</div>';
 
@@ -611,8 +587,8 @@ async function abrirModalEscanear() {
 
     onError: (err) => {
       statusEl.innerHTML =
-        '<div style="color:#DC2626;font-weight:700">❌ Error al registrar</div>' +
-        '<div style="margin-top:4px;font-size:.8rem">' + (err.message || String(err)) + '</div>';
+        '<div class="status-error">❌ Error al registrar</div>' +
+        '<div class="text-xs mt-2">' + (err.message || String(err)) + '</div>';
       mostrarBotonReintentar();
     },
   });
@@ -621,8 +597,8 @@ async function abrirModalEscanear() {
     await scannerState.scanner.iniciar();
   } catch (err) {
     statusEl.innerHTML =
-      '<div style="color:#DC2626;font-weight:700">No se pudo acceder a la cámara</div>' +
-      '<div style="margin-top:4px;font-size:.8rem">' + err.message +
+      '<div class="status-error">No se pudo acceder a la cámara</div>' +
+      '<div class="text-xs mt-2">' + err.message +
       '<br>Verifica los permisos del navegador o usa el marcaje manual.</div>';
     mostrarBotonReintentar();
   }
