@@ -449,6 +449,30 @@ document.getElementById('btn-limpiar').addEventListener('click', () => {
   cargar();
 });
 
+document.getElementById('btn-exportar').addEventListener('click', async () => {
+  const periodo = document.getElementById('filtro-periodo').value;
+  const idEmpleado = document.getElementById('filtro-empleado').value;
+  const params = new URLSearchParams();
+  if (periodo) params.set('periodo', periodo);
+  if (idEmpleado) params.set('idEmpleado', idEmpleado);
+
+  try {
+    const blob = await planillaApi.export(params.toString() ? `?${params}` : '');
+    const url = URL.createObjectURL(blob);
+    const fileName = `planillas_${periodo || 'todas'}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    toast('Exportación lista. Excel descargado.', 'success');
+  } catch (err) {
+    toast('No se pudo exportar: ' + err.message, 'error');
+  }
+});
+
 /* ── Cerrar modales ─────────────────────────────────────── */
 ['modal-close','modal-cancel'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(modalGen)));
