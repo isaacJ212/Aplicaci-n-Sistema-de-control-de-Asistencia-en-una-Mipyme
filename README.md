@@ -1,185 +1,164 @@
-
 # 🏢 Sistema de Control de Asistencia y Nómina para Mipyme
 
-Sistema de gestión de recursos humanos y marcaje de asistencia con geolocalización, diseñado para micro, pequeñas y medianas empresas (hasta 10 empleados). La solución permite la administración de usuarios, control de jornadas laborales, solicitudes de vacaciones, cálculo automático de nómina con deducciones de ley y generación de reportes.
+Sistema de gestión de recursos humanos y marcaje de asistencia con geolocalización, diseñado para mipymes. Incluye administración de empleados, control de jornadas, solicitudes de vacaciones, manejo de horas extras, generación de planillas y opciones de marcaje GPS/QR.
 
 ---
 
 ## 📅 Información del Proyecto
 * **Fecha límite de entrega:** 5 de Agosto de 2026
-* **Tipo de proyecto:** Evaluación exploratoria y aplicada de desarrollo backend/fullstack.
-* **Capacidad Objetivo:** Mipymes de hasta 10 empleados.
-* **Compomente:** Proyecto de TI ll.
-* **Maestro:** Álvaro Molina.
-
-
+* **Tipo de proyecto:** Evaluación aplicada de backend + frontend
+* **Objetivo:** Portal administrativo y portal empleado para micro y pequeñas empresas
+* **Asignatura:** Proyecto de TI II
+* **Docente:** Álvaro Molina
 
 ---
 
 ## 🛠️ Stack Tecnológico
-
-* **Lenguaje & Framework:** C# / .NET 8 (Web API RESTful)
-* **ORM:** Entity Framework Core 8
-* **Base de Datos:** PostgreSQL en la nube (Desplegado en **Supabase**)
-* **Autenticación & Seguridad:** ASP.NET Core Identity + JWT (JSON Web Tokens) + 2FA (TOTP / Authenticator App)
-* **Arquitectura:** Clean Architecture (Arquitectura Limpia) + Patrón CQRS (Commands & Queries)
-* **Validación & Librerías:** FluentValidation, EPPlus / ClosedXML (para exportación de reportes a Excel).
-
----
-
-## 🏛️ Patrón de Diseño y Arquitectura Backend
-
-El backend sigue los principios de **Clean Architecture** (desacoplamiento en 4 capas) combinada con el patrón **CQRS (Command Query Responsibility Segregation)** para separar las operaciones de lectura y escritura.
-
-
-```
-
-┌─────────────────────────────────────────────────────────────┐
-│               1. WebApi (Presentation Layer)                │
-│       • REST Controllers   • Middlewares   • JWT Auth       │
-└──────────────────────────────┬──────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────┐
-│            2. Application Layer (CQRS / BLL)                │
-│       • Commands & Queries   • DTOs   • Validators          │
-└──────────────────────────────┬──────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────┐
-│             3. Infrastructure Layer (DAL)                   │
-│   • EF Core DbContext   • PostgreSQL   • Identity 2FA       │
-└──────────────────────────────┬──────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────┐
-│               4. Domain Layer (Core Entities)               │
-│       • Entities   • Enums   • Value Objects                │
-└──────────────────────────────┴──────────────────────────────┘
-
-```
-
-### Justificación de la Arquitectura
-1. **Clean Architecture:** Permite que las reglas de negocio (Dominio) no dependan del framework web ni del motor de base de datos.
-2. **CQRS:** Facilita la legibilidad y mantenimiento al aislar la lógica de escritura (ej. registrar marcaje o procesar planilla) de las lecturas simples (ej. listar empleados).
-3. **Escalabilidad:** Aunque el sistema inicie con 10 empleados, la estructura está preparada para escalar a cientos de usuarios sin refactorizaciones complejas.
+* **Backend:** C# / .NET 8 Web API
+* **Frontend:** HTML / CSS / JavaScript
+* **Servidor frontend:** Express (`server.js`)
+* **Base de Datos:** PostgreSQL
+* **Autenticación:** ASP.NET Core Identity + JWT
+* **Arquitectura backend:** Clean Architecture + CQRS
+* **Validación:** FluentValidation
+* **Contenedores:** Docker / Docker Compose
 
 ---
 
-## 📂 Estructura de Carpetas del Proyecto
+## 🧱 Estructura del Proyecto
 
 ```text
 .
-├── docs
-└── src
-    ├── MipymeAsistencia.Domain/              # Capa de Dominio (Entidades puras sin dependencias)
-    │   ├── Common/                           # Entidades base y Value Objects (ej. CoordenadasGPS)
-    │   ├── Entities/                         # Usuario, Empleado, Marcaje, Planilla, Vacacion
-    │   ├── Enums/                            # EstadoAsistencia, RolUsuario, EstadoSolicitud
-    │   └── Events/                           # Eventos del dominio
-    │
-    ├── MipymeAsistencia.Application/         # Lógica de Aplicación y Casos de Uso
-    │   ├── Common/
-    │   │   ├── DTOs/                         # Data Transfer Objects por módulo
-    │   │   └── Interfaces/                   # Interfaces (IApplicationDbContext, IIdentityService)
-    │   ├── DependencyInjection/              # Registro de servicios de aplicación
-    │   ├── Features/                         # Módulos organizados por CQRS (Commands & Queries)
-    │   │   ├── Asistencia/
-    │   │   ├── Auth/
-    │   │   ├── Empleados/
-    │   │   ├── Planilla/
-    │   │   └── Vacaciones/
-    │   ├── Helpers/                          # Cálculo de fórmulas (Haversine GPS, Deducciones Ley)
-    │   └── Validators/                       # Validaciones de entrada con FluentValidation
-    │
-    ├── MipymeAsistencia.Infrastructure/      # Persistencia, Base de Datos y Servicios Externos
-    │   ├── DependencyInjection/              # Inyección de EF Core, Identity y Repositorios
-    │   ├── Identity/                         # Implementación de ASP.NET Identity + 2FA TOTP
-    │   ├── Persistence/                      # DbContext, Mapeos (Configurations) y Migraciones
-    │   ├── Repositories/                     # Implementación de Repositorios / Unit of Work
-    │   └── Services/                         # Servicio de exportación a Excel y Geometría GPS
-    │
-    └── MipymeAsistencia.WebApi/              # Punto de entrada HTTP (Presentación)
-        ├── Controllers/                      # Endpoints REST (Auth, Asistencia, Planilla, etc.)
-        ├── Middlewares/                      # Manejo global de excepciones y validación JWT
-        └── Properties/                       # Configuraciones de lanzamiento (launchSettings.json)
-
+├── backend/
+│   ├── Dockerfile
+│   ├── MipymeAsistencia.sln
+│   └── src/
+│       ├── MipymeAsistencia.Application/
+│       ├── MipymeAsistencia.Domain/
+│       ├── MipymeAsistencia.Infrastructure/
+│       └── MipymeAsistencia.WebApi/
+├── frontend/
+│   ├── assets/
+│   ├── components/
+│   ├── modules/
+│   ├── pages/
+│   └── ...
+├── docker-compose.yml
+├── package.json
+├── server.js
+└── README.md
 ```
+
+### Backend
+* `backend/src/MipymeAsistencia.WebApi/`: API REST del servicio
+* `backend/src/MipymeAsistencia.Application/`: lógica de negocio, comandos y queries
+* `backend/src/MipymeAsistencia.Infrastructure/`: EF Core, Identity, repositorios y servicios
+* `backend/src/MipymeAsistencia.Domain/`: entidades del dominio, enums y reglas de negocio
+
+### Frontend
+* `frontend/pages/empleado/`: portal empleado
+* `frontend/pages/admin/`: portal administrador
+* `frontend/pages/auth/`: login
+* `frontend/pages/`: kiosko QR y páginas públicas
+* `frontend/modules/`: lógica JS compartida y API wrappers
+* `frontend/assets/css/`: estilos globales y específicos
 
 ---
 
-## ⚡ Reglas de Negocio Clave
-
-### 1. Autenticación y Verificación en Dos Pasos (2FA)
-
-* El usuario ingresa credenciales básicas (`Email` + `Password`).
-* Si las credenciales son válidas, el backend exige la verificación del código TOTP de 6 dígitos (Google Authenticator / Microsoft Authenticator).
-* Al validar el 2FA, se expide un token **JWT** con los *claims* del rol (`Admin` o `Empleado`).
-
-### 2. Control de Asistencia y Geolocalización (GPS)
-
-* El empleado realiza marcajes de: **Entrada**, **Inicio/Fin de Descanso (Almuerzo)** y **Salida**.
-* La petición debe enviar la latitud y longitud capturadas por el dispositivo cliente.
-* El backend utiliza la **Fórmula de Haversine** para calcular la distancia en metros entre el punto de marcaje y la ubicación de la sucursal asignada.
-* Si el marcaje está dentro del radio permitido (ej. < 100m), se registra la asistencia. Si no, se rechaza.
-* Evaluador de estado automático: `A Tiempo` o `Tardanza` según el horario de entrada contratado.
-
-### 3. Planilla de Salario y Deducciones de Ley
-
-* **Salario Bruto:** Salario base mensual + pago de horas extras autorizadas.
-* **Seguro Social:** Cálculo porcentual correspondiente al aporte laboral obligatorio.
-* **Impuesto sobre la Renta (IR):** Aplicación de la tabla progresiva impositiva según norma legal vigente.
-* **Salario Neto:**
-
-
-
-
-### 4. Gestión de Vacaciones
-
-* Acumulación automática de días según antigüedad (basado en la `FechaDeContratacion`).
-* Flujo de solicitud por parte del empleado y aprobación/rechazo por el rol Administrador.
+## 🚀 Funcionalidades principales
+* Portal administrador con gestión de empleados, planillas, solicitudes y rendimiento.
+* Portal empleado con marcaje GPS/QR, historial de asistencia, horas extras, solicitudes y nómina.
+* Kiosko QR público para marcaje desde recepción o punto fijo.
+* UI responsive con experiencia móvil mejorada para empleados.
+* Backend RESTful con autenticación JWT y roles `Admin` / `Empleado`.
 
 ---
 
-## 🚀 Guía de Inicio Rápido para Desarrolladores 
+## 📌 Reglas de negocio destacadas
+### Autenticación y 2FA
+* El usuario se autentica con `Email` + `Password`.
+* El backend puede exigir verificación TOTP de 6 dígitos.
+* Tras validar, se emite un token JWT con el rol del usuario.
 
-### Requisitos Previos
+### Control de asistencia
+* Registro de marcajes: `Entrada`, `InicioAlmuerzo`, `FinAlmuerzo`, `Salida`.
+* El cliente envía latitud/longitud para validar cercanía a la sede.
+* Se calcula distancia con la fórmula de Haversine.
+* El sistema determina estados como `A Tiempo`, `Tardanza` o `Ausente`.
 
-* SDK de **.NET 8** instalado.
-* Instancia de **PostgreSQL** (Neon.tech o Supabase).
+### Nómina y horas extras
+* Se calcula ingreso bruto, deducciones y salario neto.
+* Las horas extras aprobadas se suman al pago final.
+* La planilla muestra el último recibo y los totales relevantes.
 
-### Configuración del archivo `appsettings.json` (`WebApi`):
+### Solicitudes y vacaciones
+* Empleados envían solicitudes de vacaciones y permisos.
+* Los administradores aprueban o rechazan solicitudes.
+* Se gestiona inventario de días disponibles y días tomados.
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=TU_NEON_HOST;Database=mipyme_asistencia;Username=TU_USUARIO;Password=TU_PASSWORD;SSL Mode=Require;"
-  },
-  "JwtSettings": {
-    "Secret": "TU_CLAVE_SECRETA_SUPER_SEGURA_DE_32_CARACTERES_MINIMO",
-    "Issuer": "MipymeAsistenciaApi",
-    "Audience": "MipymeAsistenciaClients",
-    "ExpiryMinutes": 120
-  }
-}
+---
 
-```
+## 🛠️ Ejecución del proyecto
+### Requisitos previos
+* .NET 8 SDK instalado
+* Node.js instalado
+* PostgreSQL disponible
+* Docker (opcional)
 
-### Comandos Principales (.NET CLI)
-
+### Arrancar frontend local
 ```bash
-# Restaurar dependencias
-dotnet restore
-
-# Compilar la solución
-dotnet build
-
-# Aplicar migraciones a PostgreSQL
-dotnet ef database update --project src/MipymeAsistencia.Infrastructure --startup-project src/MipymeAsistencia.WebApi
-
-# Ejecutar el proyecto
-dotnet run --project src/MipymeAsistencia.WebApi
-
+cd "/home/hack4/Documentos/proyecto de TI/AsistenciaControlPyme"
+npm install
+npm run frontend
 ```
 
+Abrir en el navegador:
+* `http://localhost:3000/login`
+* `http://localhost:3000/empleado/dashboard`
+* `http://localhost:3000/admin/dashboard`
+* `http://localhost:3000/kiosko-qr`
 
+### Arrancar backend local
+```bash
+cd "/home/hack4/Documentos/proyecto de TI/AsistenciaControlPyme/backend"
+dotnet restore
+dotnet build
+dotnet run --project src/MipymeAsistencia.WebApi/MipymeAsistencia.WebApi.csproj
+```
+
+### Iniciar con Docker Compose
+```bash
+docker compose up --build
+```
+
+El backend expone el puerto:
+* `http://localhost:8080`
+
+### Configuración de la API en el frontend
+* Revisa `frontend/modules/config.js`
+* Asegúrate de que `API_BASE_URL` apunte al backend activo
+
+---
+
+## 🌐 Rutas del frontend
+* `/login` → Pantalla de inicio de sesión
+* `/admin/dashboard` → Panel administrativo
+* `/empleado/dashboard` → Panel de empleado
+* `/empleado/marcaje` → Marcaje GPS / QR
+* `/kiosko-qr` → Kiosko QR público
+
+---
+
+## 📄 Archivos clave
+* `server.js` — servidor Express de frontend
+* `frontend/modules/config.js` — base URL de la API
+* `backend/Dockerfile` — construcción del backend
+* `docker-compose.yml` — despliegue Docker
+* `backend/MipymeAsistencia.sln` — solución .NET
+
+---
+
+## 💡 Notas finales
+* El proyecto está desarrollado como evaluación fullstack para Proyecto de TI II.
+* Ajusta `frontend/modules/config.js` si el backend corre en otro puerto o host.
+* Si cambias el puerto backend, actualiza también las rutas y `server.js` si es necesario.
