@@ -47,12 +47,18 @@ public class RegistrarAsistenciaCommandHandler
                 "El token QR no coincide con el activo de la sede. Escanea el QR actual.");
         }
 
-        // ── 4. Calcular distancia GPS ──────────────────────────────────────
+        // ── 4. Calcular distancia GPS y validar geocerca ───────────────────
         var distancia = CalcularDistanciaEnMetros(
             request.LatitudMarcaje,  request.LongitudMarcaje,
             sede.LatitudSede,        sede.LongitudSede);
 
         var enRango = distancia <= sede.RadioToleranciaMetros;
+
+        if (!enRango)
+        {
+            throw new ArgumentException(
+                $"Estás fuera de la zona permitida. Distancia: {Math.Round(distancia, 0)}m · Radio permitido: {sede.RadioToleranciaMetros}m. Acercate a la sede para registrar.");
+        }
 
         // ── 5. Buscar registro de asistencia de hoy ────────────────────────
         var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);

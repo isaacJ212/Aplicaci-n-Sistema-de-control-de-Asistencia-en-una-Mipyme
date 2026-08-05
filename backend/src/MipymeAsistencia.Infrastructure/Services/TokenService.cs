@@ -17,7 +17,7 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
-    public string GenerateToken(string email, string role)
+    public string GenerateToken(string email, string role, int idUsuario, int? idEmpleado)
     {
         var secretKey = _configuration["JwtSettings:Secret"] ?? "SuperSecureJwtSecretKeyForMipymeAsistencia123";
         var issuer = _configuration["JwtSettings:Issuer"] ?? "MipymeAsistencia";
@@ -27,13 +27,19 @@ public class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, email),
-            new Claim(ClaimTypes.Email, email),
-            new Claim(ClaimTypes.Role, role),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Sub, email),
+            new(ClaimTypes.Email, email),
+            new(ClaimTypes.Role, role),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("idUsuario", idUsuario.ToString())
         };
+
+        if (idEmpleado.HasValue)
+        {
+            claims.Add(new Claim("idEmpleado", idEmpleado.Value.ToString()));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

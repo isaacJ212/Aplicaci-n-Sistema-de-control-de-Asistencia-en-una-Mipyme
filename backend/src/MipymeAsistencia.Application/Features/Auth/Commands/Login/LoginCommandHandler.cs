@@ -26,11 +26,14 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
         if (usuario is null || !BCrypt.Net.BCrypt.Verify(request.Password, usuario.PasswordHash))
             throw new UnauthorizedAccessException("Credenciales inválidas.");
 
-        var rolNombre  = usuario.Rol?.NombreRol ?? "Empleado";
-        var jwt        = _tokenService.GenerateToken(usuario.Email, rolNombre);
+        var rolNombre = usuario.Rol?.NombreRol ?? "Empleado";
+
+        var empleado = await _context.Empleados
+            .FirstOrDefaultAsync(e => e.IdUsuario == usuario.IdUsuario, cancellationToken);
+
+        var jwt        = _tokenService.GenerateToken(usuario.Email, rolNombre, usuario.IdUsuario, empleado?.IdEmpleado);
         var expiracion = DateTime.UtcNow.AddMinutes(120);
 
-        // Genera y persiste el Refresh Token en BD (7 días de vida)
         var refreshTokenValor = _tokenService.GenerateRefreshToken();
         var refreshToken = new RefreshTokenEntity
         {
@@ -49,7 +52,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
             RefreshToken = refreshTokenValor,
             Expiration   = expiracion,
             Email        = usuario.Email,
-            Role         = rolNombre
+            Role         = rolNombre,
+            IdEmpleado   = empleado?.IdEmpleado
         };
     }
 }
