@@ -79,6 +79,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.IdEmpleado).HasColumnName("id_empleado");
             entity.Property(x => x.IdUsuario).HasColumnName("id_usuario");
             entity.Property(x => x.CedulaIdentificacion).HasColumnName("cedula_identificacion").HasMaxLength(20);
+            entity.Property(x => x.NumeroInss).HasColumnName("numero_inss").HasMaxLength(20).HasDefaultValue(string.Empty);
+            entity.Property(x => x.EstadoCivil).HasColumnName("estado_civil").HasMaxLength(30).HasDefaultValue("Soltero");
+            entity.Property(x => x.EstadoEmpleado).HasColumnName("estado_empleado").HasMaxLength(30).HasDefaultValue("Activo");
             entity.Property(x => x.FotoUrl).HasColumnName("foto_url").HasMaxLength(500);
             entity.Property(x => x.Nombres).HasColumnName("nombres").HasMaxLength(100);
             entity.Property(x => x.Apellidos).HasColumnName("apellidos").HasMaxLength(100);
