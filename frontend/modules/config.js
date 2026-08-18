@@ -14,6 +14,7 @@ const CONFIG = {
 
   ROLES: {
     ADMIN:    'Admin',
+    ANALISTA: 'Analista',
     EMPLEADO: 'Empleado',
   },
 
