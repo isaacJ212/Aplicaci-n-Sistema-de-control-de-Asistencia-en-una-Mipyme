@@ -120,11 +120,13 @@ export const api = {
 
 
 export const authApi = {
-  login:    (body) => request('/auth/login',    { method: 'POST', body }),
-  register: (body) => request('/auth/register', { method: 'POST', body }),
-  refresh:  (body) => request('/auth/refresh',  { method: 'POST', body }),
-  me:       ()     => api.get('/auth/me'),
-  logout:   (body) => api.post('/auth/logout',  body),
+  login:       (body) => request('/auth/login',       { method: 'POST', body }),
+  register:    (body) => request('/auth/register',    { method: 'POST', body }),
+  refresh:     (body) => request('/auth/refresh',     { method: 'POST', body }),
+  verify2fa:   (body) => request('/auth/verify-2fa',   { method: 'POST', body }),
+  toggle2fa:   (body) => request('/auth/toggle-2fa',   { method: 'POST', body }),
+  me:          ()     => api.get('/auth/me'),
+  logout:      (body) => api.post('/auth/logout',     body),
 };
 
 export const sedeApi = {

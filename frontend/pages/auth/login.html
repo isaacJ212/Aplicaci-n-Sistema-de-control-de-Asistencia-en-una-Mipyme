@@ -132,6 +132,36 @@
 
       </form>
 
+      <form id="verify-2fa-form" class="login-form hidden" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="verification-code">Código de verificación</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 2a6 6 0 00-6 6v1H3.5A1.5 1.5 0 002 10.5v6A1.5 1.5 0 003.5 18h13a1.5 1.5 0 001.5-1.5v-6A1.5 1.5 0 0016.5 9H16V8a6 6 0 00-6-6zm-4.5 7V8a4.5 4.5 0 119 0v1h-9zm3.5 2.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+            </svg>
+            <input
+              type="text"
+              id="verification-code"
+              name="verification-code"
+              class="form-input"
+              placeholder="123456"
+              inputmode="numeric"
+              maxlength="6"
+              autocomplete="one-time-code"
+              required
+            />
+          </div>
+          <span class="form-error hidden" id="verification-code-error"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="verify-btn">
+          <span id="verify-btn-text">Verificar código</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-full btn-lg mt-2" id="cancel-2fa-btn">
+          Volver al inicio
+        </button>
+      </form>
+
       <footer class="login-footer">
         <p>MipymeAsistencia &copy; 2026 — Nicaragua</p>
       </footer>

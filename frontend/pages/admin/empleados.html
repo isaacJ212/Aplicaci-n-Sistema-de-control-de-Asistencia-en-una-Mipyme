@@ -149,6 +149,36 @@
             <span class="form-error hidden" id="err-cedula"></span>
           </div>
           <div class="form-group">
+            <label class="form-label" for="field-inss">Número de INSS *</label>
+            <input type="text" class="form-input" id="field-inss" placeholder="9 dígitos, ej. 123456789"
+              maxlength="9" inputmode="numeric" />
+            <span class="form-hint">Exactamente 9 dígitos numéricos.</span>
+            <span class="form-error hidden" id="err-inss"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-estado-civil">Estado civil *</label>
+            <select class="form-input" id="field-estado-civil">
+              <option value="">— Seleccionar —</option>
+              <option value="Soltero">Soltero</option>
+              <option value="Casado">Casado</option>
+              <option value="Divorciado">Divorciado</option>
+              <option value="Viudo">Viudo</option>
+              <option value="Unión libre">Unión libre</option>
+            </select>
+            <span class="form-error hidden" id="err-estado-civil"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="field-estado-empleado">Estado del empleado *</label>
+            <select class="form-input" id="field-estado-empleado">
+              <option value="">— Seleccionar —</option>
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+              <option value="Suspendido">Suspendido</option>
+              <option value="Embargado">Embargado</option>
+            </select>
+            <span class="form-error hidden" id="err-estado-empleado"></span>
+          </div>
+          <div class="form-group">
             <label class="form-label" for="field-cargo">Cargo / Función *</label>
             <input type="text" class="form-input" id="field-cargo" placeholder="Ej. Analista de Sistemas" />
             <span class="form-error hidden" id="err-cargo"></span>
@@ -381,6 +411,9 @@ async function abrirEditar(id) {
     document.getElementById('field-nombres').value           = emp.nombres ?? '';
     document.getElementById('field-apellidos').value         = emp.apellidos ?? '';
     document.getElementById('field-cedula').value            = emp.cedulaIdentificacion ?? '';
+    document.getElementById('field-inss').value              = emp.numeroInss ?? '';
+    document.getElementById('field-estado-civil').value      = emp.estadoCivil ?? 'Soltero';
+    document.getElementById('field-estado-empleado').value   = emp.estadoEmpleado ?? 'Activo';
     document.getElementById('field-cargo').value             = emp.cargoFuncion ?? '';
     document.getElementById('field-responsabilidades').value = emp.responsabilidades ?? '';
     document.getElementById('field-contratacion').value      = (emp.fechaContratacion ?? '').split('T')[0];
@@ -442,6 +475,9 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         nombres:              document.getElementById('field-nombres').value.trim(),
         apellidos:            document.getElementById('field-apellidos').value.trim(),
         cedulaIdentificacion: document.getElementById('field-cedula').value.trim(),
+        numeroInss:           document.getElementById('field-inss').value.trim(),
+        estadoCivil:          document.getElementById('field-estado-civil').value,
+        estadoEmpleado:       document.getElementById('field-estado-empleado').value,
         cargoFuncion:         document.getElementById('field-cargo').value.trim(),
         responsabilidades:    document.getElementById('field-responsabilidades').value.trim(),
         fechaContratacion:    document.getElementById('field-contratacion').value,
@@ -475,6 +511,9 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         nombres:              document.getElementById('field-nombres').value.trim(),
         apellidos:            document.getElementById('field-apellidos').value.trim(),
         cedulaIdentificacion: document.getElementById('field-cedula').value.trim(),
+        numeroInss:           document.getElementById('field-inss').value.trim(),
+        estadoCivil:          document.getElementById('field-estado-civil').value,
+        estadoEmpleado:       document.getElementById('field-estado-empleado').value,
         cargoFuncion:         document.getElementById('field-cargo').value.trim(),
         responsabilidades:    document.getElementById('field-responsabilidades').value.trim(),
         fechaContratacion:    document.getElementById('field-contratacion').value,
@@ -557,11 +596,16 @@ document.getElementById('btn-refresh').addEventListener('click', cargar);
 // ─── Utilidades ──────────────────────────────────────────────────────────────
 function limpiarForm() {
   ['field-id','field-email','field-password','field-nombres','field-apellidos',
-   'field-cedula','field-cargo','field-responsabilidades','field-contratacion',
+   'field-cedula','field-inss','field-cargo','field-responsabilidades','field-contratacion',
    'field-salario','field-foto'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  // Resetear selects
+  const selectEstadoCivil    = document.getElementById('field-estado-civil');
+  const selectEstadoEmpleado = document.getElementById('field-estado-empleado');
+  if (selectEstadoCivil)    selectEstadoCivil.value    = 'Soltero';
+  if (selectEstadoEmpleado) selectEstadoEmpleado.value = 'Activo';
   // Limpiar inputs de archivo
   const fotoFile = document.getElementById('field-foto-file');
   if (fotoFile) fotoFile.value = '';
@@ -609,6 +653,19 @@ function validarForm() {
     { mostrarError('field-apellidos','err-apellidos','Los apellidos son obligatorios.'); ok = false; }
   if (!document.getElementById('field-cedula').value.trim())
     { mostrarError('field-cedula','err-cedula','La cédula es obligatoria.'); ok = false; }
+
+  const inss = document.getElementById('field-inss').value.trim();
+  if (!inss) {
+    mostrarError('field-inss','err-inss','El número de INSS es obligatorio.'); ok = false;
+  } else if (!/^\d{9}$/.test(inss)) {
+    mostrarError('field-inss','err-inss','El INSS debe tener exactamente 9 dígitos.'); ok = false;
+  }
+
+  if (!document.getElementById('field-estado-civil').value)
+    { mostrarError('field-estado-civil','err-estado-civil','El estado civil es obligatorio.'); ok = false; }
+  if (!document.getElementById('field-estado-empleado').value)
+    { mostrarError('field-estado-empleado','err-estado-empleado','El estado del empleado es obligatorio.'); ok = false; }
+
   if (!document.getElementById('field-cargo').value.trim())
     { mostrarError('field-cargo','err-cargo','El cargo es obligatorio.'); ok = false; }
   if (!document.getElementById('field-responsabilidades').value.trim())
