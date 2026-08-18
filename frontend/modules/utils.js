@@ -1,5 +1,6 @@
 /**
  * utils.js — Utilidades genéricas reutilizables en todo el frontend.
+ * Optimizado para minimizar re-render y evitar listeners duplicados.
  */
 
 // ── Fechas ────────────────────────────────────────────────────────────────────
