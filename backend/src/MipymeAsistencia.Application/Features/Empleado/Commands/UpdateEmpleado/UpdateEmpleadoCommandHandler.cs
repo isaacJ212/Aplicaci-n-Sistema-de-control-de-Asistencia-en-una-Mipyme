@@ -31,6 +31,9 @@ public class UpdateEmpleadoCommandHandler : IRequestHandler<UpdateEmpleadoComman
         var fechaContratacionUtc = NormalizeToUtc(request.FechaContratacion);
 
         empleado.CedulaIdentificacion = request.CedulaIdentificacion;
+        empleado.NumeroInss = request.NumeroInss;
+        empleado.EstadoCivil = request.EstadoCivil;
+        empleado.EstadoEmpleado = request.EstadoEmpleado;
         empleado.FotoUrl = request.FotoUrl;
         empleado.Nombres = request.Nombres;
         empleado.Apellidos = request.Apellidos;
@@ -50,6 +53,9 @@ public class UpdateEmpleadoCommandHandler : IRequestHandler<UpdateEmpleadoComman
             IdUsuario = empleado.IdUsuario,
             Email = usuario.Email,
             CedulaIdentificacion = empleado.CedulaIdentificacion,
+            NumeroInss = empleado.NumeroInss,
+            EstadoCivil = empleado.EstadoCivil,
+            EstadoEmpleado = empleado.EstadoEmpleado,
             FotoUrl = empleado.FotoUrl,
             Nombres = empleado.Nombres,
             Apellidos = empleado.Apellidos,
