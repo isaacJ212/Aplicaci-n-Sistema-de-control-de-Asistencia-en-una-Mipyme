@@ -10,12 +10,18 @@ import CONFIG from './config.js';
 
 // ── Helper de URL base ────────────────────────────────────────────────────────
 
+let cachedBase = null;
+
 function getBase() {
+  if (cachedBase) return cachedBase;
+
   const { origin, pathname } = window.location;
   const idx = pathname.indexOf('/frontend/');
-  return idx !== -1
+  cachedBase = idx !== -1
     ? origin + pathname.slice(0, idx) + '/frontend'
     : origin;
+
+  return cachedBase;
 }
 
 function urlPage(path) {
