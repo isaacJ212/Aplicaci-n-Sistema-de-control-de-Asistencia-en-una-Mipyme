@@ -5,7 +5,7 @@ namespace MipymeAsistencia.Application.Validators;
 
 public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
-    private static readonly string[] RolesPermitidos = ["Admin", "Empleado"];
+    private static readonly string[] RolesPermitidos = ["Admin", "Analista", "Empleado"];
 
     public RegisterCommandValidator()
     {
