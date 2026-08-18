@@ -4,6 +4,9 @@ public class CreateEmpleadoRequestDto
 {
     public int IdUsuario { get; set; }
     public string CedulaIdentificacion { get; set; } = string.Empty;
+    public string NumeroInss { get; set; } = string.Empty;
+    public string EstadoCivil { get; set; } = "Soltero";
+    public string EstadoEmpleado { get; set; } = "Activo";
     public string? FotoUrl { get; set; }
     public string Nombres { get; set; } = string.Empty;
     public string Apellidos { get; set; } = string.Empty;
