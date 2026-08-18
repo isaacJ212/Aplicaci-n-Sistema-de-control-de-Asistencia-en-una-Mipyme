@@ -56,6 +56,9 @@ public class EmpleadoController : ControllerBase
         {
             IdUsuario = request.IdUsuario,
             CedulaIdentificacion = request.CedulaIdentificacion,
+            NumeroInss = request.NumeroInss,
+            EstadoCivil = request.EstadoCivil,
+            EstadoEmpleado = request.EstadoEmpleado,
             FotoUrl = request.FotoUrl,
             Nombres = request.Nombres,
             Apellidos = request.Apellidos,
@@ -83,6 +86,9 @@ public class EmpleadoController : ControllerBase
         {
             IdEmpleado = idEmpleado,
             CedulaIdentificacion = request.CedulaIdentificacion,
+            NumeroInss = request.NumeroInss,
+            EstadoCivil = request.EstadoCivil,
+            EstadoEmpleado = request.EstadoEmpleado,
             FotoUrl = request.FotoUrl,
             Nombres = request.Nombres,
             Apellidos = request.Apellidos,
