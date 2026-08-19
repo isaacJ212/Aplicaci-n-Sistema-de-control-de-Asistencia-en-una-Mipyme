@@ -61,15 +61,18 @@
       <div class="page-header">
         <div class="page-header-text">
           <h1>Gestión de Evaluaciones 360°</h1>
-          <p>Crea formularios semestrales, asigna perspectivas y consulta resultados ponderados.</p>
+          <p>Aplica la evaluación a todos los colaboradores de la empresa, asigna perspectivas y consulta el historial semestral.</p>
         </div>
-        <button class="btn btn-primary" id="btn-nueva">＋ Nueva evaluación</button>
+        <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-masiva" style="background:#2563EB;border-color:#2563EB">🚀 Aplicar a todos los empleados</button>
+          <button class="btn btn-secondary" id="btn-nueva">＋ Asignar individual</button>
+        </div>
       </div>
 
       <!-- Stats -->
       <div class="stats-grid" style="margin-bottom:var(--space-5)">
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon blue">📋</div></div>
-          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total</div></div>
+          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total Evaluaciones</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
           <div class="stat-value" id="stat-pend">—</div><div class="stat-label">Pendientes</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">✅</div></div>
@@ -87,12 +90,14 @@
           </select>
         </div>
         <div class="filtro-group">
-          <span class="filtro-label">Período</span>
-          <select class="form-input" id="f-periodo" style="min-width:130px">
-            <option value="">— Todos —</option>
-            <option value="2026-S1">2026-S1</option>
-            <option value="2026-S2">2026-S2</option>
-            <option value="2027-S1">2027-S1</option>
+          <span class="filtro-label">Período Semestral</span>
+          <select class="form-input" id="f-periodo" style="min-width:140px">
+            <option value="">— Todos (Historial) —</option>
+            <option value="2025-S1">2025 · Semestre 1</option>
+            <option value="2025-S2">2025 · Semestre 2</option>
+            <option value="2026-S1">2026 · Semestre 1</option>
+            <option value="2026-S2">2026 · Semestre 2</option>
+            <option value="2027-S1">2027 · Semestre 1</option>
           </select>
         </div>
         <div class="filtro-group">
@@ -412,7 +417,271 @@ const PREGUNTAS_TEXTO = {
   20:'¿Busca formas de optimizar e innovar en sus aportes?',
 };
 
-/* ── Modal crear ─────────────────────────────────────────── */
+<!-- ═══ MODAL ASIGNACIÓN MASIVA ═══ -->
+<div class="modal-overlay hidden" id="modal-masiva">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title">🚀 Aplicar Evaluación 360° a Todos los Empleados</span>
+      <button class="btn btn-ghost btn-sm" id="masiva-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#DBEAFE;color:#1E40AF;border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-4);font-size:var(--font-size-sm)">
+        <strong>📢 Asignación Semestral Masiva:</strong><br>
+        Se generará el formulario de <strong>Autoevaluación (20 preguntas ponderadas)</strong> en estado <em>Pendiente</em> para todos los colaboradores activos.
+        Aparecerá en el portal de cada empleado para ser completado.
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Período Semestral a Aplicar <span class="text-danger">*</span></label>
+        <select class="form-input" id="m-periodo">
+          <option value="2026-S2">2026 · Segundo Semestre (S2) — Actual</option>
+          <option value="2026-S1">2026 · Primer Semestre (S1)</option>
+          <option value="2027-S1">2027 · Primer Semestre (S1)</option>
+          <option value="2027-S2">2027 · Segundo Semestre (S2)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Perspectiva Inicial</label>
+        <select class="form-input" id="m-perspectiva">
+          <option value="Autoevaluacion">🪞 Autoevaluación (el propio colaborador responde)</option>
+          <option value="Jefe">👔 Evaluación por Jefatura Directa</option>
+        </select>
+      </div>
+
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2)">
+        * Si un empleado ya tiene asignada la evaluación para este período, no se duplicará.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="masiva-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="masiva-submit" style="background:#2563EB;border-color:#2563EB">🚀 Aplicar a todos</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }                    from '../../modules/layout.js';
+import { evaluacionApi, empleadoApi, authApi } from '../../modules/api.js';
+import { toast, formatDate, show, hide }      from '../../modules/utils.js';
+
+await initAdminLayout('evaluacion');
+
+const PERSPECTIVA_LABEL = {
+  Autoevaluacion: '🪞 Autoevaluación',
+  Jefe:           '👔 Jefe directo',
+  Par:            '🤝 Par / Colega',
+  Subordinado:    '👥 Subordinado',
+};
+
+const state = {
+  lista:       [],
+  usuarios:    [],
+  empleados:   [],
+  evaluacionId: null,
+};
+
+/* ── Init ─────────────────────────────────────────────────── */
+async function init() {
+  try {
+    const [evals, emps] = await Promise.all([
+      evaluacionApi.getAll().catch(() => []),
+      empleadoApi.getAll().catch(() => []),
+    ]);
+    state.lista     = Array.isArray(evals) ? evals : [];
+    state.empleados = Array.isArray(emps)  ? emps  : [];
+
+    poblarSelectEmpleados();
+    actualizarStats();
+    renderTabla();
+  } catch (err) {
+    toast('Error al cargar datos: ' + err.message, 'error');
+  }
+}
+
+/* ── Poblar select ────────────────────────────────────────── */
+function poblarSelectEmpleados() {
+  const opts = state.empleados.map(e =>
+    `<option value="${e.idEmpleado}">${e.nombre ?? e.nombreCompleto ?? `Empleado #${e.idEmpleado}`}</option>`
+  ).join('');
+  document.getElementById('f-empleado').innerHTML = '<option value="">— Todos —</option>' + opts;
+  document.getElementById('c-empleado').innerHTML = '<option value="">— Selecciona un empleado —</option>' + opts;
+}
+
+async function cargarUsuarios() {
+  if (state.usuarios.length) return;
+  state.usuarios = state.empleados.map(e => ({
+    idUsuario: e.idUsuario ?? e.idEmpleado,
+    nombre:    e.nombre ?? e.nombreCompleto ?? `Empleado #${e.idEmpleado}`,
+  }));
+  const opts = state.usuarios.map(u =>
+    `<option value="${u.idUsuario}">${u.nombre}</option>`
+  ).join('');
+  document.getElementById('c-evaluador').innerHTML = '<option value="">— El evaluador asignado (o tú mismo) —</option>' + opts;
+}
+
+/* ── Stats ────────────────────────────────────────────────── */
+function actualizarStats() {
+  const total = state.lista.length;
+  const pend  = state.lista.filter(e => e.estado === 'Pendiente').length;
+  const comp  = state.lista.filter(e => e.estado === 'Completada');
+  const prom  = comp.length
+    ? (comp.reduce((s, e) => s + (e.puntajeFinal ?? 0), 0) / comp.length).toFixed(1) + '%'
+    : '—';
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pend').textContent  = pend;
+  document.getElementById('stat-comp').textContent  = comp.length;
+  document.getElementById('stat-prom').textContent  = prom;
+  document.getElementById('badge-total').textContent = `${total} evaluaciones`;
+}
+
+/* ── Render tabla ─────────────────────────────────────────── */
+function renderTabla() {
+  const tbody = document.getElementById('tbody');
+  if (!state.lista.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No hay evaluaciones registradas</h3>
+        <p>Usa "🚀 Aplicar a todos los empleados" o "＋ Asignar individual" para comenzar.</p>
+      </div></td></tr>`;
+    return;
+  }
+
+  const scoreBar = (pct) => {
+    const cls = pct >= 80 ? 'fill-green' : pct >= 50 ? 'fill-yellow' : 'fill-red';
+    return `<div class="score-bar-wrap">
+      <div class="score-bar-bg"><div class="score-bar-fill ${cls}" style="width:${pct}%"></div></div>
+      <span class="score-num">${pct}%</span>
+    </div>`;
+  };
+
+  tbody.innerHTML = state.lista.map(e => {
+    const puntaje = e.estado === 'Completada' ? scoreBar(e.puntajeFinal ?? 0) : '—';
+    const fecha = e.fechaCompletada
+      ? formatDate(e.fechaCompletada)
+      : (e.fechaCreacion ? formatDate(e.fechaCreacion) : '—');
+
+    return `<tr>
+      <td class="font-medium">${e.nombreEmpleado ?? `Empleado #${e.idEmpleado}`}</td>
+      <td>${e.nombreEvaluador ?? `Usuario #${e.idEvaluador}`}</td>
+      <td><span class="chip chip-blue">${PERSPECTIVA_LABEL[e.perspectiva] ?? e.perspectiva}</span></td>
+      <td>${e.periodo}</td>
+      <td>${e.estado === 'Completada'
+        ? '<span class="chip chip-green">✅ Completada</span>'
+        : '<span class="chip chip-yellow">⏳ Pendiente</span>'}</td>
+      <td>${puntaje}</td>
+      <td style="font-size:var(--font-size-xs);color:var(--color-text-muted)">${fecha}</td>
+      <td>
+        <button class="btn-icon" data-accion="ver" data-id="${e.idEvaluacion}" title="Ver detalle">👁️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Delegación tabla ─────────────────────────────────────── */
+document.getElementById('tbody').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-accion]');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  if (btn.dataset.accion === 'ver') verDetalle(id);
+});
+
+/* ── Modal detalle ───────────────────────────────────────── */
+async function verDetalle(idEvaluacion) {
+  try {
+    const ev = await evaluacionApi.getById(idEvaluacion);
+    state.evaluacionId = idEvaluacion;
+
+    document.getElementById('det-empleado').textContent    = ev.nombreEmpleado ?? `Empleado #${ev.idEmpleado}`;
+    document.getElementById('det-evaluador').textContent   = ev.nombreEvaluador ?? `Usuario #${ev.idEvaluador}`;
+    document.getElementById('det-perspectiva').textContent = PERSPECTIVA_LABEL[ev.perspectiva] ?? ev.perspectiva;
+    document.getElementById('det-periodo').textContent     = ev.periodo;
+    document.getElementById('det-estado').textContent      = ev.estado;
+    document.getElementById('det-obs').textContent         = ev.observaciones || 'Sin observaciones.';
+
+    if (ev.estado === 'Completada') {
+      const scoreCard = document.getElementById('det-score-card');
+      show(scoreCard);
+      const pct = ev.puntajeFinal ?? 0;
+      document.getElementById('det-score-val').textContent = pct + '%';
+      document.getElementById('det-score-lbl').textContent =
+        pct >= 80 ? 'Excelente' : pct >= 60 ? 'Bueno' : pct >= 40 ? 'Regular' : 'Requiere mejora';
+
+      const respCard = document.getElementById('det-respuestas-card');
+      show(respCard);
+      const tbody = document.getElementById('det-resp-tbody');
+      tbody.innerHTML = (ev.respuestas ?? []).map(r => `
+        <tr>
+          <td style="font-weight:700;color:var(--color-primary)">${r.numeroPregunta}</td>
+          <td style="font-size:var(--font-size-xs)">${PREGUNTAS_TEXTO[r.numeroPregunta] ?? '—'}</td>
+          <td style="text-align:center"><span class="chip ${r.calificacion >= 4 ? 'chip-green' : r.calificacion >= 3 ? 'chip-yellow' : 'chip-red'}">${r.calificacion} / 5</span></td>
+        </tr>
+      `).join('');
+    } else {
+      hide(document.getElementById('det-score-card'));
+      hide(document.getElementById('det-respuestas-card'));
+    }
+
+    show(document.getElementById('modal-detalle'));
+  } catch (err) {
+    toast('Error al cargar detalle: ' + err.message, 'error');
+  }
+}
+
+const PREGUNTAS_TEXTO = {
+  1:'¿Comprende las implicaciones de sus decisiones en el negocio a corto y largo plazo?',
+  2:'¿Determina objetivos claros y establece prioridades efectivas para alcanzarlos?',
+  3:'¿Considera los riesgos e implicaciones antes de ejecutar una acción relevante?',
+  4:'¿Completa de manera efectiva, en tiempo y forma, los proyectos asignados?',
+  5:'¿Es capaz de jerarquizar y reordenar prioridades ante cambios o imprevistos?',
+  6:'¿Utiliza eficientemente los recursos asignados (presupuesto, herramientas, tiempo)?',
+  7:'¿Se enfoca en la causa raíz de los asuntos clave para resolver problemas efectivamente?',
+  8:'¿Conserva la calma, la objetividad y el control en situaciones complicadas o bajo presión?',
+  9:'¿Recauda y analiza información de diferentes fuentes antes de tomar una decisión?',
+  10:'¿Se desempeña como un miembro activo, colaborativo y comprometido con el grupo?',
+  11:'¿Inspira, motiva y guía al equipo para el logro de las metas comunes?',
+  12:'¿Comparte activamente sus conocimientos, habilidades y experiencia con los demás?',
+  13:'¿Expresa sus ideas y opiniones con claridad, precisión y respeto hacia la otra persona?',
+  14:'¿Escucha activamente y muestra apertura ante críticas constructivas u opiniones ajenas?',
+  15:'¿Fomenta el diálogo abierto y directo para resolver diferencias o alinear expectativas?',
+  16:'¿Entiende las necesidades del cliente (interno/externo) y busca superar sus expectativas?',
+  17:'¿Procura la satisfacción del cliente brindando un servicio de excelencia?',
+  18:'¿Es percibido como persona de confianza e integridad?',
+  19:'¿Demuestra flexibilidad ante nuevos procesos y tecnologías?',
+  20:'¿Busca formas de optimizar e innovar en sus aportes?',
+};
+
+/* ── Modal asignación masiva ──────────────────────────── */
+document.getElementById('btn-masiva')?.addEventListener('click', () => {
+  show(document.getElementById('modal-masiva'));
+});
+
+document.getElementById('masiva-submit')?.addEventListener('click', async () => {
+  const periodo = document.getElementById('m-periodo').value;
+  const perspectiva = document.getElementById('m-perspectiva').value;
+
+  const btn = document.getElementById('masiva-submit');
+  btn.disabled = true;
+  btn.textContent = 'Aplicando a todos...';
+
+  try {
+    const res = await evaluacionApi.asignarMasivo({ periodo, perspectiva });
+    toast(`✅ ${res?.message || 'Evaluaciones asignadas correctamente a todos los empleados.'}`, 'success', 5000);
+    hide(document.getElementById('modal-masiva'));
+    await cargarYRenderizar();
+  } catch (err) {
+    toast('Error al asignar masivamente: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Aplicar a todos';
+  }
+});
+
+/* ── Modal crear individual ──────────────────────────────── */
 document.getElementById('btn-nueva').addEventListener('click', async () => {
   await cargarUsuarios();
   document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
@@ -476,10 +745,14 @@ document.getElementById('btn-limpiar').addEventListener('click', () => {
   document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-crear'))));
 ['det-close','det-cancel'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-detalle'))));
+['masiva-close','masiva-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-masiva'))));
 document.getElementById('modal-crear').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-crear')) hide(document.getElementById('modal-crear')); });
 document.getElementById('modal-detalle').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-detalle')) hide(document.getElementById('modal-detalle')); });
+document.getElementById('modal-masiva')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-masiva')) hide(document.getElementById('modal-masiva')); });
 
 /* ── Init ────────────────────────────────────────────────── */
 init();

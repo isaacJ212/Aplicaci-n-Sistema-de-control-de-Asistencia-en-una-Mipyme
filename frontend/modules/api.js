@@ -191,6 +191,7 @@ export const evaluacionApi = {
   },
   getById:        (id)            => api.get(`/evaluacion/${id}`),
   crear:          (body)          => api.post('/evaluacion', body),
+  asignarMasivo:  (body)          => api.post('/evaluacion/asignar-masivo', body),
   responder:      (id, body)      => api.put(`/evaluacion/${id}/responder`, body),
 };
 

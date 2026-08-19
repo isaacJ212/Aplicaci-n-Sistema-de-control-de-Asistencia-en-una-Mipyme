@@ -62,21 +62,24 @@
       <div class="page-header">
         <div class="page-header-text">
           <h1>Gestión de Evaluaciones de Desempeño (Modelo 360°)</h1>
-          <p>Asigna formularios de evaluación semestral a los empleados. Los empleados verán el formulario en su portal.</p>
+          <p>Aplica la evaluación semestral a todos los empleados de la empresa o asigna evaluaciones individuales. Consulta el historial semestral.</p>
         </div>
-        <button class="btn btn-primary" id="btn-nueva">＋ Asignar evaluación</button>
+        <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-masiva" style="background:#7C3AED;border-color:#7C3AED">🚀 Aplicar a todos los empleados</button>
+          <button class="btn btn-secondary" id="btn-nueva">＋ Asignar individual</button>
+        </div>
       </div>
 
       <!-- Stats -->
       <div class="stats-grid" style="margin-bottom:var(--space-5)">
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon blue">📋</div></div>
-          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total</div></div>
+          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total Evaluaciones</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
           <div class="stat-value" id="stat-pend">—</div><div class="stat-label">Pendientes</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">✅</div></div>
           <div class="stat-value" id="stat-comp">—</div><div class="stat-label">Completadas</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">⭐</div></div>
-          <div class="stat-value" id="stat-prom">—</div><div class="stat-label">Puntaje promedio</div></div>
+          <div class="stat-value" id="stat-prom">—</div><div class="stat-label">Puntaje promedio global</div></div>
       </div>
 
       <!-- Filtros -->
@@ -88,12 +91,14 @@
           </select>
         </div>
         <div class="filtro-group">
-          <span class="filtro-label">Período</span>
-          <select class="form-input" id="f-periodo" style="min-width:130px">
-            <option value="">— Todos —</option>
-            <option value="2026-S1">2026-S1</option>
-            <option value="2026-S2">2026-S2</option>
-            <option value="2027-S1">2027-S1</option>
+          <span class="filtro-label">Período Semestral</span>
+          <select class="form-input" id="f-periodo" style="min-width:140px">
+            <option value="">— Todos (Historial) —</option>
+            <option value="2025-S1">2025 · Semestre 1</option>
+            <option value="2025-S2">2025 · Semestre 2</option>
+            <option value="2026-S1">2026 · Semestre 1</option>
+            <option value="2026-S2">2026 · Semestre 2</option>
+            <option value="2027-S1">2027 · Semestre 1</option>
           </select>
         </div>
         <div class="filtro-group">
@@ -397,7 +402,259 @@ document.getElementById('tbody').addEventListener('click', async (ev) => {
   }
 });
 
-/* ── Modal nueva evaluación ───────────────────────────── */
+<!-- ═══ MODAL ASIGNACIÓN MASIVA ═══ -->
+<div class="modal-overlay hidden" id="modal-masiva">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title">🚀 Aplicar Evaluación 360° a Todos los Empleados</span>
+      <button class="btn btn-ghost btn-sm" id="masiva-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#EDE9FE;color:#5B21B6;border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-4);font-size:var(--font-size-sm)">
+        <strong>📢 Asignación Semestral Automática:</strong><br>
+        Se generará automáticamente el formulario de <strong>Autoevaluación (20 preguntas)</strong> en estado <em>Pendiente</em> para todos los colaboradores activos.
+        A cada usuario le aparecerá la notificación y el formulario en su portal.
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Período Semestral a Aplicar <span class="text-danger">*</span></label>
+        <select class="form-input" id="m-periodo">
+          <option value="2026-S2">2026 · Segundo Semestre (S2) — Actual</option>
+          <option value="2026-S1">2026 · Primer Semestre (S1)</option>
+          <option value="2027-S1">2027 · Primer Semestre (S1)</option>
+          <option value="2027-S2">2027 · Segundo Semestre (S2)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Perspectiva Inicial</label>
+        <select class="form-input" id="m-perspectiva">
+          <option value="Autoevaluacion">🪞 Autoevaluación (el propio colaborador responde)</option>
+          <option value="Jefe">👔 Evaluación por Jefatura Directa</option>
+        </select>
+      </div>
+
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2)">
+        * Si un empleado ya tiene asignada la evaluación para este período, no se duplicará.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="masiva-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="masiva-submit" style="background:#7C3AED;border-color:#7C3AED">🚀 Aplicar a todos</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAnalistaLayout }               from '../../modules/layout.js';
+import { evaluacionApi, empleadoApi, authApi } from '../../modules/api.js';
+import { toast, formatDate, show, hide }    from '../../modules/utils.js';
+
+await initAnalistaLayout('evaluacion');
+
+const PERSP = {
+  Autoevaluacion: '🪞 Autoevaluación',
+  Jefe:           '👔 Jefe directo',
+  Par:            '🤝 Par / Colega',
+  Subordinado:    '👥 Subordinado',
+};
+
+let empleados = [];
+let preguntas = [];
+let me = null;
+
+/* ── Init ─────────────────────────────────────────────── */
+async function init() {
+  try {
+    [me, empleados, preguntas] = await Promise.all([
+      authApi.me().catch(() => null),
+      empleadoApi.getAll().catch(() => []),
+      evaluacionApi.getPreguntas().catch(() => []),
+    ]);
+    poblarSelectsEmpleados();
+    renderPreguntasPreview();
+    await cargarTabla();
+  } catch (err) {
+    toast('Error al inicializar: ' + err.message, 'error');
+  }
+}
+
+function poblarSelectsEmpleados() {
+  const opts = empleados.map(e =>
+    `<option value="${e.idEmpleado}">${e.nombre ?? e.nombreCompleto ?? `Empleado #${e.idEmpleado}`}</option>`
+  ).join('');
+  document.getElementById('f-empleado').innerHTML = '<option value="">— Todos —</option>' + opts;
+  document.getElementById('n-empleado').innerHTML = '<option value="">— Selecciona el empleado —</option>' + opts;
+
+  const evaluadorOpts = empleados.map(e =>
+    `<option value="${e.idUsuario ?? e.idEmpleado}">${e.nombre ?? e.nombreCompleto ?? `Empleado #${e.idEmpleado}`}</option>`
+  ).join('');
+  document.getElementById('n-evaluador').innerHTML =
+    '<option value="">— Mismo empleado (Autoevaluación) —</option>' + evaluadorOpts;
+}
+
+function renderPreguntasPreview() {
+  const container = document.getElementById('preguntas-preview');
+  if (!preguntas.length) {
+    container.innerHTML = '<div style="color:var(--color-text-muted);text-align:center">No se pudieron cargar las preguntas.</div>';
+    return;
+  }
+  container.innerHTML = preguntas.map(p => `
+    <div class="pregunta-preview">
+      <strong>${p.numero}. ${p.categoria} · Peso: ${p.peso}%</strong>
+      ${p.texto}
+    </div>
+  `).join('');
+}
+
+/* ── Cargar tabla ─────────────────────────────────────── */
+async function cargarTabla(filtros = {}) {
+  document.getElementById('tbody').innerHTML =
+    '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>';
+  try {
+    const lista = await evaluacionApi.getAll(filtros);
+    renderTabla(Array.isArray(lista) ? lista : []);
+  } catch (err) {
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="9" style="text-align:center;color:var(--color-danger)">⚠️ Error: ${err.message}</td></tr>`;
+  }
+}
+
+function renderTabla(lista) {
+  const total = lista.length;
+  const pend  = lista.filter(e => e.estado === 'Pendiente').length;
+  const comp  = lista.filter(e => e.estado === 'Completada');
+  const prom  = comp.length
+    ? (comp.reduce((s, e) => s + (e.puntajeFinal ?? 0), 0) / comp.length).toFixed(1) + '%'
+    : '—';
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pend').textContent  = pend;
+  document.getElementById('stat-comp').textContent  = comp.length;
+  document.getElementById('stat-prom').textContent  = prom;
+  document.getElementById('badge-total').textContent = `${total} evaluación${total !== 1 ? 'es' : ''}`;
+
+  if (!lista.length) {
+    document.getElementById('tbody').innerHTML = `<tr><td colspan="9">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No hay evaluaciones con esos filtros</h3>
+        <p>Usa el botón "🚀 Aplicar a todos los empleados" o "＋ Asignar individual".</p>
+      </div></td></tr>`;
+    return;
+  }
+
+  const scoreChip = (e) => {
+    if (e.estado !== 'Completada') return '<span style="color:var(--color-text-muted)">—</span>';
+    const pct  = e.puntajeFinal ?? 0;
+    const cls  = pct >= 80 ? 'fill-green' : pct >= 50 ? 'fill-yellow' : 'fill-red';
+    return `<div class="score-wrap">
+      <div class="score-bar-bg"><div class="score-bar-fill ${cls}" style="width:${pct}%"></div></div>
+      <span class="score-label">${pct}%</span>
+    </div>`;
+  };
+
+  document.getElementById('tbody').innerHTML = lista.map((e, i) => `
+    <tr>
+      <td class="text-muted">${i + 1}</td>
+      <td class="font-medium">${e.nombreEmpleado ?? `Empleado #${e.idEmpleado}`}</td>
+      <td>${e.nombreEvaluador ?? `Usuario #${e.idEvaluador}`}</td>
+      <td><span class="chip chip-violet">${PERSP[e.perspectiva] ?? e.perspectiva}</span></td>
+      <td><span class="chip chip-blue">${e.periodo}</span></td>
+      <td>${e.estado === 'Completada'
+        ? '<span class="chip chip-green">✅ Completada</span>'
+        : '<span class="chip chip-yellow">⏳ Pendiente</span>'}</td>
+      <td>${scoreChip(e)}</td>
+      <td style="font-size:.75rem;color:var(--color-text-muted)">${e.fechaCreacion ? new Date(e.fechaCreacion).toLocaleDateString('es-NI') : '—'}</td>
+      <td>
+        <button class="btn-icon" data-accion="detalle" data-id="${e.idEvaluacion}" title="Ver detalle">📊</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ── Detalle ──────────────────────────────────────────── */
+document.getElementById('tbody').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('[data-accion="detalle"]');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  try {
+    const ev2 = await evaluacionApi.getById(id);
+    document.getElementById('detalle-titulo').textContent =
+      `Evaluación #${id} — ${ev2.nombreEmpleado ?? 'Empleado'} (${PERSP[ev2.perspectiva] ?? ev2.perspectiva})`;
+
+    const body = document.getElementById('detalle-body');
+    if (ev2.estado === 'Pendiente') {
+      body.innerHTML = `<div class="card-info" style="padding:var(--space-4)">
+        <p>⏳ Esta evaluación aún está <strong>pendiente</strong> de respuesta por parte del evaluador asignado.</p>
+        <p style="margin-top:var(--space-2);font-size:var(--font-size-sm);color:var(--color-text-muted)">
+          Evaluador: <strong>${ev2.nombreEvaluador ?? `Usuario #${ev2.idEvaluador}`}</strong> ·
+          Período: <strong>${ev2.periodo}</strong>
+        </p>
+      </div>`;
+    } else {
+      const respuestas = ev2.respuestas ?? [];
+      const rows = respuestas.map(r => {
+        const preg = preguntas.find(p => p.numero === r.numeroPregunta);
+        return `<tr>
+          <td>${r.numeroPregunta}</td>
+          <td>${preg?.categoria ?? '—'}</td>
+          <td style="font-size:.75rem">${preg?.texto ?? '—'}</td>
+          <td style="font-weight:700;text-align:center">${r.calificacion}</td>
+          <td style="font-size:.72rem;color:var(--color-text-muted)">${preg?.peso ?? '—'}%</td>
+        </tr>`;
+      }).join('');
+
+      const pct = ev2.puntajeFinal ?? 0;
+      const color = pct >= 80 ? '#22C55E' : pct >= 50 ? '#F59E0B' : '#EF4444';
+      body.innerHTML = `
+        <div style="text-align:center;padding:var(--space-4) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--space-4)">
+          <div style="font-size:2.5rem;font-weight:700;color:${color}">${pct}%</div>
+          <div style="color:var(--color-text-muted);font-size:.85rem">Puntaje final · ${ev2.periodo}</div>
+          ${ev2.observaciones ? `<div style="margin-top:var(--space-2);font-size:.8rem;font-style:italic">"${ev2.observaciones}"</div>` : ''}
+        </div>
+        <div style="overflow-x:auto">
+          <table class="resp-table">
+            <thead><tr><th>#</th><th>Categoría</th><th>Pregunta</th><th>Cal.</th><th>Peso</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+    show(document.getElementById('modal-detalle'));
+  } catch (err) {
+    toast('Error al cargar el detalle: ' + err.message, 'error');
+  }
+});
+
+/* ── Modal asignación masiva ──────────────────────────── */
+document.getElementById('btn-masiva')?.addEventListener('click', () => {
+  show(document.getElementById('modal-masiva'));
+});
+
+document.getElementById('masiva-submit')?.addEventListener('click', async () => {
+  const periodo = document.getElementById('m-periodo').value;
+  const perspectiva = document.getElementById('m-perspectiva').value;
+
+  const btn = document.getElementById('masiva-submit');
+  btn.disabled = true;
+  btn.textContent = 'Aplicando a todos...';
+
+  try {
+    const res = await evaluacionApi.asignarMasivo({ periodo, perspectiva });
+    toast(`✅ ${res?.message || 'Evaluaciones asignadas correctamente a todos los empleados.'}`, 'success', 5000);
+    hide(document.getElementById('modal-masiva'));
+    await cargarTabla();
+  } catch (err) {
+    toast('Error al asignar masivamente: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Aplicar a todos';
+  }
+});
+
+/* ── Modal individual ─────────────────────────────────── */
 document.getElementById('btn-nueva').addEventListener('click', () => {
   document.getElementById('n-empleado').value   = '';
   document.getElementById('n-perspectiva').value = '';
@@ -464,6 +721,9 @@ document.getElementById('btn-limpiar').addEventListener('click', () => {
 );
 ['nueva-close','nueva-cancel'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-nueva')))
+);
+['masiva-close','masiva-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-masiva')))
 );
 
 /* ── Arranque ─────────────────────────────────────────── */
