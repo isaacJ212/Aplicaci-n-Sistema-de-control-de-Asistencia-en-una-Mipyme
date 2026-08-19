@@ -1,28 +1,26 @@
-/**
- * auth.js — Gestión de sesión y guardia de rutas.
- *
- * Compatible con:
- *   A) Live Preview desde workspace root → URL tiene /frontend/
- *   B) Live Server desde frontend/       → URL NO tiene /frontend/
- */
-
 import CONFIG from './config.js';
 
-// ── Helper de URL base ────────────────────────────────────────────────────────
+
+
+let cachedBase = null;
 
 function getBase() {
+  if (cachedBase) return cachedBase;
+
   const { origin, pathname } = window.location;
   const idx = pathname.indexOf('/frontend/');
-  return idx !== -1
+  cachedBase = idx !== -1
     ? origin + pathname.slice(0, idx) + '/frontend'
     : origin;
+
+  return cachedBase;
 }
 
 function urlPage(path) {
   return `${getBase()}/${path}`;
 }
 
-// ── AuthService ───────────────────────────────────────────────────────────────
+
 
 export const AuthService = {
 
@@ -52,7 +50,7 @@ export const AuthService = {
   isAuthenticated() { return !!this.getToken(); },
   isAdmin()         { return this.getRole() === CONFIG.ROLES.ADMIN; },
 
-  // ── Refresco ──────────────────────────────────────────────────────────────
+
 
   async tryRefresh() {
     const rt = this.getRefreshToken();
@@ -70,7 +68,6 @@ export const AuthService = {
     } catch { return false; }
   },
 
-  // ── Logout ────────────────────────────────────────────────────────────────
 
   async logout() {
     const rt = this.getRefreshToken();
@@ -89,8 +86,6 @@ export const AuthService = {
     this.clearSession();
     window.location.href = urlPage('pages/auth/login.html');
   },
-
-  // ── Guardias ──────────────────────────────────────────────────────────────
 
   requireAuth(requiredRole = null) {
     if (!this.isAuthenticated()) {

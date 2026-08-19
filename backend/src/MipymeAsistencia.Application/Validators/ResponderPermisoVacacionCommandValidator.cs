@@ -15,7 +15,7 @@ public class ResponderPermisoVacacionCommandValidator : AbstractValidator<Respon
 
         RuleFor(x => x.EstadoSolicitud)
             .NotEmpty().WithMessage("El estado es obligatorio.")
-            .Must(estado => estado == "Aceptado" || estado == "Denegado")
-            .WithMessage("El estado debe ser 'Aceptado' o 'Denegado'.");
+            .Must(estado => estado == "Aprobado" || estado == "Rechazado")
+            .WithMessage("El estado debe ser 'Aprobado' o 'Rechazado'.");
     }
 }

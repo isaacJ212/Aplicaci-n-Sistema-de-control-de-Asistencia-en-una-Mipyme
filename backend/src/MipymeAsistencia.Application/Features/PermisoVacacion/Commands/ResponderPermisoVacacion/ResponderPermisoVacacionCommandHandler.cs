@@ -34,14 +34,14 @@ public class ResponderPermisoVacacionCommandHandler : IRequestHandler<ResponderP
             throw new InvalidOperationException("La solicitud ya fue respondida anteriormente.");
 
         var estado = request.EstadoSolicitud.Trim();
-        if (estado != "Aceptado" && estado != "Denegado")
-            throw new InvalidOperationException("El estado de la solicitud debe ser 'Aceptado' o 'Denegado'.");
+        if (estado != "Aprobado" && estado != "Rechazado")
+            throw new InvalidOperationException("El estado de la solicitud debe ser 'Aprobado' o 'Rechazado'.");
 
         solicitud.EstadoSolicitud = estado;
         solicitud.IdUsuarioAprobador = request.IdUsuarioAprobador;
         solicitud.FechaRespuesta = DateTime.UtcNow;
 
-        if (estado == "Aceptado" && solicitud.TipoSolicitud == "Vacacion")
+        if (estado == "Aprobado" && solicitud.TipoSolicitud == "Vacaciones")
         {
             var empleado = await _context.Empleados
                 .FirstOrDefaultAsync(e => e.IdEmpleado == solicitud.IdEmpleado, cancellationToken);

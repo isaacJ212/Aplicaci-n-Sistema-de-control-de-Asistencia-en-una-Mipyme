@@ -1,13 +1,6 @@
-/**
- * api.js — Capa de comunicación con el backend.
- * Todos los fetch de la app pasan por aquí.
- * Maneja automáticamente: token JWT, refresco, errores y formato ApiResponse.
- */
 
 import CONFIG          from './config.js';
 import { AuthService } from './auth.js';
-
-// ── Cliente HTTP base ─────────────────────────────────────────────────────────
 
 async function request(endpoint, options = {}) {
   const url     = `${CONFIG.API_BASE_URL}${endpoint}`;
@@ -33,7 +26,7 @@ async function request(endpoint, options = {}) {
     throw err;
   }
 
-  // Si el token expiró (401) intenta renovarlo una vez
+
   if (response.status === 401 && !options._retry) {
     const renewed = await AuthService.tryRefresh();
     if (renewed) {
@@ -63,7 +56,7 @@ async function request(endpoint, options = {}) {
   return data?.data ?? data;
 }
 
-// ── Métodos convenientes ──────────────────────────────────────────────────────
+
 
 async function requestBlob(endpoint, options = {}) {
   const url     = `${CONFIG.API_BASE_URL}${endpoint}`;
@@ -124,14 +117,16 @@ export const api = {
   download: (url, opts = {})     => requestBlob(url, { method: 'GET', ...opts }),
 };
 
-// ── Endpoints por módulo ──────────────────────────────────────────────────────
+
 
 export const authApi = {
-  login:    (body) => request('/auth/login',    { method: 'POST', body }),
-  register: (body) => request('/auth/register', { method: 'POST', body }),
-  refresh:  (body) => request('/auth/refresh',  { method: 'POST', body }),
-  me:       ()     => api.get('/auth/me'),
-  logout:   (body) => api.post('/auth/logout',  body),
+  login:       (body) => request('/auth/login',       { method: 'POST', body }),
+  register:    (body) => request('/auth/register',    { method: 'POST', body }),
+  refresh:     (body) => request('/auth/refresh',     { method: 'POST', body }),
+  verify2fa:   (body) => request('/auth/verify-2fa',   { method: 'POST', body }),
+  toggle2fa:   (body) => request('/auth/toggle-2fa',   { method: 'POST', body }),
+  me:          ()     => api.get('/auth/me'),
+  logout:      (body) => api.post('/auth/logout',     body),
 };
 
 export const sedeApi = {

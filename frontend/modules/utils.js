@@ -1,10 +1,5 @@
-/**
- * utils.js — Utilidades genéricas reutilizables en todo el frontend.
- */
 
-// ── Fechas ────────────────────────────────────────────────────────────────────
 
-/** Formatea una fecha ISO a "DD/MM/YYYY" */
 export function formatDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -12,7 +7,7 @@ export function formatDate(iso) {
   return d.toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-/** Formatea una fecha ISO a "DD/MM/YYYY HH:mm" */
+
 export function formatDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -23,15 +18,13 @@ export function formatDateTime(iso) {
   });
 }
 
-/** Devuelve "YYYY-MM" para el mes actual */
+
 export function currentPeriod() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// ── Números / Moneda ──────────────────────────────────────────────────────────
 
-/** Formatea un número como moneda en Córdobas (C$) */
 export function formatCurrency(value) {
   if (value === null || value === undefined) return 'C$ 0.00';
   return 'C$ ' + Number(value).toLocaleString('es-NI', {
@@ -79,7 +72,6 @@ export function badgeEstado(estado) {
   return `<span class="badge ${cls}">${estado}</span>`;
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 
 let _toastContainer = null;
 
@@ -121,9 +113,7 @@ export function toast(message, type = 'info', duration = 3500) {
   }, duration);
 }
 
-// ── Debounce ──────────────────────────────────────────────────────────────────
 
-/** Devuelve una versión debounced de la función fn */
 export function debounce(fn, ms) {
   let timer;
   return (...args) => {
@@ -131,8 +121,6 @@ export function debounce(fn, ms) {
     timer = setTimeout(() => fn(...args), ms);
   };
 }
-
-// ── Validaciones ──────────────────────────────────────────────────────────────
 
 export function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -143,7 +131,7 @@ export function isValidPassword(pass) {
   return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(pass);
 }
 
-// ── Carga de página ───────────────────────────────────────────────────────────
+
 
 export function showPageLoader() {
   let el = document.getElementById('page-loader');

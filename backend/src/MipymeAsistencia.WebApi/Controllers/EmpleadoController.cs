@@ -2,6 +2,7 @@ using MediatR;
 using MipymeAsistencia.Application.Common.DTOs;
 using MipymeAsistencia.Application.Common.DTOs.Empleado;
 using MipymeAsistencia.Application.Common.Interfaces;
+using MipymeAsistencia.Application.Features.Empleado.Commands.AcumularVacaciones;
 using MipymeAsistencia.Application.Features.Empleado.Commands.CreateEmpleado;
 using MipymeAsistencia.Application.Features.Empleado.Commands.DeleteEmpleado;
 using MipymeAsistencia.Application.Features.Empleado.Commands.UpdateEmpleado;
@@ -56,6 +57,9 @@ public class EmpleadoController : ControllerBase
         {
             IdUsuario = request.IdUsuario,
             CedulaIdentificacion = request.CedulaIdentificacion,
+            NumeroInss = request.NumeroInss,
+            EstadoCivil = request.EstadoCivil,
+            EstadoEmpleado = request.EstadoEmpleado,
             FotoUrl = request.FotoUrl,
             Nombres = request.Nombres,
             Apellidos = request.Apellidos,
@@ -83,6 +87,9 @@ public class EmpleadoController : ControllerBase
         {
             IdEmpleado = idEmpleado,
             CedulaIdentificacion = request.CedulaIdentificacion,
+            NumeroInss = request.NumeroInss,
+            EstadoCivil = request.EstadoCivil,
+            EstadoEmpleado = request.EstadoEmpleado,
             FotoUrl = request.FotoUrl,
             Nombres = request.Nombres,
             Apellidos = request.Apellidos,
@@ -108,12 +115,7 @@ public class EmpleadoController : ControllerBase
         return Ok(ApiResponse<object>.Ok(null!, "Empleado eliminado correctamente."));
     }
 
-    /// <summary>
-    /// Sube la foto de perfil de un empleado a Supabase Storage.
-    /// El archivo se guarda con el nombre: {nombres}_{apellidos}.{ext}
-    /// Retorna la URL pública del objeto y la actualiza en la BD.
-    /// Solo accesible por Admin.
-    /// </summary>
+   
     [HttpPost("{idEmpleado:int}/foto")]
     [Authorize(Roles = "Admin")]
     [Consumes("multipart/form-data")]
@@ -178,5 +180,19 @@ public class EmpleadoController : ControllerBase
                 FotoUrl        = fotoUrl
             },
             "Foto subida y guardada correctamente."));
+    }
+
+ 
+    [HttpPut("{idEmpleado:int}/acumular-vacaciones")]
+    [Authorize(Roles = "Admin,Analista")]
+    [ProducesResponseType(typeof(ApiResponse<AcumularVacacionesResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AcumularVacaciones(int idEmpleado)
+    {
+        var data = await _mediator.Send(new AcumularVacacionesCommand { IdEmpleado = idEmpleado });
+        return Ok(ApiResponse<AcumularVacacionesResponseDto>.Ok(
+            data, $"Vacaciones actualizadas: {data.DiasVacacionesDisponibles} días disponibles."));
     }
 }

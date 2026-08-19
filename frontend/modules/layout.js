@@ -1,24 +1,16 @@
 /**
  * layout.js — Carga el sidebar compartido e inicializa el layout.
  *
- * Compatible con dos modos de servidor:
- *   A) Live Preview desde workspace root → URL: /frontend/pages/admin/dashboard.html
- *   B) Live Server desde frontend/       → URL: /pages/admin/dashboard.html
- *
- * getBase() detecta el modo automáticamente leyendo window.location.pathname.
+ * Optimizado para reducir peticiones redundantes y listeners duplicados.
  */
 
 import { AuthService } from './auth.js';
 import { toast }       from './utils.js';
 
-// ── Detectar base del servidor ────────────────────────────────────────────────
+const SIDEBAR_CACHE = new Map();
+let logoutListenerBound = false;
+let mobileMenuListenerBound = false;
 
-/**
- * Retorna el prefijo de URL hasta la raíz del proyecto frontend.
- *
- * Modo A  (pathname tiene /frontend/):  http://127.0.0.1:3000/frontend
- * Modo B  (pathname NO tiene /frontend): http://127.0.0.1:5500
- */
 function getBase() {
   const { origin, pathname } = window.location;
   const idx = pathname.indexOf('/frontend/');
@@ -27,7 +19,65 @@ function getBase() {
     : origin;
 }
 
-// ── Cargar sidebar ────────────────────────────────────────────────────────────
+function bindSidebarLogout() {
+  if (logoutListenerBound) return;
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#sidebar-logout-btn')) return;
+    toast('Cerrando sesión...', 'info', 800);
+    window.setTimeout(() => AuthService.logout(), 600);
+  });
+  logoutListenerBound = true;
+}
+
+function bindMobileSidebar(sidebar, topbar) {
+  if (!sidebar || !topbar || mobileMenuListenerBound) return;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'mobile-menu-toggle';
+  btn.setAttribute('aria-label', 'Abrir menú');
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
+  topbar.prepend(btn);
+
+  btn.addEventListener('click', () => sidebar.classList.toggle('open'));
+  document.addEventListener('click', (ev) => {
+    if (window.innerWidth <= 1024
+      && sidebar.classList.contains('open')
+      && !ev.target.closest('.sidebar-emp')
+      && !ev.target.closest('.mobile-menu-toggle')) {
+      sidebar.classList.remove('open');
+    }
+  });
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1024) sidebar.classList.remove('open');
+  });
+
+  mobileMenuListenerBound = true;
+}
+
+function applySidebarHtml(container, html, base, currentPage) {
+  container.innerHTML = html;
+
+  container.querySelectorAll('[data-nav]').forEach((el) => {
+    const nav = el.getAttribute('data-nav');
+    if (nav) el.setAttribute('href', `${base}/${nav}`);
+  });
+
+  if (currentPage) {
+    container.querySelector(`.sidebar-link[data-page="${currentPage}"]`)
+      ?.classList.add('active');
+  }
+
+  const user = AuthService.getUser();
+  if (user) {
+    const emailEl = container.querySelector('#sidebar-email');
+    const avatarEl = container.querySelector('#sidebar-avatar');
+    if (emailEl) emailEl.textContent = user.email;
+    if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
+  }
+}
 
 async function loadSidebar(htmlFile, currentPage) {
   const container = document.getElementById('sidebar-container');
@@ -36,13 +86,25 @@ async function loadSidebar(htmlFile, currentPage) {
     return;
   }
 
-  const base     = getBase();
-  const url      = `${base}/components/${htmlFile}`;
+  const base = getBase();
+  const url = `${base}/components/${htmlFile}`;
 
-  // Fetch con diagnóstico claro en consola
-  let html = '';
+  if (SIDEBAR_CACHE.has(htmlFile)) {
+    applySidebarHtml(container, SIDEBAR_CACHE.get(htmlFile), base, currentPage);
+    bindSidebarLogout();
+
+    if (htmlFile === 'sidebar-empleado.html') {
+      const sidebar = container.querySelector('.sidebar-emp');
+      const topbar = document.querySelector('.topbar');
+      if (sidebar && topbar && !topbar.querySelector('.mobile-menu-toggle')) {
+        bindMobileSidebar(sidebar, topbar);
+      }
+    }
+    return;
+  }
+
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'force-cache' });
     if (!res.ok) {
       console.error(`[layout] No se pudo cargar el sidebar: ${url} → HTTP ${res.status}`);
       container.innerHTML = `
@@ -52,7 +114,10 @@ async function loadSidebar(htmlFile, currentPage) {
         </aside>`;
       return;
     }
-    html = await res.text();
+
+    const html = await res.text();
+    SIDEBAR_CACHE.set(htmlFile, html);
+    applySidebarHtml(container, html, base, currentPage);
   } catch (err) {
     console.error(`[layout] Error de red cargando sidebar: ${err.message}`);
     container.innerHTML = `
@@ -63,76 +128,22 @@ async function loadSidebar(htmlFile, currentPage) {
     return;
   }
 
-  container.innerHTML = html;
+  bindSidebarLogout();
 
-  // Resolver data-nav → href absoluto usando getBase()
-  container.querySelectorAll('[data-nav]').forEach(el => {
-    const nav = el.getAttribute('data-nav');
-    if (nav) el.setAttribute('href', `${base}/${nav}`);
-  });
-
-  // Marcar página activa
-  if (currentPage) {
-    container.querySelector(`.sidebar-link[data-page="${currentPage}"]`)
-             ?.classList.add('active');
-  }
-
-  // Rellenar datos del usuario
-  const user = AuthService.getUser();
-  if (user) {
-    const emailEl  = container.querySelector('#sidebar-email');
-    const avatarEl = container.querySelector('#sidebar-avatar');
-    if (emailEl)  emailEl.textContent  = user.email;
-    if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
-  }
-
-  // Botón logout
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('#sidebar-logout-btn')) {
-      toast('Cerrando sesión...', 'info', 800);
-      setTimeout(() => AuthService.logout(), 600);
-    }
-  });
-
-  // Menú hamburguesa en móvil (solo portal empleado)
   if (htmlFile === 'sidebar-empleado.html') {
     const sidebar = container.querySelector('.sidebar-emp');
-    const topbar  = document.querySelector('.topbar');
+    const topbar = document.querySelector('.topbar');
     if (sidebar && topbar && !topbar.querySelector('.mobile-menu-toggle')) {
-      const btn = document.createElement('button');
-      btn.type      = 'button';
-      btn.className = 'mobile-menu-toggle';
-      btn.setAttribute('aria-label', 'Abrir menú');
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
-      topbar.prepend(btn);
-
-      btn.addEventListener('click', () => sidebar.classList.toggle('open'));
-      document.addEventListener('click', (ev) => {
-        if (window.innerWidth <= 1024
-            && sidebar.classList.contains('open')
-            && !ev.target.closest('.sidebar-emp')
-            && !ev.target.closest('.mobile-menu-toggle')) {
-          sidebar.classList.remove('open');
-        }
-      });
-      window.addEventListener('resize', () => {
-        if (window.innerWidth > 1024) sidebar.classList.remove('open');
-      });
+      bindMobileSidebar(sidebar, topbar);
     }
   }
 }
 
-// ── Exports públicos ──────────────────────────────────────────────────────────
-
-/** Inicializa el layout del portal Admin. */
 export async function initAdminLayout(currentPage = '') {
   if (!AuthService.requireAuth('Admin')) return;
   await loadSidebar('sidebar-admin.html', currentPage);
 }
 
-/** Inicializa el layout del portal Empleado. */
 export async function initEmpleadoLayout(currentPage = '') {
   if (!AuthService.requireAuth('Empleado')) return;
   await loadSidebar('sidebar-empleado.html', currentPage);

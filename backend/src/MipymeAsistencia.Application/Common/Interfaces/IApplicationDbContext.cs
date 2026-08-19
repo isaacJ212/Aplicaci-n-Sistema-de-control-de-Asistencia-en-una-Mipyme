@@ -16,5 +16,6 @@ public interface IApplicationDbContext
     DbSet<HistorialPlanilla> HistorialPlanillas { get; }
     DbSet<HoraExtra> HorasExtras { get; }
     DbSet<EvaluacionDesempeno> EvaluacionesDesempeno { get; }
+    DbSet<EvaluacionRespuesta> EvaluacionRespuestas { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -27,20 +27,36 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
             throw new UnauthorizedAccessException("Credenciales inválidas.");
 
         var rolNombre = usuario.Rol?.NombreRol ?? "Empleado";
-
         var empleado = await _context.Empleados
             .FirstOrDefaultAsync(e => e.IdUsuario == usuario.IdUsuario, cancellationToken);
 
-        var jwt        = _tokenService.GenerateToken(usuario.Email, rolNombre, usuario.IdUsuario, empleado?.IdEmpleado);
+        if (usuario.Es2FaActivo)
+        {
+            var codigo = Random.Shared.Next(100000, 999999).ToString("D6");
+            usuario.Secret2Fa = BCrypt.Net.BCrypt.HashPassword(codigo);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return new LoginResponseDto
+            {
+                Email = usuario.Email,
+                Role = rolNombre,
+                IdEmpleado = empleado?.IdEmpleado,
+                Es2FaActivo = true,
+                Requires2Fa = true,
+                Message = "Se ha enviado un código de verificación a su estación de trabajo."
+            };
+        }
+
+        var jwt = _tokenService.GenerateToken(usuario.Email, rolNombre, usuario.IdUsuario, empleado?.IdEmpleado);
         var expiracion = DateTime.UtcNow.AddMinutes(120);
 
         var refreshTokenValor = _tokenService.GenerateRefreshToken();
         var refreshToken = new RefreshTokenEntity
         {
-            IdUsuario       = usuario.IdUsuario,
-            Token           = refreshTokenValor,
+            IdUsuario = usuario.IdUsuario,
+            Token = refreshTokenValor,
             FechaExpiracion = DateTime.UtcNow.AddDays(7),
-            FechaCreacion   = DateTime.UtcNow
+            FechaCreacion = DateTime.UtcNow
         };
 
         _context.RefreshTokens.Add(refreshToken);
@@ -48,12 +64,15 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
 
         return new LoginResponseDto
         {
-            Token        = jwt,
+            Token = jwt,
             RefreshToken = refreshTokenValor,
-            Expiration   = expiracion,
-            Email        = usuario.Email,
-            Role         = rolNombre,
-            IdEmpleado   = empleado?.IdEmpleado
+            Expiration = expiracion,
+            Email = usuario.Email,
+            Role = rolNombre,
+            IdEmpleado = empleado?.IdEmpleado,
+            Es2FaActivo = usuario.Es2FaActivo,
+            Requires2Fa = false,
+            Message = "Inicio de sesión exitoso."
         };
     }
 }
