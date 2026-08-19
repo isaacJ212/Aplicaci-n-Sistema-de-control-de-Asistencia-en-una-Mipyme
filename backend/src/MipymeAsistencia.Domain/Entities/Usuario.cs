@@ -10,6 +10,9 @@ public class Usuario
     public bool Es2FaActivo { get; set; }
     public bool EstadoActivo { get; set; } = true;
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+    public string? UltimaIpLogin { get; set; }
+    public string? UltimaMacLogin { get; set; }
+    public DateTime? UltimaFechaLogin { get; set; }
 
     public Rol? Rol { get; set; }
     public Empleado? Empleado { get; set; }

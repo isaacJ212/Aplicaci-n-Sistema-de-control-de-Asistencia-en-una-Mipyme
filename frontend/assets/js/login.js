@@ -149,7 +149,11 @@ export function initLoginApp({ CONFIG, utils, AuthService: authService, authApi:
       if (data?.requires2Fa) {
         pendingLogin = { email, password };
         setFormMode('verify');
-        toast('Se ha enviado un código a su estación de trabajo.', 'info', 2500);
+        if (data.codigo2FaSoloPruebas) {
+          toast(`Código 2FA de estación: ${data.codigo2FaSoloPruebas}`, 'info', 6000);
+        } else {
+          toast('Se ha enviado un código a su estación de trabajo.', 'info', 3000);
+        }
         verifyCodeInput.focus();
         setLoading(false);
         return;

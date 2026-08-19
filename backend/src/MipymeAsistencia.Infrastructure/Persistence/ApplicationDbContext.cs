@@ -28,6 +28,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<PeriodoCierrePlanilla> PeriodosCierrePlanilla => Set<PeriodoCierrePlanilla>();
     public DbSet<DispositivoBiometrico> DispositivosBiometricos => Set<DispositivoBiometrico>();
     public DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos => Set<RegistroMarcajeBiometrico>();
+    public DbSet<TipoSolicitudPermiso> TiposSolicitudPermiso => Set<TipoSolicitudPermiso>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +47,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.MinutosTolerancia).HasColumnName("minutos_tolerancia").HasDefaultValue(10);
             entity.Property(x => x.TokenQrActual).HasColumnName("token_qr_actual");
             entity.Property(x => x.QrUltimaActualizacion).HasColumnName("qr_ultima_actualizacion");
+            entity.Property(x => x.IpEstacionPermitida).HasColumnName("ip_estacion_permitida").HasMaxLength(255).HasDefaultValue("127.0.0.1,::1,192.168.1.0/24");
+            entity.Property(x => x.ValidarIpEn2Fa).HasColumnName("validar_ip_en_2fa").HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Rol>(entity =>
@@ -70,6 +73,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.Es2FaActivo).HasColumnName("es_2fa_activo").HasDefaultValue(false);
             entity.Property(x => x.EstadoActivo).HasColumnName("estado_activo").HasDefaultValue(true);
             entity.Property(x => x.FechaCreacion).HasColumnName("fecha_creacion").HasDefaultValueSql("NOW()");
+            entity.Property(x => x.UltimaIpLogin).HasColumnName("ultima_ip_login").HasMaxLength(60);
+            entity.Property(x => x.UltimaMacLogin).HasColumnName("ultima_mac_login").HasMaxLength(50);
+            entity.Property(x => x.UltimaFechaLogin).HasColumnName("ultima_fecha_login");
 
             entity.HasIndex(x => x.Email).IsUnique();
 
@@ -485,6 +491,31 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 .WithMany()
                 .HasForeignKey(x => x.IdAsistenciaGenerada)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<TipoSolicitudPermiso>(entity =>
+        {
+            entity.ToTable("tipos_solicitud_permiso");
+            entity.HasKey(x => x.IdTipoSolicitud);
+            entity.Property(x => x.IdTipoSolicitud).HasColumnName("id_tipo_solicitud");
+            entity.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(100);
+            entity.Property(x => x.Descripcion).HasColumnName("descripcion").HasMaxLength(255);
+            entity.Property(x => x.RequiereComprobante).HasColumnName("requiere_comprobante").HasDefaultValue(false);
+            entity.Property(x => x.DescuentaVacaciones).HasColumnName("descuenta_vacaciones").HasDefaultValue(false);
+            entity.Property(x => x.PermitePorHoras).HasColumnName("permite_por_horas").HasDefaultValue(true);
+            entity.Property(x => x.MaximoDiasPorSolicitud).HasColumnName("maximo_dias_por_solicitud");
+            entity.Property(x => x.Icono).HasColumnName("icono").HasMaxLength(50).HasDefaultValue("calendar");
+            entity.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
+
+            entity.HasIndex(x => x.Nombre).IsUnique();
+
+            entity.HasData(
+                new TipoSolicitudPermiso { IdTipoSolicitud = 1, Nombre = "Vacaciones", Descripcion = "Días de descanso anual remunerado con cargo al saldo acumulado", RequiereComprobante = false, DescuentaVacaciones = true, PermitePorHoras = false, MaximoDiasPorSolicitud = 30, Icono = "beach_access", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 2, Nombre = "Permiso Médico", Descripcion = "Incapacidad médica o cita médica justificada", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = true, MaximoDiasPorSolicitud = 15, Icono = "local_hospital", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 3, Nombre = "Permiso Personal", Descripcion = "Asuntos personales o trámites administrativos", RequiereComprobante = false, DescuentaVacaciones = false, PermitePorHoras = true, MaximoDiasPorSolicitud = 3, Icono = "person", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 4, Nombre = "Duelo / Calamidad", Descripcion = "Fallecimiento de familiar directo o calamidad doméstica (Arto. 73 Código del Trabajo)", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = false, MaximoDiasPorSolicitud = 5, Icono = "favorite", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 5, Nombre = "Licencia de Estudio", Descripcion = "Permiso por exámenes o capacitaciones laborales autorizadas", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = true, MaximoDiasPorSolicitud = 7, Icono = "school", Activo = true }
+            );
         });
 
         base.OnModelCreating(modelBuilder);

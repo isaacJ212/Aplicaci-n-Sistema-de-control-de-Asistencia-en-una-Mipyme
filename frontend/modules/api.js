@@ -200,6 +200,7 @@ export const permisoVacacionApi = {
   solicitar:      (body)        => api.post('/permisovacacion/solicitar', body),
   responder:      (id, body)    => api.put(`/permisovacacion/${id}/responder`, body),
 };
+export const permisoApi = permisoVacacionApi;
 
 export const diaFeriadoApi = {
   getAll:    (anio = null) => api.get(`/diaferiado${anio ? `?anio=${anio}` : ''}`),
@@ -242,4 +243,12 @@ export const biometricoApi = {
   ingestarLote:    (body)       => api.post('/biometrico/ingestar-lote', body),
   getRegistrosCrudos: (id = null, limite = 50) =>
     api.get(`/biometrico/registros-crudos?limite=${limite}${id ? `&idDispositivo=${id}` : ''}`),
+};
+
+export const tipoSolicitudPermisoApi = {
+  getAll:     (soloActivos = true) => api.get(`/tiposolicitudpermiso?soloActivos=${soloActivos}`),
+  getById:    (id)                 => api.get(`/tiposolicitudpermiso/${id}`),
+  crear:      (body)               => api.post('/tiposolicitudpermiso', body),
+  actualizar: (id, body)           => api.put(`/tiposolicitudpermiso/${id}`, body),
+  eliminar:   (id)                 => api.delete(`/tiposolicitudpermiso/${id}`),
 };

@@ -27,19 +27,36 @@ public class SolicitarPermisoVacacionCommandHandler : IRequestHandler<SolicitarP
         if (request.FechaInicio > request.FechaFin)
             throw new InvalidOperationException("La fecha de inicio no puede ser mayor que la fecha final.");
 
-        var tipo = request.TipoSolicitud.Trim();
-        var tiposValidos = new[] { "Vacaciones", "Permiso Medico", "Permiso Personal", "Permiso", "Vacacion" };
-        if (!tiposValidos.Contains(tipo))
-            throw new InvalidOperationException("El tipo de solicitud debe ser 'Vacaciones', 'Permiso Medico' o 'Permiso Personal'.");
+        var tipoEntrada = request.TipoSolicitud.Trim();
 
-        // Normalizar alias cortos al valor canónico
-        if (tipo == "Vacacion") tipo = "Vacaciones";
-        if (tipo == "Permiso")  tipo = "Permiso Personal";
+        // ─── Consultar tipo de solicitud configurable desde BD ──────────────
+        var tiposDisponibles = await _context.TiposSolicitudPermiso
+            .AsNoTracking()
+            .Where(t => t.Activo)
+            .ToListAsync(cancellationToken);
+
+        var tipoConfig = tiposDisponibles.FirstOrDefault(t =>
+            t.Nombre.Equals(tipoEntrada, StringComparison.OrdinalIgnoreCase) ||
+            (tipoEntrada.Equals("Vacacion", StringComparison.OrdinalIgnoreCase) && t.Nombre.Equals("Vacaciones", StringComparison.OrdinalIgnoreCase)) ||
+            (tipoEntrada.Equals("Permiso", StringComparison.OrdinalIgnoreCase) && t.Nombre.Equals("Permiso Personal", StringComparison.OrdinalIgnoreCase)) ||
+            (tipoEntrada.Equals("Permiso Medico", StringComparison.OrdinalIgnoreCase) && t.Nombre.Equals("Permiso Médico", StringComparison.OrdinalIgnoreCase))
+        );
+
+        if (tipoConfig is null)
+        {
+            var nombresValidos = string.Join(", ", tiposDisponibles.Select(t => $"'{t.Nombre}'"));
+            throw new InvalidOperationException($"El tipo de solicitud '{tipoEntrada}' no es válido o no está activo. Tipos disponibles: {nombresValidos}.");
+        }
+
+        var tipoCanonica = tipoConfig.Nombre;
 
         // ─── Determinar si la solicitud es POR HORAS o POR DÍAS ─────────────
         bool esPorHoras = request.HorasSolicitadas.HasValue
                           && request.HorasSolicitadas.Value > 0m
                           && (!request.DiasSolicitados.HasValue || request.DiasSolicitados.Value == 0m);
+
+        if (esPorHoras && !tipoConfig.PermitePorHoras)
+            throw new InvalidOperationException($"El tipo de solicitud '{tipoCanonica}' no se puede solicitar por horas, solo por días completos.");
 
         // Para solicitudes por horas, FechaInicio y FechaFin deben ser el MISMO día
         if (esPorHoras && request.FechaInicio.Date != request.FechaFin.Date)
@@ -81,15 +98,16 @@ public class SolicitarPermisoVacacionCommandHandler : IRequestHandler<SolicitarP
             diasSolicitados = request.DiasSolicitados ?? CalcularDiasEntreFechas(request.FechaInicio, request.FechaFin);
             if (diasSolicitados <= 0)
                 throw new InvalidOperationException("La cantidad de días solicitados debe ser mayor a cero.");
+
+            if (tipoConfig.MaximoDiasPorSolicitud.HasValue && diasSolicitados > tipoConfig.MaximoDiasPorSolicitud.Value)
+                throw new InvalidOperationException($"La solicitud no puede superar el límite de {tipoConfig.MaximoDiasPorSolicitud.Value} días para '{tipoCanonica}'.");
+
             unidadTiempo = "Dias";
         }
 
-        // ─── Validaciones específicas por tipo ──────────────────────────────
-        if (tipo == "Vacaciones")
+        // ─── Validaciones de saldo para tipos que descuentan vacaciones ──────
+        if (tipoConfig.DescuentaVacaciones)
         {
-            if (esPorHoras)
-                throw new InvalidOperationException("Las vacaciones no se pueden solicitar por horas, solo por días completos.");
-
             if (empleado.DiasVacacionesAcumuladas < diasSolicitados)
                 throw new InvalidOperationException("El empleado no tiene suficientes días de vacaciones acumulados.");
         }
@@ -113,7 +131,7 @@ public class SolicitarPermisoVacacionCommandHandler : IRequestHandler<SolicitarP
         var solicitud = new HistorialPermisoVacacion
         {
             IdEmpleado = request.IdEmpleado,
-            TipoSolicitud = tipo,
+            TipoSolicitud = tipoCanonica,
             FechaInicio = inicio,
             FechaFin = fin,
             DiasSolicitados = diasSolicitados,
