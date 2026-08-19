@@ -36,6 +36,9 @@ public static class DependencyInjection
         // Servicio de almacenamiento de imágenes en Supabase Storage
         services.AddScoped<IStorageService, SupabaseStorageService>();
 
+        // Servicio de sincronización y comunicación con relojes biométricos físicos
+        services.AddScoped<IBiometricDeviceService, BiometricDeviceService>();
+
         return services;
     }
 }
