@@ -194,6 +194,7 @@ try {
         <div class="perfil-nombre">${nombreCompleto}</div>
         <div class="perfil-cargo">${emp.cargoFuncion ?? '—'}</div>
         <div class="perfil-badges">
+          <span class="perfil-badge">🏢 ${emp.departamento || 'General'}</span>
           <span class="perfil-badge">📋 ${emp.cedulaIdentificacion ?? '—'}</span>
           <span class="perfil-badge">📅 Desde ${formatDate(emp.fechaContratacion)}</span>
           <span class="perfil-badge">💰 ${formatCurrency(emp.salarioBaseMensual)}</span>
@@ -240,8 +241,9 @@ try {
         <div class="info-grid">
           <div class="info-row"><div class="info-label">Nombres</div><div class="info-value">${emp.nombres ?? '—'}</div></div>
           <div class="info-row"><div class="info-label">Apellidos</div><div class="info-value">${emp.apellidos ?? '—'}</div></div>
-          <div class="info-row"><div class="info-label">Cédula de identidad</div><div class="info-value">${emp.cedulaIdentificacion ?? '—'}</div></div>
+          <div class="info-row"><div class="info-label">Departamento</div><div class="info-value">${emp.departamento || 'General'}</div></div>
           <div class="info-row"><div class="info-label">Cargo / Función</div><div class="info-value">${emp.cargoFuncion ?? '—'}</div></div>
+          <div class="info-row"><div class="info-label">Cédula de identidad</div><div class="info-value">${emp.cedulaIdentificacion ?? '—'}</div></div>
           <div class="info-row"><div class="info-label">Fecha de contratación</div><div class="info-value">${formatDate(emp.fechaContratacion)}</div></div>
           <div class="info-row"><div class="info-label">Salario base mensual</div><div class="info-value">${formatCurrency(emp.salarioBaseMensual)}</div></div>
           <div class="info-row"><div class="info-label">Días vacaciones acumuladas</div><div class="info-value">${emp.diasVacacionesAcumuladas ?? 0} días</div></div>

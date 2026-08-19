@@ -544,6 +544,8 @@ async function abrirModalEscanear(cameraId = null) {
 
   scannerState.scanner = new AsistenciaScanner({
     containerId: 'html5qr-reader',
+    idEmpleado: state.idEmpleado,
+    getIdEmpleado: () => state.idEmpleado,
 
     onCamerasFound: (cameras) => {
       if (cameras && cameras.length > 1) {
@@ -632,6 +634,8 @@ document.getElementById('scanner-file-input')?.addEventListener('change', async 
   if (!scannerState.scanner) {
     scannerState.scanner = new AsistenciaScanner({
       containerId: 'html5qr-reader',
+      idEmpleado: state.idEmpleado,
+      getIdEmpleado: () => state.idEmpleado,
       onStatus: (msg, level = 'info') => {
         document.getElementById('scanner-status').innerHTML = `<span>${msg}</span>`;
       },
