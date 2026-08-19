@@ -29,7 +29,7 @@ const FRONT_DIR  = path.join(__dirname, 'frontend');
 const ADMIN_PAGES = [
   'dashboard', 'empleados', 'empleado-detalle', 'planillas',
   'aprobaciones', 'rendimiento', 'expedientes', 'configuracion',
-  'evaluacion', 'informe-asistencia', 'kiosko'
+  'evaluacion', 'informe-asistencia', 'kiosko', 'usuarios'
 ];
 
 const ANALISTA_PAGES = [
