@@ -1,52 +1,51 @@
+
 import { asistenciaApi, sedeApi } from './api.js';
 
 
 export const AsistenciaGPS = {
+  posicionCache: null,
+  timestampCache: 0,
+  CACHE_DURACION_MS: 30000,
 
-  /**
-   * Obtiene coordenadas GPS del dispositivo.
-   * @param {number} timeoutMs Tiempo máximo de espera (default 8s)
-   * @returns {Promise<{lat:number, lon:number, accuracy:number}|null>}
-   */
   async obtenerUbicacion(timeoutMs = 8000) {
-    if (!navigator.geolocation) return null;
+    if (this.posicionCache && Date.now() - this.timestampCache < this.CACHE_DURACION_MS) {
+      return this.posicionCache;
+    }
+
+    if (!navigator.geolocation) {
+      return null;
+    }
 
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-          accuracy: pos.coords.accuracy ?? 0,
-        }),
+        (pos) => {
+          const resultado = {
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            timestamp: pos.timestamp,
+          };
+          this.posicionCache = resultado;
+          this.timestampCache = Date.now();
+          resolve(resultado);
+        },
         () => resolve(null),
-        { timeout: timeoutMs, enableHighAccuracy: true, maximumAge: 5000 }
+        { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 10000 }
       );
     });
   },
 
-  /**
-   * Calcula distancia Haversine en metros entre 2 coordenadas decimales.
-   */
-  distanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2
-            + Math.cos(lat1 * Math.PI / 180)
-            * Math.cos(lat2 * Math.PI / 180)
-            * Math.sin(dLon / 2) ** 2;
-    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-  },
+  async esperarGPS(timeoutMs = 12000) {
+    const ubicacion = await this.obtenerUbicacion(4000);
+    if (ubicacion) return ubicacion;
 
- 
-  async esperarGPS(timeoutMs = 10000) {
     const inicio = Date.now();
     return new Promise((resolve) => {
       const timer = setInterval(async () => {
-        const pos = await this.obtenerUbicacion(3000);
-        if (pos && pos.lat != null) {
+        const u = await this.obtenerUbicacion(2000);
+        if (u) {
           clearInterval(timer);
-          resolve(pos);
+          resolve(u);
         } else if (Date.now() - inicio > timeoutMs) {
           clearInterval(timer);
           resolve(null);
@@ -57,52 +56,42 @@ export const AsistenciaGPS = {
 };
 
 
+const HTML5_QR_CODE_CDNS = [
+  'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
+  'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js'
+];
 
-const HTML5_QR_CODE_CDN = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-
-export function cargarHtml5QrCode() {
-  if (window.Html5QrcodeScanner || window.Html5Qrcode) {
+export async function cargarHtml5QrCode() {
+  if (window.Html5Qrcode || window.Html5QrcodeScanner) {
     return Promise.resolve();
   }
-  if (document.querySelector(`script[src="${HTML5_QR_CODE_CDN}"]`)) {
-    return new Promise((res) => {
-      const check = setInterval(() => {
-        if (window.Html5QrcodeScanner || window.Html5Qrcode) {
-          clearInterval(check); res();
-        }
-      }, 100);
-    });
+
+  for (const cdnUrl of HTML5_QR_CODE_CDNS) {
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = cdnUrl;
+        s.async = true;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      if (window.Html5Qrcode || window.Html5QrcodeScanner) {
+        return;
+      }
+    } catch {
+      // Intentar con el siguiente CDN
+    }
   }
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = HTML5_QR_CODE_CDN;
-    s.async = true;
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('No se pudo cargar html5-qrcode.'));
-    document.head.appendChild(s);
-  });
+
+  if (!window.Html5Qrcode && !window.Html5QrcodeScanner) {
+    throw new Error('No se pudo cargar la librería de cámara/QR. Verifica tu conexión a internet.');
+  }
 }
 
 
-
 export const AsistenciaService = {
-
-  /**
-   * Registra un marcaje enviando el body esperado por el backend.
-   *
-   * Formato final enviado a POST /api/Asistencia/registrar:
-   *   {
-   *     idEmpleado,
-   *     tipoMarcaje,                // 'Automatico' deja que el backend decida
-   *     latitudMarcaje,
-   *     longitudMarcaje,
-   *     tokenQrEscaneado,           // <- QR del kiosco
-   *     codigoOtpGenerado: ''
-   *   }
-   *
-   * @param {object} params
-   * @returns {Promise<AsistenciaResponseDto>}
-   */
   async registrarMarcaje({
     idEmpleado,
     qrToken,
@@ -126,9 +115,6 @@ export const AsistenciaService = {
     return asistenciaApi.registrar(body);
   },
 
-  /**
-   * Obtiene el QR activo de la sede + info de sede en una sola llamada conveniente.
-   */
   async obtenerContexto() {
     const [sede, qr] = await Promise.all([
       sedeApi.get().catch(() => null),
@@ -137,7 +123,6 @@ export const AsistenciaService = {
     return { sede, qrToken: qr?.tokenQrActual ?? qr?.token ?? null, qr };
   },
 
- 
   determinarSiguienteMarcaje(asistenciaHoy) {
     if (!asistenciaHoy) return 'Entrada';
     if (asistenciaHoy.horaSalida) return null;
@@ -149,26 +134,26 @@ export const AsistenciaService = {
 
 
 export class AsistenciaScanner {
-
   constructor(opts = {}) {
-    this.containerId      = opts.containerId || 'scanner-container';
-    this.videoConstraints = opts.videoConstraints || { facingMode: { ideal: 'environment' } };
+    this.containerId      = opts.containerId || 'html5qr-reader';
+    this.videoConstraints = opts.videoConstraints || null;
     this.onStatus         = opts.onStatus      || (() => {});
     this.onSuccess        = opts.onSuccess     || (() => {});
     this.onError          = opts.onError       || (() => {});
+    this.onCamerasFound   = opts.onCamerasFound|| (() => {});
     this.onDeteccionCruda = opts.onDeteccionCruda || null;
 
     this.html5Qr = null;
     this.activo  = false;
     this.gps     = null;
+    this.camaras = [];
+    this.camaraActualId = null;
   }
 
-
-
-  async iniciar() {
+  async iniciar(cameraId = null) {
     this.activo = true;
     await cargarHtml5QrCode();
-    await this._iniciarCamara();
+    await this._iniciarCamara(cameraId);
     this._obtenerGPSEnParalelo();
   }
 
@@ -176,10 +161,32 @@ export class AsistenciaScanner {
     this.activo = false;
     if (this.html5Qr) {
       try {
-        if (this.html5Qr.isScanning) await this.html5Qr.stop();
+        if (this.html5Qr.isScanning) {
+          await this.html5Qr.stop();
+        }
         this.html5Qr.clear();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignorar errores al detener */
+      }
       this.html5Qr = null;
+    }
+  }
+
+  async escanearArchivo(archivoImagen) {
+    if (!archivoImagen) return;
+    this.activo = true;
+    await cargarHtml5QrCode();
+
+    if (!this.html5Qr) {
+      this.html5Qr = new window.Html5Qrcode(this.containerId);
+    }
+
+    try {
+      this.onStatus('Analizando imagen de código QR...', 'info');
+      const decodedText = await this.html5Qr.scanFile(archivoImagen, true);
+      this._alDetectar(decodedText);
+    } catch (err) {
+      this.onError(new Error('No se detectó ningún código QR en la imagen. Intenta con una foto más clara o usa la cámara.'));
     }
   }
 
@@ -188,36 +195,111 @@ export class AsistenciaScanner {
     await this._procesarMarcaje(qrToken, { idEmpleado, latitud, longitud });
   }
 
-
-  async _iniciarCamara() {
+  async _iniciarCamara(cameraId = null) {
     const container = document.getElementById(this.containerId);
     if (!container) throw new Error(`No existe el contenedor #${this.containerId}`);
 
+    // Limpiar restos previos
     try {
-      if (window.Html5Qrcode) {
-        this.html5Qr = new window.Html5Qrcode(this.containerId, {
-          formatsToSupport: [0],
-          verbose: false,
-        });
-        await this.html5Qr.start(
-          this.videoConstraints,
-          { fps: 10, qrbox: { width: 260, height: 260 } },
-          (decodedText) => this._alDetectar(decodedText),
-          () => { /* escaneo silencioso de frames — ignoramos errores por frame */ }
-        );
-      } else if (window.Html5QrcodeScanner) {
-        this.html5Qr = new window.Html5QrcodeScanner(this.containerId, {
-          fps: 10, qrbox: 260, rememberLastUsedCamera: true,
-        });
-        this.html5Qr.render(
-          (decodedText) => this._alDetectar(decodedText),
-          () => {}
-        );
+      if (this.html5Qr) {
+        if (this.html5Qr.isScanning) await this.html5Qr.stop();
+        this.html5Qr.clear();
       }
-      this.onStatus('Cámara lista. Apunta al QR del kiosco.', 'info');
-    } catch (err) {
-      this.onStatus('No se pudo acceder a la cámara: ' + err.message, 'error');
-      throw err;
+    } catch { /* ignore */ }
+
+    // 1. Diagnóstico de contexto seguro
+    if (window.isSecureContext === false && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      const msg = 'El navegador bloquea el acceso a la cámara en conexiones HTTP no seguras. Abre el sistema en https:// o localhost, o usa "Subir foto de QR".';
+      this.onStatus(msg, 'warning');
+    }
+
+    // 2. Enumerar cámaras disponibles
+    try {
+      if (window.Html5Qrcode?.getCameras) {
+        this.camaras = await window.Html5Qrcode.getCameras();
+        if (this.camaras && this.camaras.length > 0) {
+          this.onCamerasFound(this.camaras);
+        }
+      }
+    } catch {
+      this.camaras = [];
+    }
+
+    this.html5Qr = new window.Html5Qrcode(this.containerId, { verbose: false });
+
+    // 3. Determinar configuración de cámara con fallback en cascada
+    let targetCamera = cameraId;
+    if (!targetCamera && this.camaras && this.camaras.length > 0) {
+      // Priorizar cámara trasera en móviles si existe, o la primera encontrada
+      const backCam = this.camaras.find(c => /back|rear|trasera|environment|posterior/i.test(c.label));
+      targetCamera = backCam ? backCam.id : this.camaras[0].id;
+    }
+
+    const qrConfig = {
+      fps: 10,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const edge = Math.floor(minEdge * 0.75);
+        return { width: Math.max(edge, 200), height: Math.max(edge, 200) };
+      },
+      aspectRatio: 1.0,
+    };
+
+    const qrCallback = (decodedText) => this._alDetectar(decodedText);
+    const qrErrorCallback = () => { /* escaneo silencioso */ };
+
+    // Intento 1: Con cámara seleccionada / específica
+    if (targetCamera) {
+      try {
+        await this.html5Qr.start(targetCamera, qrConfig, qrCallback, qrErrorCallback);
+        this.camaraActualId = targetCamera;
+        this.onStatus('Cámara encendida. Apunta al código QR del kiosco.', 'info');
+        return;
+      } catch (err1) {
+        console.warn('[AsistenciaScanner] Intento 1 falló:', err1);
+      }
+    }
+
+    // Intento 2: facingMode: environment (cámara trasera)
+    try {
+      await this.html5Qr.start({ facingMode: 'environment' }, qrConfig, qrCallback, qrErrorCallback);
+      this.onStatus('Cámara trasera encendida. Apunta al QR.', 'info');
+      return;
+    } catch (err2) {
+      console.warn('[AsistenciaScanner] Intento 2 (environment) falló:', err2);
+    }
+
+    // Intento 3: facingMode: user (webcam frontal de laptop/PC)
+    try {
+      await this.html5Qr.start({ facingMode: 'user' }, qrConfig, qrCallback, qrErrorCallback);
+      this.onStatus('Webcam encendida. Apunta el QR a tu cámara.', 'info');
+      return;
+    } catch (err3) {
+      console.warn('[AsistenciaScanner] Intento 3 (user) falló:', err3);
+    }
+
+    // Intento 4: Dispositivo de video genérico
+    try {
+      await this.html5Qr.start(true, qrConfig, qrCallback, qrErrorCallback);
+      this.onStatus('Cámara lista. Apunta al QR.', 'info');
+      return;
+    } catch (errFinal) {
+      let mensajeAmigable = 'No se pudo acceder a la cámara.';
+      const errName = errFinal.name || '';
+      const errMsg = errFinal.message || '';
+
+      if (/NotAllowedError|PermissionDeniedError/i.test(errName + errMsg)) {
+        mensajeAmigable = 'Permiso de cámara denegado. Permite el acceso a la cámara en la barra de direcciones de tu navegador.';
+      } else if (/NotFoundError|DevicesNotFoundError/i.test(errName + errMsg)) {
+        mensajeAmigable = 'No se encontró ninguna cámara conectada en este dispositivo. Puedes usar la opción "Subir foto de QR".';
+      } else if (/NotReadableError|TrackStartError/i.test(errName + errMsg)) {
+        mensajeAmigable = 'La cámara está siendo utilizada por otra aplicación. Ciérrala e intenta de nuevo.';
+      } else if (/OverconstrainedError/i.test(errName + errMsg)) {
+        mensajeAmigable = 'Las características de la cámara no son compatibles con este modo.';
+      }
+
+      this.onStatus(mensajeAmigable, 'error');
+      throw new Error(mensajeAmigable);
     }
   }
 
@@ -230,7 +312,7 @@ export class AsistenciaScanner {
         'success'
       );
     } else {
-      this.onStatus('GPS no disponible. Esperando ubicación...', 'warning');
+      this.onStatus('GPS no disponible aún. Obteniendo señal...', 'warning');
       this.gps = await AsistenciaGPS.esperarGPS(12000);
       if (!this.gps) this.onStatus('No se pudo obtener ubicación GPS.', 'error');
     }
@@ -257,12 +339,11 @@ export class AsistenciaScanner {
   }
 
   async _procesarMarcaje(qrToken, { idEmpleado, latitud, longitud }) {
-    // Si no tenemos GPS, esperamos un poco más
     if (latitud == null || longitud == null) {
       this.onStatus('Esperando coordenadas GPS para validar la sede...', 'warning');
       const pos = await AsistenciaGPS.esperarGPS(10000);
       if (!pos) {
-        throw new Error('No se obtuvo ubicación GPS. Activa los permisos o usa marcaje manual.');
+        throw new Error('No se obtuvo ubicación GPS. Activa los permisos de ubicación o usa marcaje manual.');
       }
       latitud  = pos.lat;
       longitud = pos.lon;
