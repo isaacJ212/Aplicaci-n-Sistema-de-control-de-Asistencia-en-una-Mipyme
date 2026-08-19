@@ -183,6 +183,18 @@
             <input type="text" class="form-input" id="field-cargo" placeholder="Ej. Analista de Sistemas" />
             <span class="form-error hidden" id="err-cargo"></span>
           </div>
+          <div class="form-group">
+            <label class="form-label" for="field-departamento">Departamento *</label>
+            <select class="form-input" id="field-departamento">
+              <option value="Administración">Administración</option>
+              <option value="Tecnología">Tecnología / TI</option>
+              <option value="Ventas">Ventas / Comercial</option>
+              <option value="Operaciones">Operaciones / Producción</option>
+              <option value="Recursos Humanos">Recursos Humanos</option>
+              <option value="Finanzas">Finanzas / Contabilidad</option>
+              <option value="General">General</option>
+            </select>
+          </div>
           <div class="form-group full">
             <label class="form-label" for="field-responsabilidades">Responsabilidades *</label>
             <textarea class="form-input" id="field-responsabilidades" rows="3"
@@ -349,7 +361,10 @@ function renderTabla() {
         </div>
       </td>
       <td>${e.cedulaIdentificacion ?? '—'}</td>
-      <td>${e.cargoFuncion ?? '—'}</td>
+      <td>
+        <div class="font-medium">${e.cargoFuncion ?? '—'}</div>
+        <div style="font-size:0.72rem;color:var(--color-primary);font-weight:600">${e.departamento || 'General'}</div>
+      </td>
       <td>${formatDate(e.fechaContratacion)}</td>
       <td class="font-medium">${formatCurrency(e.salarioBaseMensual)}</td>
       <td>
@@ -415,6 +430,7 @@ async function abrirEditar(id) {
     document.getElementById('field-estado-civil').value      = emp.estadoCivil ?? 'Soltero';
     document.getElementById('field-estado-empleado').value   = emp.estadoEmpleado ?? 'Activo';
     document.getElementById('field-cargo').value             = emp.cargoFuncion ?? '';
+    document.getElementById('field-departamento').value      = emp.departamento ?? 'General';
     document.getElementById('field-responsabilidades').value = emp.responsabilidades ?? '';
     document.getElementById('field-contratacion').value      = (emp.fechaContratacion ?? '').split('T')[0];
     document.getElementById('field-salario').value           = emp.salarioBaseMensual ?? '';
@@ -479,6 +495,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         estadoCivil:          document.getElementById('field-estado-civil').value,
         estadoEmpleado:       document.getElementById('field-estado-empleado').value,
         cargoFuncion:         document.getElementById('field-cargo').value.trim(),
+        departamento:         document.getElementById('field-departamento').value || 'General',
         responsabilidades:    document.getElementById('field-responsabilidades').value.trim(),
         fechaContratacion:    document.getElementById('field-contratacion').value,
         salarioBaseMensual:   parseFloat(document.getElementById('field-salario').value),
@@ -515,6 +532,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         estadoCivil:          document.getElementById('field-estado-civil').value,
         estadoEmpleado:       document.getElementById('field-estado-empleado').value,
         cargoFuncion:         document.getElementById('field-cargo').value.trim(),
+        departamento:         document.getElementById('field-departamento').value || 'General',
         responsabilidades:    document.getElementById('field-responsabilidades').value.trim(),
         fechaContratacion:    document.getElementById('field-contratacion').value,
         salarioBaseMensual:   parseFloat(document.getElementById('field-salario').value),
@@ -604,8 +622,10 @@ function limpiarForm() {
   // Resetear selects
   const selectEstadoCivil    = document.getElementById('field-estado-civil');
   const selectEstadoEmpleado = document.getElementById('field-estado-empleado');
+  const selectDepto          = document.getElementById('field-departamento');
   if (selectEstadoCivil)    selectEstadoCivil.value    = 'Soltero';
   if (selectEstadoEmpleado) selectEstadoEmpleado.value = 'Activo';
+  if (selectDepto)          selectDepto.value          = 'Administración';
   // Limpiar inputs de archivo
   const fotoFile = document.getElementById('field-foto-file');
   if (fotoFile) fotoFile.value = '';

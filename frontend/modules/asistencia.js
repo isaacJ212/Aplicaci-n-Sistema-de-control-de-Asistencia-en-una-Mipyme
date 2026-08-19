@@ -99,16 +99,15 @@ export const AsistenciaService = {
     longitud,
     tipoMarcaje = 'Automatico',
   }) {
-    if (!idEmpleado) throw new Error('No se identificó el empleado.');
     if (!qrToken) throw new Error('Escanea el código QR del kiosco primero.');
     if (latitud == null || longitud == null) throw new Error('Faltan las coordenadas GPS.');
 
     const body = {
-      idEmpleado,
+      idEmpleado: idEmpleado ? Number(idEmpleado) : 0,
       tipoMarcaje,
       latitudMarcaje: Number(latitud),
       longitudMarcaje: Number(longitud),
-      tokenQrEscaneado: qrToken,
+      tokenQrEscaneado: String(qrToken).trim(),
       codigoOtpGenerado: '',
     };
 
@@ -137,6 +136,8 @@ export class AsistenciaScanner {
   constructor(opts = {}) {
     this.containerId      = opts.containerId || 'html5qr-reader';
     this.videoConstraints = opts.videoConstraints || null;
+    this.idEmpleado       = opts.idEmpleado || null;
+    this.getIdEmpleado   = opts.getIdEmpleado || null;
     this.onStatus         = opts.onStatus      || (() => {});
     this.onSuccess        = opts.onSuccess     || (() => {});
     this.onError          = opts.onError       || (() => {});
@@ -323,18 +324,24 @@ export class AsistenciaScanner {
     this.activo = false;
 
     try {
-      this._beepOk();
-      if (this.onDeteccionCruda) this.onDeteccionCruda(decodedText);
+      const cleanToken = String(decodedText || '').trim();
+      if (!cleanToken) {
+        throw new Error('El código QR leído está vacío.');
+      }
+
+      if (this.onDeteccionCruda) this.onDeteccionCruda(cleanToken);
       this.onStatus('QR detectado. Registrando marcaje...', 'info');
 
-      await this._procesarMarcaje(decodedText, {
-        idEmpleado: null,
+      const empId = (typeof this.getIdEmpleado === 'function' ? this.getIdEmpleado() : this.idEmpleado) || null;
+
+      await this._procesarMarcaje(cleanToken, {
+        idEmpleado: empId,
         latitud: this.gps?.lat,
         longitud: this.gps?.lon,
       });
     } catch (err) {
-      this.onError(err);
       this._beepError();
+      this.onError(err);
     }
   }
 
@@ -357,6 +364,7 @@ export class AsistenciaScanner {
       tipoMarcaje: 'Automatico',
     });
 
+    this._beepOk();
     this.onSuccess(resultado, { latitud, longitud, qrToken });
   }
 

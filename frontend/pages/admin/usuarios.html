@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Usuarios — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <style>
+    .user-avatar-cell {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .user-email-text {
+      font-weight: 600;
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+    .user-id-text {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Badges de rol */
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+    }
+    .role-admin {
+      background: #EDE9FE;
+      color: #6D28D9;
+      border: 1px solid #DDD6FE;
+    }
+    .role-analista {
+      background: #E0F2FE;
+      color: #0369A1;
+      border: 1px solid #BAE6FD;
+    }
+    .role-empleado {
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #E2E8F0;
+    }
+
+    /* Estado usuario toggle/badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+    }
+    .status-badge.activo {
+      background: #DCFCE7;
+      color: #166534;
+      border: 1px solid #BBF7D0;
+    }
+    .status-badge.inactivo {
+      background: #FEE2E2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .status-badge.activo .status-dot { background: #22C55E; }
+    .status-badge.inactivo .status-dot { background: #EF4444; }
+
+    .btn-toggle-status {
+      font-size: var(--font-size-xs);
+      padding: 4px 8px;
+    }
+
+    .emp-linked {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .emp-linked-name {
+      font-weight: 500;
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+    .emp-linked-sub {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .emp-unlinked {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      align-items: center;
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .filter-select {
+      font-size: var(--font-size-sm);
+      padding: 6px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text);
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Control de Usuarios</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-total-usuarios">0 usuarios</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <!-- Encabezado de página -->
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Gestión de Usuarios y Estados</h1>
+          <p>Administra las cuentas de acceso, activa o desactiva usuarios, asigna roles y gestiona credenciales.</p>
+        </div>
+        <div style="display:flex;gap:var(--space-2)">
+          <button class="btn btn-secondary" id="btn-refresh">↻ Recargar</button>
+          <button class="btn btn-primary" id="btn-nuevo-usuario">
+            <span>＋ Nuevo Usuario</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Métricas rápidas -->
+      <div class="stats-grid" style="margin-bottom:var(--space-6)">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">👥</div></div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total de usuarios</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-activos">—</div>
+          <div class="stat-label">Usuarios activos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon red">⛔</div></div>
+          <div class="stat-value" id="stat-inactivos">—</div>
+          <div class="stat-label">Usuarios inactivos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">🔐</div></div>
+          <div class="stat-value" id="stat-2fa">—</div>
+          <div class="stat-label">Con 2FA activo</div>
+        </div>
+      </div>
+
+      <!-- Tabla de usuarios con filtros -->
+      <div class="card" style="padding:0">
+        <div class="filter-bar">
+          <div class="search-wrapper" style="flex:1;min-width:240px">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+            </svg>
+            <input type="text" class="search-input" id="buscador-usuarios"
+              placeholder="Buscar por correo, nombre o cédula de empleado..." />
+          </div>
+
+          <select class="filter-select" id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="true">Solo Activos</option>
+            <option value="false">Solo Inactivos</option>
+          </select>
+
+          <select class="filter-select" id="filtro-rol">
+            <option value="">Todos los roles</option>
+            <option value="1">Admin</option>
+            <option value="2">Analista</option>
+            <option value="3">Empleado</option>
+          </select>
+        </div>
+
+        <div class="table-wrapper" style="border:none;border-radius:0">
+          <table class="data-table" id="tabla-usuarios">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Expediente Vinculado</th>
+                <th>Estado Cuenta</th>
+                <th>2FA</th>
+                <th>Último Acceso</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-usuarios">
+              <tr>
+                <td colspan="7">
+                  <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <h3>Cargando usuarios...</h3>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══════════════════ MODAL NUEVO USUARIO ═══════════════════ -->
+<div class="modal-overlay hidden" id="modal-nuevo-user">
+  <div class="modal modal-max-460">
+    <div class="modal-header">
+      <span class="modal-title">Registrar nuevo usuario</span>
+      <button class="btn btn-ghost btn-sm" id="modal-nuevo-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-nuevo-usuario" novalidate>
+        <div class="form-group" style="margin-bottom:var(--space-3)">
+          <label class="form-label" for="new-email">Correo electrónico *</label>
+          <input type="email" class="form-input" id="new-email" placeholder="usuario@empresa.com" required />
+          <span class="form-error hidden" id="err-new-email"></span>
+        </div>
+        <div class="form-group" style="margin-bottom:var(--space-3)">
+          <label class="form-label" for="new-password">Contraseña inicial *</label>
+          <input type="password" class="form-input" id="new-password" placeholder="Mínimo 6 caracteres" required />
+          <span class="form-error hidden" id="err-new-password"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="new-rol">Rol en el sistema *</label>
+          <select class="form-input" id="new-rol" required>
+            <option value="3">Empleado</option>
+            <option value="2">Analista</option>
+            <option value="1">Administrador</option>
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-nuevo-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-nuevo-save">
+        <span>Crear usuario</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MODAL CAMBIAR ROL ═══════════════════ -->
+<div class="modal-overlay hidden" id="modal-rol">
+  <div class="modal modal-max-460">
+    <div class="modal-header">
+      <span class="modal-title">Cambiar rol de usuario</span>
+      <button class="btn btn-ghost btn-sm" id="modal-rol-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--font-size-sm);color:var(--color-text-muted);margin-bottom:var(--space-4)">
+        Modificando permisos de acceso para <strong id="rol-user-email" style="color:var(--color-text)">—</strong>.
+      </p>
+      <input type="hidden" id="rol-user-id" />
+      <div class="form-group">
+        <label class="form-label" for="select-nuevo-rol">Seleccionar nuevo rol *</label>
+        <select class="form-input" id="select-nuevo-rol">
+          <option value="1">👑 Administrador — Control total del sistema</option>
+          <option value="2">📊 Analista — Evaluaciones 360° y reportes</option>
+          <option value="3">👷 Empleado — Marcajes, solicitudes y portal</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-rol-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-rol-save">
+        <span>Guardar rol</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MODAL RESET PASSWORD ═══════════════════ -->
+<div class="modal-overlay hidden" id="modal-password">
+  <div class="modal modal-max-460">
+    <div class="modal-header">
+      <span class="modal-title">Restablecer contraseña</span>
+      <button class="btn btn-ghost btn-sm" id="modal-pass-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--font-size-sm);color:var(--color-text-muted);margin-bottom:var(--space-4)">
+        Ingresa la nueva contraseña para <strong id="pass-user-email" style="color:var(--color-text)">—</strong>.
+      </p>
+      <input type="hidden" id="pass-user-id" />
+      <div class="form-group">
+        <label class="form-label" for="new-pass-input">Nueva contraseña *</label>
+        <input type="password" class="form-input" id="new-pass-input" placeholder="Mínimo 6 caracteres" />
+        <span class="form-error hidden" id="err-pass-input"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-pass-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-pass-save">
+        <span>Restablecer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }     from '../../modules/layout.js';
+import { usuarioApi, authApi } from '../../modules/api.js';
+import { toast, show, hide }   from '../../modules/utils.js';
+
+await initAdminLayout('usuarios');
+
+let listaUsuarios = [];
+let usuarioActualEmail = '';
+
+async function cargarDatos() {
+  try {
+    const [me, usuarios] = await Promise.all([
+      authApi.me().catch(() => null),
+      usuarioApi.getAll()
+    ]);
+
+    usuarioActualEmail = me?.email || '';
+    listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
+    actualizarMetricas();
+    renderizarTabla();
+  } catch (err) {
+    toast('Error al cargar usuarios: ' + err.message, 'error');
+    document.getElementById('tbody-usuarios').innerHTML = `
+      <tr>
+        <td colspan="7">
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <h3>Error al cargar los usuarios</h3>
+            <p>${err.message}</p>
+          </div>
+        </td>
+      </tr>`;
+  }
+}
+
+function actualizarMetricas() {
+  const total = listaUsuarios.length;
+  const activos = listaUsuarios.filter(u => u.estadoActivo).length;
+  const inactivos = total - activos;
+  const con2fa = listaUsuarios.filter(u => u.es2FaActivo).length;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-activos').textContent = activos;
+  document.getElementById('stat-inactivos').textContent = inactivos;
+  document.getElementById('stat-2fa').textContent = con2fa;
+  document.getElementById('badge-total-usuarios').textContent = `${total} usuario${total !== 1 ? 's' : ''}`;
+}
+
+function obtenerUsuariosFiltrados() {
+  const q = document.getElementById('buscador-usuarios').value.trim().toLowerCase();
+  const filtroEstado = document.getElementById('filtro-estado').value;
+  const filtroRol = document.getElementById('filtro-rol').value;
+
+  return listaUsuarios.filter(u => {
+    // Filtro búsqueda
+    if (q) {
+      const matchEmail = (u.email || '').toLowerCase().includes(q);
+      const matchNombre = (u.nombreCompleto || '').toLowerCase().includes(q);
+      const matchCedula = (u.cedulaIdentificacion || '').toLowerCase().includes(q);
+      const matchCargo = (u.cargoFuncion || '').toLowerCase().includes(q);
+      if (!matchEmail && !matchNombre && !matchCedula && !matchCargo) return false;
+    }
+
+    // Filtro estado
+    if (filtroEstado !== '') {
+      const esActivo = filtroEstado === 'true';
+      if (u.estadoActivo !== esActivo) return false;
+    }
+
+    // Filtro rol
+    if (filtroRol !== '') {
+      if (u.idRol !== Number(filtroRol)) return false;
+    }
+
+    return true;
+  });
+}
+
+function renderizarTabla() {
+  const tbody = document.getElementById('tbody-usuarios');
+  const filtrados = obtenerUsuariosFiltrados();
+
+  if (filtrados.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7">
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <h3>No se encontraron usuarios</h3>
+            <p>Intenta ajustar los criterios de búsqueda o filtros.</p>
+          </div>
+        </td>
+      </tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map(u => {
+    const inicial = (u.email || 'U')[0].toUpperCase();
+    const esMio = u.email === usuarioActualEmail;
+
+    // Badges de rol
+    let roleClass = 'role-empleado';
+    if (u.nombreRol?.toLowerCase().includes('admin')) roleClass = 'role-admin';
+    else if (u.nombreRol?.toLowerCase().includes('analista')) roleClass = 'role-analista';
+
+    // Expediente asociado
+    let expedienteHtml = '<span class="emp-unlinked">Sin expediente de empleado</span>';
+    if (u.idEmpleado) {
+      expedienteHtml = `
+        <div class="emp-linked">
+          <span class="emp-linked-name">${u.nombreCompleto || 'Empleado #' + u.idEmpleado}</span>
+          <span class="emp-linked-sub">${u.cargoFuncion || 'Sin cargo'} · Estado: ${u.estadoEmpleado || 'Activo'}</span>
+        </div>`;
+    }
+
+    // Último acceso
+    let accesoHtml = '<span style="color:var(--color-text-muted);font-size:var(--font-size-xs)">Nunca</span>';
+    if (u.ultimaFechaLogin) {
+      const fecha = new Date(u.ultimaFechaLogin).toLocaleString('es-NI', {
+        dateStyle: 'short', timeStyle: 'short'
+      });
+      accesoHtml = `
+        <div style="font-size:var(--font-size-xs)">
+          <div>${fecha}</div>
+          <div style="color:var(--color-text-muted)">IP: ${u.ultimaIpLogin || '127.0.0.1'}</div>
+        </div>`;
+    }
+
+    return `
+      <tr>
+        <td>
+          <div class="user-avatar-cell">
+            <div class="user-avatar">${inicial}</div>
+            <div>
+              <div class="user-email-text">${u.email} ${esMio ? '<span class="badge" style="font-size:0.65rem;background:var(--color-primary-light);color:var(--color-primary-dark);padding:1px 6px">Tú</span>' : ''}</div>
+              <div class="user-id-text">ID: #${u.idUsuario} · Creado: ${new Date(u.fechaCreacion).toLocaleDateString('es-NI')}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="role-badge ${roleClass}">
+            ${u.nombreRol || 'Empleado'}
+          </span>
+        </td>
+        <td>${expedienteHtml}</td>
+        <td>
+          <span class="status-badge ${u.estadoActivo ? 'activo' : 'inactivo'}">
+            <span class="status-dot"></span>
+            ${u.estadoActivo ? 'Activo' : 'Inactivo'}
+          </span>
+        </td>
+        <td>
+          <span class="chip ${u.es2FaActivo ? 'chip-green' : 'chip-blue'}" style="font-size:0.7rem;padding:2px 8px;border-radius:999px">
+            ${u.es2FaActivo ? '✅ 2FA Activo' : '⚪ Desactivado'}
+          </span>
+        </td>
+        <td>${accesoHtml}</td>
+        <td style="text-align:right">
+          <div style="display:inline-flex;gap:var(--space-1);justify-content:flex-end">
+            <!-- Botón Cambiar Estado -->
+            <button class="btn btn-sm ${u.estadoActivo ? 'btn-ghost' : 'btn-secondary'} btn-toggle-status"
+              data-action="toggle-status"
+              data-id="${u.idUsuario}"
+              data-email="${u.email}"
+              data-activo="${u.estadoActivo}"
+              ${esMio ? 'disabled title="No puedes desactivar tu propia cuenta"' : ''}>
+              ${u.estadoActivo ? '⛔ Desactivar' : '✅ Activar'}
+            </button>
+
+            <!-- Botón Cambiar Rol -->
+            <button class="btn btn-ghost btn-sm"
+              data-action="cambiar-rol"
+              data-id="${u.idUsuario}"
+              data-email="${u.email}"
+              data-rol="${u.idRol}"
+              title="Cambiar rol">
+              🛡️ Rol
+            </button>
+
+            <!-- Botón Reset Password -->
+            <button class="btn btn-ghost btn-sm"
+              data-action="reset-pass"
+              data-id="${u.idUsuario}"
+              data-email="${u.email}"
+              title="Restablecer contraseña">
+              🔑
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Listeners de filtros ──────────────────────────────────────
+document.getElementById('buscador-usuarios').addEventListener('input', renderizarTabla);
+document.getElementById('filtro-estado').addEventListener('change', renderizarTabla);
+document.getElementById('filtro-rol').addEventListener('change', renderizarTabla);
+document.getElementById('btn-refresh').addEventListener('click', cargarDatos);
+
+// ── Acciones de tabla delegadas ────────────────────────────────
+document.getElementById('tbody-usuarios').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const id = Number(btn.dataset.id);
+  const email = btn.dataset.email;
+
+  if (action === 'toggle-status') {
+    const estadoActual = btn.dataset.activo === 'true';
+    const nuevoEstado = !estadoActual;
+    const accionTexto = nuevoEstado ? 'activar' : 'desactivar';
+
+    if (!confirm(`¿Estás seguro de que deseas ${accionTexto} la cuenta de '${email}'?`)) {
+      return;
+    }
+
+    try {
+      btn.disabled = true;
+      await usuarioApi.cambiarEstado(id, nuevoEstado);
+      toast(`Usuario '${email}' ${nuevoEstado ? 'activado' : 'desactivado'} con éxito.`, 'success');
+      await cargarDatos();
+    } catch (err) {
+      toast(err.message, 'error');
+      btn.disabled = false;
+    }
+  } else if (action === 'cambiar-rol') {
+    abrirModalRol(id, email, Number(btn.dataset.rol || 3));
+  } else if (action === 'reset-pass') {
+    abrirModalPass(id, email);
+  }
+});
+
+// ── Modal Cambiar Rol ──────────────────────────────────────────
+function abrirModalRol(id, email, idRolActual) {
+  document.getElementById('rol-user-id').value = id;
+  document.getElementById('rol-user-email').textContent = email;
+  document.getElementById('select-nuevo-rol').value = idRolActual || 3;
+  show(document.getElementById('modal-rol'));
+}
+
+document.getElementById('modal-rol-save').addEventListener('click', async () => {
+  const id = Number(document.getElementById('rol-user-id').value);
+  const idRol = Number(document.getElementById('select-nuevo-rol').value);
+  const btn = document.getElementById('modal-rol-save');
+
+  try {
+    btn.disabled = true;
+    await usuarioApi.cambiarRol(id, idRol);
+    toast('Rol actualizado correctamente.', 'success');
+    hide(document.getElementById('modal-rol'));
+    await cargarDatos();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+['modal-rol-close', 'modal-rol-cancel'].forEach(id => {
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-rol')));
+});
+
+// ── Modal Reset Password ───────────────────────────────────────
+function abrirModalPass(id, email) {
+  document.getElementById('pass-user-id').value = id;
+  document.getElementById('pass-user-email').textContent = email;
+  document.getElementById('new-pass-input').value = '';
+  document.getElementById('err-pass-input').classList.add('hidden');
+  show(document.getElementById('modal-password'));
+}
+
+document.getElementById('modal-pass-save').addEventListener('click', async () => {
+  const id = Number(document.getElementById('pass-user-id').value);
+  const pass = document.getElementById('new-pass-input').value.trim();
+  const errEl = document.getElementById('err-pass-input');
+
+  if (!pass || pass.length < 6) {
+    errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  const btn = document.getElementById('modal-pass-save');
+  try {
+    btn.disabled = true;
+    await usuarioApi.resetPassword(id, pass);
+    toast('Contraseña restablecida exitosamente.', 'success');
+    hide(document.getElementById('modal-password'));
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+['modal-pass-close', 'modal-pass-cancel'].forEach(id => {
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-password')));
+});
+
+// ── Modal Nuevo Usuario ────────────────────────────────────────
+document.getElementById('btn-nuevo-usuario').addEventListener('click', () => {
+  document.getElementById('form-nuevo-usuario').reset();
+  document.getElementById('err-new-email').classList.add('hidden');
+  document.getElementById('err-new-password').classList.add('hidden');
+  show(document.getElementById('modal-nuevo-user'));
+});
+
+document.getElementById('modal-nuevo-save').addEventListener('click', async () => {
+  const email = document.getElementById('new-email').value.trim();
+  const password = document.getElementById('new-password').value.trim();
+  const idRol = Number(document.getElementById('new-rol').value);
+
+  let hasErr = false;
+  if (!email || !email.includes('@')) {
+    document.getElementById('err-new-email').textContent = 'Ingresa un correo electrónico válido.';
+    document.getElementById('err-new-email').classList.remove('hidden');
+    hasErr = true;
+  } else {
+    document.getElementById('err-new-email').classList.add('hidden');
+  }
+
+  if (!password || password.length < 6) {
+    document.getElementById('err-new-password').textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    document.getElementById('err-new-password').classList.remove('hidden');
+    hasErr = true;
+  } else {
+    document.getElementById('err-new-password').classList.add('hidden');
+  }
+
+  if (hasErr) return;
+
+  const btn = document.getElementById('modal-nuevo-save');
+  try {
+    btn.disabled = true;
+    await usuarioApi.crear({ email, password, idRol });
+    toast('Usuario creado exitosamente.', 'success');
+    hide(document.getElementById('modal-nuevo-user'));
+    await cargarDatos();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+['modal-nuevo-close', 'modal-nuevo-cancel'].forEach(id => {
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-nuevo-user')));
+});
+
+// Inicializar carga de datos
+cargarDatos();
+</script>
+</body>
+</html>

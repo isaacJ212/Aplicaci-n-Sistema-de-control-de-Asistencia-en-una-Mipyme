@@ -140,8 +140,17 @@ public class AsistenciaController : ControllerBase
         // Resuelve idEmpleado desde el JWT (email → empleado)
         var idEmpleado = await ObtenerIdEmpleadoDelJwt(cancellationToken);
         if (!idEmpleado.HasValue)
-            return BadRequest(ApiResponse<object>.BadRequest(
-                "Tu usuario no tiene un expediente de empleado asociado. Contacta al administrador."));
+        {
+            if (request.IdEmpleado > 0 && (User.IsInRole("Admin") || User.IsInRole("Analista")))
+            {
+                idEmpleado = request.IdEmpleado;
+            }
+            else
+            {
+                return BadRequest(ApiResponse<object>.BadRequest(
+                    "Tu usuario no tiene un expediente de empleado asociado. Contacta al administrador para vincular tu cuenta a un expediente."));
+            }
+        }
 
         var data = await _mediator.Send(new RegistrarAsistenciaCommand
         {
@@ -149,9 +158,9 @@ public class AsistenciaController : ControllerBase
             TipoMarcaje       = request.TipoMarcaje,
             LatitudMarcaje    = request.LatitudMarcaje,
             LongitudMarcaje   = request.LongitudMarcaje,
-            TokenQrEscaneado  = request.TokenQrEscaneado,
-            CodigoOtpGenerado = request.CodigoOtpGenerado
-        });
+            TokenQrEscaneado  = request.TokenQrEscaneado?.Trim() ?? string.Empty,
+            CodigoOtpGenerado = request.CodigoOtpGenerado ?? string.Empty
+        }, cancellationToken);
 
         return Ok(ApiResponse<AsistenciaResponseDto>.Ok(data, data.Mensaje ?? "Asistencia registrada correctamente."));
     }

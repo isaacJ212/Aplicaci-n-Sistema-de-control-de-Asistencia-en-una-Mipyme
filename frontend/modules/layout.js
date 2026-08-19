@@ -172,7 +172,7 @@ export async function updateEmpleadoSidebarEvaluacion() {
 
 export async function initAdminLayout(currentPage = '') {
   const isAnalista = AuthService.isAnalista();
-  const adminOnlyPages = ['configuracion', 'kiosko'];
+  const adminOnlyPages = ['configuracion', 'kiosko', 'usuarios'];
   const allowedRoles = adminOnlyPages.includes(currentPage) ? ['Admin'] : ['Admin', 'Analista'];
 
   if (!AuthService.requireAuth(allowedRoles)) return;

@@ -200,6 +200,7 @@ public class GenerarPlanillaCommandHandler
             IdEmpleado             = planilla.IdEmpleado,
             NombreEmpleado         = empleado.Nombres + " " + empleado.Apellidos,
             CargoEmpleado          = empleado.CargoFuncion,
+            Departamento           = empleado.Departamento,
             PeriodoMesAnio         = planilla.PeriodoMesAnio,
             SalarioBase            = salarioBase,
             Comisiones             = request.Comisiones,
