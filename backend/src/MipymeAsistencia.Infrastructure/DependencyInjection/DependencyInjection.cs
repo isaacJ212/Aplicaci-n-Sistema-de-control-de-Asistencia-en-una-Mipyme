@@ -14,6 +14,12 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
+        // Si la variable de entorno está vacía (ej. Render sin configurar), usar el valor de appsettings.json directamente
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            connectionString = configuration["ConnectionStrings:DefaultConnection"];
+        }
+
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException("La cadena de conexión 'DefaultConnection' no está configurada.");
