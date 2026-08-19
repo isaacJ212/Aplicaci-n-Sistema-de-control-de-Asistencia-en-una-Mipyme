@@ -171,8 +171,19 @@ export async function updateEmpleadoSidebarEvaluacion() {
 }
 
 export async function initAdminLayout(currentPage = '') {
-  if (!AuthService.requireAuth('Admin')) return;
-  await loadSidebar('sidebar-admin.html', currentPage);
+  const isAnalista = AuthService.isAnalista();
+  const adminOnlyPages = ['configuracion', 'kiosko'];
+  const allowedRoles = adminOnlyPages.includes(currentPage) ? ['Admin'] : ['Admin', 'Analista'];
+
+  if (!AuthService.requireAuth(allowedRoles)) return;
+
+  if (isAnalista && currentPage === 'dashboard' && !window.location.pathname.includes('/analista/')) {
+    window.location.href = AuthService.getDashboardUrl();
+    return;
+  }
+
+  const sidebarFile = isAnalista ? 'sidebar-analista.html' : 'sidebar-admin.html';
+  await loadSidebar(sidebarFile, currentPage);
 }
 
 export async function initEmpleadoLayout(currentPage = '') {
