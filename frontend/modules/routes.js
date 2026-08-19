@@ -20,7 +20,7 @@ export function resolvePageUrl(relativePath) {
     return `${base}/${relativePath}`;
   }
 
-  const match = relativePath.match(/^pages\/(admin|empleado|auth)\/(.+)\.html$/);
+  const match = relativePath.match(/^pages\/(admin|analista|empleado|auth)\/(.+)\.html$/);
   if (!match) return `${base}/${relativePath}`;
 
   const [, section, page] = match;
@@ -33,7 +33,7 @@ export function getLoginUrl() {
 }
 
 export function getDashboardUrl(role) {
-  return role === 'Admin'
-    ? resolvePageUrl('pages/admin/dashboard.html')
-    : resolvePageUrl('pages/empleado/dashboard.html');
+  if (role === 'Admin') return resolvePageUrl('pages/admin/dashboard.html');
+  if (role === 'Analista') return resolvePageUrl('pages/analista/dashboard.html');
+  return resolvePageUrl('pages/empleado/dashboard.html');
 }
