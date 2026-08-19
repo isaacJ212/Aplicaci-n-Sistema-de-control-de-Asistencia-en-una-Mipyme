@@ -27,6 +27,9 @@ public class GetAllPlanillasQueryHandler
         if (!string.IsNullOrWhiteSpace(request.PeriodoMesAnio))
             query = query.Where(p => p.PeriodoMesAnio == request.PeriodoMesAnio);
 
+        if (!string.IsNullOrWhiteSpace(request.Departamento) && request.Departamento != "Todos")
+            query = query.Where(p => p.Empleado!.Departamento == request.Departamento);
+
         var planillas = await query
             .OrderByDescending(p => p.PeriodoMesAnio)
             .ThenBy(p => p.Empleado!.Apellidos)
@@ -84,6 +87,7 @@ public class GetAllPlanillasQueryHandler
                 IdEmpleado             = p.IdEmpleado,
                 NombreEmpleado         = p.Empleado!.Nombres + " " + p.Empleado.Apellidos,
                 CargoEmpleado          = p.Empleado.CargoFuncion,
+                Departamento           = p.Empleado.Departamento,
                 PeriodoMesAnio         = p.PeriodoMesAnio,
                 SalarioBase            = p.SalarioBase,
                 Comisiones             = 0m,
