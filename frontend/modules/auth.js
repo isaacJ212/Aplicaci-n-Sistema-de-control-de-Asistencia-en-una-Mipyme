@@ -48,7 +48,8 @@ export const AuthService = {
 
   getRole()         { return this.getUser()?.role ?? null; },
   isAuthenticated() { return !!this.getToken(); },
-  isAdmin()         { return this.getRole() === CONFIG.ROLES.ADMIN; },
+  isAdmin()    { return this.getRole() === CONFIG.ROLES.ADMIN; },
+  isAnalista() { return this.getRole() === CONFIG.ROLES.ANALISTA; },
 
 
 
@@ -87,26 +88,30 @@ export const AuthService = {
     window.location.href = urlPage('pages/auth/login.html');
   },
 
+  getDashboardUrl() {
+    const role = this.getRole();
+    if (role === CONFIG.ROLES.ADMIN)    return urlPage('pages/admin/dashboard.html');
+    if (role === CONFIG.ROLES.ANALISTA) return urlPage('pages/analista/dashboard.html');
+    return urlPage('pages/empleado/dashboard.html');
+  },
+
   requireAuth(requiredRole = null) {
     if (!this.isAuthenticated()) {
       window.location.href = urlPage('pages/auth/login.html');
       return false;
     }
-    if (requiredRole && this.getRole() !== requiredRole) {
-      const role = this.getRole();
-      window.location.href = role === CONFIG.ROLES.ADMIN
-        ? urlPage('pages/admin/dashboard.html')
-        : urlPage('pages/empleado/dashboard.html');
-      return false;
+    if (requiredRole) {
+      const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+      if (!roles.includes(this.getRole())) {
+        window.location.href = this.getDashboardUrl();
+        return false;
+      }
     }
     return true;
   },
 
   redirectIfAuthenticated() {
     if (!this.isAuthenticated()) return;
-    const role = this.getRole();
-    window.location.href = role === CONFIG.ROLES.ADMIN
-      ? urlPage('pages/admin/dashboard.html')
-      : urlPage('pages/empleado/dashboard.html');
+    window.location.href = this.getDashboardUrl();
   },
 };

@@ -148,3 +148,8 @@ export async function initEmpleadoLayout(currentPage = '') {
   if (!AuthService.requireAuth('Empleado')) return;
   await loadSidebar('sidebar-empleado.html', currentPage);
 }
+
+export async function initAnalistaLayout(currentPage = '') {
+  if (!AuthService.requireAuth('Analista')) return;
+  await loadSidebar('sidebar-analista.html', currentPage);
+}

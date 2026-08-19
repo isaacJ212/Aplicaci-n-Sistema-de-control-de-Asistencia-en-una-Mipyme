@@ -29,11 +29,16 @@ const FRONT_DIR  = path.join(__dirname, 'frontend');
 const ADMIN_PAGES = [
   'dashboard', 'empleados', 'empleado-detalle', 'planillas',
   'aprobaciones', 'rendimiento', 'expedientes', 'configuracion',
+  'evaluacion', 'informe-asistencia', 'kiosko'
+];
+
+const ANALISTA_PAGES = [
+  'dashboard', 'evaluacion',
 ];
 
 const EMPLEADO_PAGES = [
   'dashboard', 'marcaje', 'historial', 'nomina',
-  'solicitudes', 'horas-extras',
+  'solicitudes', 'horas-extras', 'evaluacion'
 ];
 
 // ── Middleware: Log de peticiones ─────────────────────────────────────────────
@@ -81,6 +86,16 @@ app.get('/asistencia/estacion-qr', (_req, res) => {
 ADMIN_PAGES.forEach(page => {
   app.get(`/admin/${page}`, (_req, res) => {
     res.sendFile(path.join(FRONT_DIR, 'pages', 'admin', `${page}.html`));
+  });
+});
+
+// ── Rutas analista ────────────────────────────────────────────────────────────
+ANALISTA_PAGES.forEach(page => {
+  app.get(`/analista/${page}`, (_req, res) => {
+    res.sendFile(path.join(FRONT_DIR, 'pages', 'analista', `${page}.html`));
+  });
+  app.get(`/pages/analista/${page}.html`, (_req, res) => {
+    res.sendFile(path.join(FRONT_DIR, 'pages', 'analista', `${page}.html`));
   });
 });
 
