@@ -61,21 +61,44 @@ public class GenerarPlanillaCommandHandler
         if (empleado is null)
             throw new KeyNotFoundException($"Empleado con id {request.IdEmpleado} no encontrado.");
 
-        // ── Suma horas extras aprobadas del periodo ───────────────────────────
-        // Extrae año y mes del formato YYYY-MM
+        // ── Extrae año y mes del formato YYYY-MM ───────────────────────────
         var partes = request.PeriodoMesAnio.Split('-');
         var anio   = int.Parse(partes[0]);
         var mes    = int.Parse(partes[1]);
 
-        var horasExtrasAprobadas = await _context.HorasExtras
+        // ── Consulta fecha de corte del periodo (si existe) ──────────────────
+        var periodoCierre = await _context.PeriodosCierrePlanilla
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Periodo == request.PeriodoMesAnio, cancellationToken);
+
+        var queryHorasExtras = _context.HorasExtras
             .Where(h => h.IdEmpleado == request.IdEmpleado &&
                         h.Estado     == "Aprobado"          &&
                         h.Fecha.Year == anio                &&
-                        h.Fecha.Month == mes)
-            .ToListAsync(cancellationToken);
+                        h.Fecha.Month == mes);
+
+        if (periodoCierre != null)
+        {
+            queryHorasExtras = queryHorasExtras.Where(h => h.Fecha <= periodoCierre.FechaCorteHorasExtras);
+        }
+
+        var horasExtrasAprobadas = await queryHorasExtras.ToListAsync(cancellationToken);
 
         var totalHorasExtras = horasExtrasAprobadas.Sum(h => h.CantidadHoras);
         var pagoHorasExtras  = horasExtrasAprobadas.Sum(h => h.MontoPagar);
+
+        // ── OBTENER PARÁMETROS LABORALES DESDE BASE DE DATOS ────────────────
+        var parametros = await _context.ParametrosLaborales
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var paramDict = parametros.ToDictionary(p => p.Clave.ToUpperInvariant(), p => p.Valor);
+
+        var inssLaboralRate   = (paramDict.TryGetValue("INSS_LABORAL", out var inssL) ? inssL : 7.00m) / 100m;
+        var inssPatronalRate  = (paramDict.TryGetValue("INSS_PATRONAL", out var inssP) ? inssP : 21.50m) / 100m;
+        var inatecRate        = (paramDict.TryGetValue("INATEC", out var inat) ? inat : 2.00m) / 100m;
+        var horasLaboralesMes = paramDict.TryGetValue("HORAS_LABORALES_MES", out var hMes) && hMes > 0 ? hMes : 240m;
+        var tasaPrestaciones  = paramDict.TryGetValue("TASA_PRESTACIONES_MENSUAL", out var tPrest) ? tPrest : 2.5m;
 
         // ── INGRESOS ──────────────────────────────────────────────────────────
         var salarioBase   = empleado.SalarioBaseMensual;
@@ -84,11 +107,18 @@ public class GenerarPlanillaCommandHandler
                           + pagoHorasExtras
                           + request.Incentivos;
 
-        // ── DEDUCCIÓN POR TARDANZA ────────────────────────────────────────────
-        // Valor por minuto = SalarioBase / 240h / 60min
-        // Deducción = valor por minuto × total minutos tardanza del periodo
+        // ── DEDUCCIÓN POR TARDANZA (Omitiendo Días Feriados) ───────────────────
+        // Valor por minuto = SalarioBase / HorasLaboralesMes / 60min
         var inicioPeriodo = new DateTime(anio, mes, 1, 0, 0, 0, DateTimeKind.Utc);
         var finPeriodo    = inicioPeriodo.AddMonths(1).AddTicks(-1);
+
+        var feriadosPeriodo = await _context.DiasFeriados
+            .AsNoTracking()
+            .Where(f => f.Fecha >= inicioPeriodo && f.Fecha <= finPeriodo)
+            .Select(f => f.Fecha.Date)
+            .ToListAsync(cancellationToken);
+
+        var feriadosSet = feriadosPeriodo.ToHashSet();
 
         var registrosTardanza = await _context.HistorialAsistencias
             .Where(h => h.IdEmpleado    == request.IdEmpleado &&
@@ -97,15 +127,28 @@ public class GenerarPlanillaCommandHandler
                         h.MinutosTardanza > 0)
             .ToListAsync(cancellationToken);
 
-        var totalMinutosTardanza = registrosTardanza.Sum(h => h.MinutosTardanza);
-        var valorPorMinuto       = salarioBase > 0 ? salarioBase / 240m / 60m : 0m;
+        // Los feriados son no deducibles según legislación y especificación del sistema
+        var tardanzasValidas = registrosTardanza
+            .Where(h => !feriadosSet.Contains(h.Fecha.Date))
+            .ToList();
+
+        var totalMinutosTardanza = tardanzasValidas.Sum(h => h.MinutosTardanza);
+        var valorPorMinuto       = (salarioBase > 0 && horasLaboralesMes > 0)
+            ? salarioBase / horasLaboralesMes / 60m
+            : 0m;
         var deduccionTardanza    = Math.Round(valorPorMinuto * totalMinutosTardanza, 2);
 
-        // ── INSS LABORAL: 7% sobre total ingresos ─────────────────────────────
-        var inssLaboral = Math.Round(totalIngresos * 0.07m, 2);
+        // ── INSS LABORAL (configurable) ───────────────────────────────────────
+        var inssLaboral = Math.Round(totalIngresos * inssLaboralRate, 2);
 
-        // ── IR LABORAL: tabla progresiva Ley 822 LCT ─────────────────────────
-        var irLaboral = CalcularIrMensual(totalIngresos);
+        // ── IR LABORAL: tabla progresiva dinámica desde BD ────────────────────
+        var tramosIr = await _context.TablaImpuestoRenta
+            .AsNoTracking()
+            .Where(t => t.Activo && (t.AnioVigencia == anio || t.AnioVigencia == 2026))
+            .OrderBy(t => t.DesdeMontoAnual)
+            .ToListAsync(cancellationToken);
+
+        var irLaboral = CalcularIrMensualDinamico(totalIngresos, tramosIr);
 
         // ── TOTAL DEDUCCIONES ─────────────────────────────────────────────────
         var totalDeducciones = inssLaboral
@@ -118,12 +161,12 @@ public class GenerarPlanillaCommandHandler
         // ── SALARIO NETO ──────────────────────────────────────────────────────
         var salarioNeto = totalIngresos - totalDeducciones;
 
-        // ── APORTES PATRONALES (informativo) ──────────────────────────────────
-        var inssPatronal = Math.Round(totalIngresos * 0.215m, 2);
-        var inatec       = Math.Round(totalIngresos * 0.02m,  2);
+        // ── APORTES PATRONALES (informativo / configurable) ───────────────────
+        var inssPatronal = Math.Round(totalIngresos * inssPatronalRate, 2);
+        var inatec       = Math.Round(totalIngresos * inatecRate, 2);
 
-        // ── PROVISIÓN PRESTACIONES (salario base / 30 * 2.5) ─────────────────
-        var prestacion          = Math.Round(salarioBase / 30m * 2.5m, 2);
+        // ── PROVISIÓN PRESTACIONES (salario base / 30 * tasaPrestaciones) ─────
+        var prestacion          = Math.Round(salarioBase / 30m * tasaPrestaciones, 2);
         var acumuladoAguinaldo  = prestacion;   // idéntico a vacaciones e indemnización
 
         // ── Persiste la planilla ───────────────────────────────────────────────
@@ -183,43 +226,50 @@ public class GenerarPlanillaCommandHandler
     }
 
     /// <summary>
-    /// Calcula el IR mensual usando la tabla progresiva de la Ley 822 LCT Nicaragua.
-    /// Se proyecta el ingreso mensual a anual, se aplica el tramo correspondiente
-    /// y el resultado anual se divide entre 12.
-    ///
-    /// Tabla 2026 (C$ anuales):
-    ///   0          – 100,000     →  0%
-    ///   100,000.01 – 200,000     → 15% s/exceso 100,000
-    ///   200,000.01 – 350,000     → 20% s/exceso 200,000  + 15,000
-    ///   350,000.01 – 500,000     → 25% s/exceso 350,000  + 45,000
-    ///   500,000.01 en adelante   → 30% s/exceso 500,000  + 82,500
+    /// Calcula el IR mensual usando los tramos configurados en base de datos.
+    /// Si la tabla de tramos no está configurada, utiliza la tabla progresiva por defecto (Ley 822 LCT).
     /// </summary>
-    private static decimal CalcularIrMensual(decimal ingresoMensual)
+    private static decimal CalcularIrMensualDinamico(decimal ingresoMensual, List<TablaImpuestoRenta> tramos)
     {
         var anual = ingresoMensual * 12m;
-        decimal irAnual;
 
+        if (tramos != null && tramos.Count > 0)
+        {
+            var tramoCoincidente = tramos
+                .FirstOrDefault(t => anual >= t.DesdeMontoAnual &&
+                                     (!t.HastaMontoAnual.HasValue || anual <= t.HastaMontoAnual.Value));
+
+            if (tramoCoincidente != null)
+            {
+                var exceso = Math.Max(0m, anual - tramoCoincidente.MontoBaseExceso);
+                var irAnual = tramoCoincidente.CuotaFija + (exceso * tramoCoincidente.PorcentajeAplicable);
+                return Math.Round(irAnual / 12m, 2);
+            }
+        }
+
+        // Fallback por ley 822 si no hay tramos en BD
+        decimal fallbackAnual;
         if (anual <= 100_000m)
         {
-            irAnual = 0m;
+            fallbackAnual = 0m;
         }
         else if (anual <= 200_000m)
         {
-            irAnual = (anual - 100_000m) * 0.15m;
+            fallbackAnual = (anual - 100_000m) * 0.15m;
         }
         else if (anual <= 350_000m)
         {
-            irAnual = (anual - 200_000m) * 0.20m + 15_000m;
+            fallbackAnual = (anual - 200_000m) * 0.20m + 15_000m;
         }
         else if (anual <= 500_000m)
         {
-            irAnual = (anual - 350_000m) * 0.25m + 45_000m;
+            fallbackAnual = (anual - 350_000m) * 0.25m + 45_000m;
         }
         else
         {
-            irAnual = (anual - 500_000m) * 0.30m + 82_500m;
+            fallbackAnual = (anual - 500_000m) * 0.30m + 82_500m;
         }
 
-        return Math.Round(irAnual / 12m, 2);
+        return Math.Round(fallbackAnual / 12m, 2);
     }
 }

@@ -17,5 +17,12 @@ public interface IApplicationDbContext
     DbSet<HoraExtra> HorasExtras { get; }
     DbSet<EvaluacionDesempeno> EvaluacionesDesempeno { get; }
     DbSet<EvaluacionRespuesta> EvaluacionRespuestas { get; }
+    DbSet<DiaFeriado> DiasFeriados { get; }
+    DbSet<ParametroLaboral> ParametrosLaborales { get; }
+    DbSet<TablaImpuestoRenta> TablaImpuestoRenta { get; }
+    DbSet<PeriodoCierrePlanilla> PeriodosCierrePlanilla { get; }
+    DbSet<DispositivoBiometrico> DispositivosBiometricos { get; }
+    DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos { get; }
+    DbSet<TipoSolicitudPermiso> TiposSolicitudPermiso { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

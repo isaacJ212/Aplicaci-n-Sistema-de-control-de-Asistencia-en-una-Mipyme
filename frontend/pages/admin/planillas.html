@@ -50,6 +50,7 @@
           <p>Genera, consulta y cierra la nómina de cada empleado. Los cálculos aplican INSS 7%, IR Ley 822 y prestaciones sociales de Nicaragua.</p>
         </div>
         <div style="display:flex;gap:var(--space-3)">
+          <button class="btn btn-secondary" id="btn-periodos">🔒 Cierres y Fechas de Corte</button>
           <button class="btn btn-secondary" id="btn-exportar">⬇ Exportar CSV</button>
           <button class="btn btn-primary" id="btn-generar">＋ Generar planilla</button>
         </div>
@@ -199,11 +200,56 @@
   </div>
 </div>
 
+<!-- ═══ MODAL PERIODOS Y CIERRES ═══ -->
+<div class="modal-overlay hidden" id="modal-periodos-dialog">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <span class="modal-title">🔒 Gestión de Periodos y Fechas de Corte</span>
+      <button class="btn btn-ghost btn-sm" id="periodos-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--color-bg);padding:var(--space-4);border-radius:var(--radius-md);border:1px solid var(--color-border);margin-bottom:var(--space-4)">
+        <h4 style="font-size:0.85rem;font-weight:600;margin-bottom:8px">Configurar nuevo periodo o fecha de corte</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div>
+            <label class="form-label" style="font-size:0.75rem">Periodo (YYYY-MM)</label>
+            <input type="month" class="form-input" id="np-periodo" />
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.75rem">Corte Horas Extras</label>
+            <input type="date" class="form-input" id="np-corte" />
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.75rem">Emisión Planilla</label>
+            <input type="date" class="form-input" id="np-emision" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-guardar-periodo" style="margin-top:10px">Guardar Periodo</button>
+      </div>
+
+      <h4 style="font-size:0.85rem;font-weight:600;margin-bottom:8px">Historial de Periodos</h4>
+      <div class="table-wrapper" style="max-height:220px;overflow-y:auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Periodo</th><th>Corte Horas Extras</th><th>Emisión</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="tbody-periodos">
+            <tr><td colspan="5" style="text-align:center;padding:12px">Cargando periodos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="periodos-cerrar-btn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script type="module">
 import { initAdminLayout }               from '../../modules/layout.js';
-import { planillaApi, empleadoApi }       from '../../modules/api.js';
+import { planillaApi, empleadoApi, periodoCierreApi } from '../../modules/api.js';
 import { toast, formatDate, formatCurrency, show, hide } from '../../modules/utils.js';
 
 await initAdminLayout('planillas');
@@ -212,6 +258,7 @@ const tbody      = document.getElementById('tbody-planillas');
 const badgeCount = document.getElementById('badge-count');
 const modalGen   = document.getElementById('modal-generar');
 const modalDesg  = document.getElementById('modal-desglose');
+const modalPer   = document.getElementById('modal-periodos-dialog');
 
 /* ── Estado ─────────────────────────────────────────────── */
 const state = { planillas: [], empleados: [] };
@@ -499,13 +546,94 @@ document.getElementById('btn-exportar')?.addEventListener('click', () => {
   toast('CSV descargado correctamente.', 'success');
 });
 
+/* ── Manejo de Periodos y Cierres ──────────────────────── */
+async function cargarPeriodos() {
+  const tbodyPer = document.getElementById('tbody-periodos');
+  try {
+    const data = await periodoCierreApi.getAll();
+    const lista = Array.isArray(data) ? data : (data.data ?? []);
+    if (!lista.length) {
+      tbodyPer.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:12px">No hay periodos registrados.</td></tr>`;
+      return;
+    }
+
+    tbodyPer.innerHTML = lista.map(p => `
+      <tr>
+        <td><strong>${p.periodo}</strong></td>
+        <td>${formatDate(p.fechaCorteHorasExtras)}</td>
+        <td>${formatDate(p.fechaEmisionPlanilla)}</td>
+        <td><span class="chip ${p.cerrado ? 'chip-green' : 'chip-blue'}">${p.cerrado ? 'Cerrado' : 'Abierto'}</span></td>
+        <td>
+          ${p.cerrado
+            ? `<button class="btn btn-ghost btn-sm btn-reabrir-per" data-p="${p.periodo}">Reabrir</button>`
+            : `<button class="btn btn-secondary btn-sm btn-cerrar-per" data-p="${p.periodo}">Cerrar</button>`
+          }
+        </td>
+      </tr>
+    `).join('');
+
+    document.querySelectorAll('.btn-cerrar-per').forEach(b => {
+      b.addEventListener('click', async () => {
+        if (!confirm(`¿Cerrar definitivamente el periodo ${b.dataset.p}? Las horas extras posteriores no se procesarán en este periodo.`)) return;
+        await periodoCierreApi.cerrarPeriodo(b.dataset.p, { observaciones: 'Cierre desde panel web' });
+        toast(`Periodo ${b.dataset.p} cerrado.`, 'success');
+        cargarPeriodos();
+      });
+    });
+
+    document.querySelectorAll('.btn-reabrir-per').forEach(b => {
+      b.addEventListener('click', async () => {
+        if (!confirm(`¿Reabrir el periodo ${b.dataset.p}?`)) return;
+        await periodoCierreApi.reabrirPeriodo(b.dataset.p, { motivoReapertura: 'Reapertura administrativa' });
+        toast(`Periodo ${b.dataset.p} reabierto.`, 'success');
+        cargarPeriodos();
+      });
+    });
+  } catch (err) {
+    tbodyPer.innerHTML = `<tr><td colspan="5" style="color:red;text-align:center">${err.message}</td></tr>`;
+  }
+}
+
+document.getElementById('btn-periodos')?.addEventListener('click', () => {
+  show(modalPer);
+  cargarPeriodos();
+});
+
+document.getElementById('btn-guardar-periodo')?.addEventListener('click', async () => {
+  const periodo = document.getElementById('np-periodo').value;
+  const corte = document.getElementById('np-corte').value;
+  const emision = document.getElementById('np-emision').value;
+
+  if (!periodo || !corte || !emision) {
+    toast('Completa todos los campos del periodo.', 'warning');
+    return;
+  }
+
+  try {
+    await periodoCierreApi.configurar({
+      periodo,
+      fechaCorteHorasExtras: `${corte}T23:59:59Z`,
+      fechaEmisionPlanilla: `${emision}T00:00:00Z`,
+      cerrado: false
+    });
+    toast('Periodo configurado exitosamente.', 'success');
+    cargarPeriodos();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
 /* ── Cerrar modales ─────────────────────────────────────── */
 ['modal-close','modal-cancel'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(modalGen)));
 ['desglose-close','desglose-cerrar'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(modalDesg)));
+['periodos-close','periodos-cerrar-btn'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(modalPer)));
+
 modalGen.addEventListener('click',  e => { if(e.target===modalGen)  hide(modalGen);  });
 modalDesg.addEventListener('click', e => { if(e.target===modalDesg) hide(modalDesg); });
+modalPer.addEventListener('click',  e => { if(e.target===modalPer)   hide(modalPer);  });
 
 /* ── Init ───────────────────────────────────────────────── */
 await cargarEmpleados();

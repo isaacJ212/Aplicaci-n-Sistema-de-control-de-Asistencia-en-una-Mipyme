@@ -22,6 +22,13 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<HistorialPlanilla> HistorialPlanillas => Set<HistorialPlanilla>();
     public DbSet<EvaluacionDesempeno> EvaluacionesDesempeno => Set<EvaluacionDesempeno>();
     public DbSet<EvaluacionRespuesta> EvaluacionRespuestas  => Set<EvaluacionRespuesta>();
+    public DbSet<DiaFeriado> DiasFeriados => Set<DiaFeriado>();
+    public DbSet<ParametroLaboral> ParametrosLaborales => Set<ParametroLaboral>();
+    public DbSet<TablaImpuestoRenta> TablaImpuestoRenta => Set<TablaImpuestoRenta>();
+    public DbSet<PeriodoCierrePlanilla> PeriodosCierrePlanilla => Set<PeriodoCierrePlanilla>();
+    public DbSet<DispositivoBiometrico> DispositivosBiometricos => Set<DispositivoBiometrico>();
+    public DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos => Set<RegistroMarcajeBiometrico>();
+    public DbSet<TipoSolicitudPermiso> TiposSolicitudPermiso => Set<TipoSolicitudPermiso>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +47,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.MinutosTolerancia).HasColumnName("minutos_tolerancia").HasDefaultValue(10);
             entity.Property(x => x.TokenQrActual).HasColumnName("token_qr_actual");
             entity.Property(x => x.QrUltimaActualizacion).HasColumnName("qr_ultima_actualizacion");
+            entity.Property(x => x.IpEstacionPermitida).HasColumnName("ip_estacion_permitida").HasMaxLength(255).HasDefaultValue("127.0.0.1,::1,192.168.1.0/24");
+            entity.Property(x => x.ValidarIpEn2Fa).HasColumnName("validar_ip_en_2fa").HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Rol>(entity =>
@@ -64,6 +73,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.Es2FaActivo).HasColumnName("es_2fa_activo").HasDefaultValue(false);
             entity.Property(x => x.EstadoActivo).HasColumnName("estado_activo").HasDefaultValue(true);
             entity.Property(x => x.FechaCreacion).HasColumnName("fecha_creacion").HasDefaultValueSql("NOW()");
+            entity.Property(x => x.UltimaIpLogin).HasColumnName("ultima_ip_login").HasMaxLength(60);
+            entity.Property(x => x.UltimaMacLogin).HasColumnName("ultima_mac_login").HasMaxLength(50);
+            entity.Property(x => x.UltimaFechaLogin).HasColumnName("ultima_fecha_login");
 
             entity.HasIndex(x => x.Email).IsUnique();
 
@@ -296,6 +308,214 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
             // EsActivo es una propiedad calculada — no se mapea a columna
             entity.Ignore(x => x.EsActivo);
+        });
+
+        modelBuilder.Entity<DiaFeriado>(entity =>
+        {
+            entity.ToTable("dias_feriados");
+            entity.HasKey(x => x.IdDiaFeriado);
+            entity.Property(x => x.IdDiaFeriado).HasColumnName("id_dia_feriado");
+            entity.Property(x => x.Fecha).HasColumnName("fecha").HasColumnType("date");
+            entity.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(100);
+            entity.Property(x => x.Descripcion).HasColumnName("descripcion").HasMaxLength(255);
+            entity.Property(x => x.EsRecuperable).HasColumnName("es_recuperable").HasDefaultValue(true);
+            entity.Property(x => x.EsMovil).HasColumnName("es_movil").HasDefaultValue(false);
+
+            entity.HasIndex(x => x.Fecha).IsUnique();
+
+            entity.HasData(
+                new DiaFeriado { IdDiaFeriado = 1, Fecha = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), Nombre = "Año Nuevo", Descripcion = "Feriado Nacional Obligatorio", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 2, Fecha = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc), Nombre = "Jueves Santo", Descripcion = "Semana Santa", EsRecuperable = true, EsMovil = true },
+                new DiaFeriado { IdDiaFeriado = 3, Fecha = new DateTime(2026, 4, 3, 0, 0, 0, DateTimeKind.Utc), Nombre = "Viernes Santo", Descripcion = "Semana Santa", EsRecuperable = true, EsMovil = true },
+                new DiaFeriado { IdDiaFeriado = 4, Fecha = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día Internacional de los Trabajadores", Descripcion = "Feriado Nacional Obligatorio", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 5, Fecha = new DateTime(2026, 7, 19, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día de la Revolución", Descripcion = "Feriado Nacional", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 6, Fecha = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc), Nombre = "Santo Domingo de Guzmán (Bajada)", Descripcion = "Feriado Local Managua", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 7, Fecha = new DateTime(2026, 8, 10, 0, 0, 0, DateTimeKind.Utc), Nombre = "Santo Domingo de Guzmán (Dejada)", Descripcion = "Feriado Local Managua", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 8, Fecha = new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc), Nombre = "Batalla de San Jacinto", Descripcion = "Fiestas Patrias", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 9, Fecha = new DateTime(2026, 9, 15, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día de la Independencia de Centroamérica", Descripcion = "Fiestas Patrias", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 10, Fecha = new DateTime(2026, 12, 8, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día de la Inmaculada Concepción de María", Descripcion = "Feriado Nacional", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 11, Fecha = new DateTime(2026, 12, 25, 0, 0, 0, DateTimeKind.Utc), Nombre = "Navidad", Descripcion = "Feriado Nacional Obligatorio", EsRecuperable = true, EsMovil = false }
+            );
+        });
+
+        modelBuilder.Entity<ParametroLaboral>(entity =>
+        {
+            entity.ToTable("parametros_laborales");
+            entity.HasKey(x => x.IdParametro);
+            entity.Property(x => x.IdParametro).HasColumnName("id_parametro");
+            entity.Property(x => x.Clave).HasColumnName("clave").HasMaxLength(50);
+            entity.Property(x => x.Valor).HasColumnName("valor").HasPrecision(10, 4);
+            entity.Property(x => x.Descripcion).HasColumnName("descripcion").HasMaxLength(255);
+            entity.Property(x => x.FechaModificacion).HasColumnName("fecha_modificacion").HasDefaultValueSql("NOW()");
+
+            entity.HasIndex(x => x.Clave).IsUnique();
+
+            entity.HasData(
+                new ParametroLaboral { IdParametro = 1, Clave = "INSS_LABORAL", Valor = 7.00m, Descripcion = "Aporte INSS laboral del empleado (%)", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 2, Clave = "INSS_PATRONAL", Valor = 21.50m, Descripcion = "Aporte INSS patronal de la empresa (%)", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 3, Clave = "INATEC", Valor = 2.00m, Descripcion = "Aporte INATEC patronal (%)", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 4, Clave = "HORAS_LABORALES_MES", Valor = 240.00m, Descripcion = "Horas laborales mensuales promedio para cálculo de horas extras y tardanzas", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 5, Clave = "TASA_PRESTACIONES_MENSUAL", Valor = 2.50m, Descripcion = "Días de provisión mensual para Aguinaldo, Vacaciones e Indemnización", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+            );
+        });
+
+        modelBuilder.Entity<TablaImpuestoRenta>(entity =>
+        {
+            entity.ToTable("tabla_impuesto_renta");
+            entity.HasKey(x => x.IdTablaIr);
+            entity.Property(x => x.IdTablaIr).HasColumnName("id_tabla_ir");
+            entity.Property(x => x.DesdeMontoAnual).HasColumnName("desde_monto_anual").HasPrecision(14, 2);
+            entity.Property(x => x.HastaMontoAnual).HasColumnName("hasta_monto_anual").HasPrecision(14, 2);
+            entity.Property(x => x.PorcentajeAplicable).HasColumnName("porcentaje_aplicable").HasPrecision(5, 4);
+            entity.Property(x => x.MontoBaseExceso).HasColumnName("monto_base_exceso").HasPrecision(14, 2);
+            entity.Property(x => x.CuotaFija).HasColumnName("cuota_fija").HasPrecision(14, 2);
+            entity.Property(x => x.AnioVigencia).HasColumnName("anio_vigencia").HasDefaultValue(2026);
+            entity.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
+
+            entity.HasData(
+                new TablaImpuestoRenta { IdTablaIr = 1, DesdeMontoAnual = 0.00m, HastaMontoAnual = 100000.00m, PorcentajeAplicable = 0.00m, MontoBaseExceso = 0.00m, CuotaFija = 0.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 2, DesdeMontoAnual = 100000.01m, HastaMontoAnual = 200000.00m, PorcentajeAplicable = 0.15m, MontoBaseExceso = 100000.00m, CuotaFija = 0.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 3, DesdeMontoAnual = 200000.01m, HastaMontoAnual = 350000.00m, PorcentajeAplicable = 0.20m, MontoBaseExceso = 200000.00m, CuotaFija = 15000.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 4, DesdeMontoAnual = 350000.01m, HastaMontoAnual = 500000.00m, PorcentajeAplicable = 0.25m, MontoBaseExceso = 350000.00m, CuotaFija = 45000.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 5, DesdeMontoAnual = 500000.01m, HastaMontoAnual = null, PorcentajeAplicable = 0.30m, MontoBaseExceso = 500000.00m, CuotaFija = 82500.00m, AnioVigencia = 2026, Activo = true }
+            );
+        });
+
+        modelBuilder.Entity<PeriodoCierrePlanilla>(entity =>
+        {
+            entity.ToTable("periodos_cierre_planilla");
+            entity.HasKey(x => x.IdPeriodoCierre);
+            entity.Property(x => x.IdPeriodoCierre).HasColumnName("id_periodo_cierre");
+            entity.Property(x => x.Periodo).HasColumnName("periodo").HasMaxLength(7);
+            entity.Property(x => x.FechaCorteHorasExtras).HasColumnName("fecha_corte_horas_extras");
+            entity.Property(x => x.FechaEmisionPlanilla).HasColumnName("fecha_emision_planilla");
+            entity.Property(x => x.Cerrado).HasColumnName("cerrado").HasDefaultValue(false);
+            entity.Property(x => x.FechaCierreDefinitivo).HasColumnName("fecha_cierre_definitivo");
+            entity.Property(x => x.IdUsuarioCierre).HasColumnName("id_usuario_cierre");
+            entity.Property(x => x.Observaciones).HasColumnName("observaciones");
+
+            entity.HasIndex(x => x.Periodo).IsUnique();
+
+            entity.HasOne(x => x.UsuarioCierre)
+                .WithMany()
+                .HasForeignKey(x => x.IdUsuarioCierre)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasData(
+                new PeriodoCierrePlanilla
+                {
+                    IdPeriodoCierre = 1,
+                    Periodo = "2026-05",
+                    FechaCorteHorasExtras = new DateTime(2026, 5, 25, 23, 59, 59, DateTimeKind.Utc),
+                    FechaEmisionPlanilla = new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc),
+                    Cerrado = true,
+                    FechaCierreDefinitivo = new DateTime(2026, 5, 30, 18, 0, 0, DateTimeKind.Utc),
+                    Observaciones = "Cierre de planilla Mayo 2026 (Rubí del Valle)"
+                },
+                new PeriodoCierrePlanilla
+                {
+                    IdPeriodoCierre = 2,
+                    Periodo = "2026-08",
+                    FechaCorteHorasExtras = new DateTime(2026, 8, 25, 23, 59, 59, DateTimeKind.Utc),
+                    FechaEmisionPlanilla = new DateTime(2026, 8, 30, 0, 0, 0, DateTimeKind.Utc),
+                    Cerrado = false,
+                    Observaciones = "Periodo activo Agosto 2026"
+                }
+            );
+        });
+
+        modelBuilder.Entity<DispositivoBiometrico>(entity =>
+        {
+            entity.ToTable("dispositivos_biometricos");
+            entity.HasKey(x => x.IdDispositivo);
+            entity.Property(x => x.IdDispositivo).HasColumnName("id_dispositivo");
+            entity.Property(x => x.NombreDispositivo).HasColumnName("nombre_dispositivo").HasMaxLength(100);
+            entity.Property(x => x.DireccionIp).HasColumnName("direccion_ip").HasMaxLength(50);
+            entity.Property(x => x.Puerto).HasColumnName("puerto").HasDefaultValue(4370);
+            entity.Property(x => x.TipoProtocolo).HasColumnName("tipo_protocolo").HasMaxLength(50).HasDefaultValue("ZKTeco_Standalone");
+            entity.Property(x => x.Ubicacion).HasColumnName("ubicacion").HasMaxLength(150);
+            entity.Property(x => x.ClaveComunicacion).HasColumnName("clave_comunicacion").HasMaxLength(100);
+            entity.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
+            entity.Property(x => x.UltimaSincronizacion).HasColumnName("ultima_sincronizacion");
+            entity.Property(x => x.EstadoConexion).HasColumnName("estado_conexion").HasMaxLength(30).HasDefaultValue("Desconectado");
+
+            entity.HasData(
+                new DispositivoBiometrico
+                {
+                    IdDispositivo = 1,
+                    NombreDispositivo = "Reloj Marcador Principal (Recepción)",
+                    DireccionIp = "192.168.1.201",
+                    Puerto = 4370,
+                    TipoProtocolo = "ZKTeco_Standalone",
+                    Ubicacion = "Entrada Principal / Recepción",
+                    Activo = true,
+                    EstadoConexion = "Conectado"
+                },
+                new DispositivoBiometrico
+                {
+                    IdDispositivo = 2,
+                    NombreDispositivo = "Reloj Marcador Taller / Bodega",
+                    DireccionIp = "192.168.1.202",
+                    Puerto = 4370,
+                    TipoProtocolo = "ZKTeco_Standalone",
+                    Ubicacion = "Acceso Bodega",
+                    Activo = true,
+                    EstadoConexion = "Desconectado"
+                }
+            );
+        });
+
+        modelBuilder.Entity<RegistroMarcajeBiometrico>(entity =>
+        {
+            entity.ToTable("registros_marcajes_biometricos");
+            entity.HasKey(x => x.IdRegistroBiometrico);
+            entity.Property(x => x.IdRegistroBiometrico).HasColumnName("id_registro_biometrico");
+            entity.Property(x => x.IdDispositivo).HasColumnName("id_dispositivo");
+            entity.Property(x => x.NumeroEnrollamiento).HasColumnName("numero_enrollamiento").HasMaxLength(50);
+            entity.Property(x => x.FechaHora).HasColumnName("fecha_hora");
+            entity.Property(x => x.TipoMarcaje).HasColumnName("tipo_marcaje").HasDefaultValue(0);
+            entity.Property(x => x.TipoVerificacion).HasColumnName("tipo_verificacion").HasMaxLength(30).HasDefaultValue("Huella");
+            entity.Property(x => x.Procesado).HasColumnName("procesado").HasDefaultValue(false);
+            entity.Property(x => x.FechaProcesado).HasColumnName("fecha_procesado");
+            entity.Property(x => x.IdAsistenciaGenerada).HasColumnName("id_asistencia_generada");
+            entity.Property(x => x.ErrorProcesamiento).HasColumnName("error_procesamiento");
+
+            entity.HasIndex(x => new { x.IdDispositivo, x.NumeroEnrollamiento, x.FechaHora });
+
+            entity.HasOne(x => x.Dispositivo)
+                .WithMany(x => x.RegistrosMarcajes)
+                .HasForeignKey(x => x.IdDispositivo)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.AsistenciaGenerada)
+                .WithMany()
+                .HasForeignKey(x => x.IdAsistenciaGenerada)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<TipoSolicitudPermiso>(entity =>
+        {
+            entity.ToTable("tipos_solicitud_permiso");
+            entity.HasKey(x => x.IdTipoSolicitud);
+            entity.Property(x => x.IdTipoSolicitud).HasColumnName("id_tipo_solicitud");
+            entity.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(100);
+            entity.Property(x => x.Descripcion).HasColumnName("descripcion").HasMaxLength(255);
+            entity.Property(x => x.RequiereComprobante).HasColumnName("requiere_comprobante").HasDefaultValue(false);
+            entity.Property(x => x.DescuentaVacaciones).HasColumnName("descuenta_vacaciones").HasDefaultValue(false);
+            entity.Property(x => x.PermitePorHoras).HasColumnName("permite_por_horas").HasDefaultValue(true);
+            entity.Property(x => x.MaximoDiasPorSolicitud).HasColumnName("maximo_dias_por_solicitud");
+            entity.Property(x => x.Icono).HasColumnName("icono").HasMaxLength(50).HasDefaultValue("calendar");
+            entity.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
+
+            entity.HasIndex(x => x.Nombre).IsUnique();
+
+            entity.HasData(
+                new TipoSolicitudPermiso { IdTipoSolicitud = 1, Nombre = "Vacaciones", Descripcion = "Días de descanso anual remunerado con cargo al saldo acumulado", RequiereComprobante = false, DescuentaVacaciones = true, PermitePorHoras = false, MaximoDiasPorSolicitud = 30, Icono = "beach_access", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 2, Nombre = "Permiso Médico", Descripcion = "Incapacidad médica o cita médica justificada", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = true, MaximoDiasPorSolicitud = 15, Icono = "local_hospital", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 3, Nombre = "Permiso Personal", Descripcion = "Asuntos personales o trámites administrativos", RequiereComprobante = false, DescuentaVacaciones = false, PermitePorHoras = true, MaximoDiasPorSolicitud = 3, Icono = "person", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 4, Nombre = "Duelo / Calamidad", Descripcion = "Fallecimiento de familiar directo o calamidad doméstica (Arto. 73 Código del Trabajo)", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = false, MaximoDiasPorSolicitud = 5, Icono = "favorite", Activo = true },
+                new TipoSolicitudPermiso { IdTipoSolicitud = 5, Nombre = "Licencia de Estudio", Descripcion = "Permiso por exámenes o capacitaciones laborales autorizadas", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = true, MaximoDiasPorSolicitud = 7, Icono = "school", Activo = true }
+            );
         });
 
         base.OnModelCreating(modelBuilder);

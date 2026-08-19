@@ -27,30 +27,115 @@ public class SolicitarPermisoVacacionCommandHandler : IRequestHandler<SolicitarP
         if (request.FechaInicio > request.FechaFin)
             throw new InvalidOperationException("La fecha de inicio no puede ser mayor que la fecha final.");
 
-        var tipo = request.TipoSolicitud.Trim();
-        var tiposValidos = new[] { "Vacaciones", "Permiso Medico", "Permiso Personal", "Permiso", "Vacacion" };
-        if (!tiposValidos.Contains(tipo))
-            throw new InvalidOperationException("El tipo de solicitud debe ser 'Vacaciones', 'Permiso Medico' o 'Permiso Personal'.");
+        var tipoEntrada = request.TipoSolicitud.Trim();
 
-        // Normalizar alias cortos al valor canónico
-        if (tipo == "Vacacion") tipo = "Vacaciones";
-        if (tipo == "Permiso")  tipo = "Permiso Personal";
+        // ─── Consultar tipo de solicitud configurable desde BD ──────────────
+        var tiposDisponibles = await _context.TiposSolicitudPermiso
+            .AsNoTracking()
+            .Where(t => t.Activo)
+            .ToListAsync(cancellationToken);
 
-        var diasSolicitados = request.DiasSolicitados ?? CalcularDiasEntreFechas(request.FechaInicio, request.FechaFin);
+        var tipoConfig = tiposDisponibles.FirstOrDefault(t =>
+            t.Nombre.Equals(tipoEntrada, StringComparison.OrdinalIgnoreCase) ||
+            (tipoEntrada.Equals("Vacacion", StringComparison.OrdinalIgnoreCase) && t.Nombre.Equals("Vacaciones", StringComparison.OrdinalIgnoreCase)) ||
+            (tipoEntrada.Equals("Permiso", StringComparison.OrdinalIgnoreCase) && t.Nombre.Equals("Permiso Personal", StringComparison.OrdinalIgnoreCase)) ||
+            (tipoEntrada.Equals("Permiso Medico", StringComparison.OrdinalIgnoreCase) && t.Nombre.Equals("Permiso Médico", StringComparison.OrdinalIgnoreCase))
+        );
 
-        if (diasSolicitados <= 0)
-            throw new InvalidOperationException("La cantidad de días solicitados debe ser mayor a cero.");
+        if (tipoConfig is null)
+        {
+            var nombresValidos = string.Join(", ", tiposDisponibles.Select(t => $"'{t.Nombre}'"));
+            throw new InvalidOperationException($"El tipo de solicitud '{tipoEntrada}' no es válido o no está activo. Tipos disponibles: {nombresValidos}.");
+        }
 
-        if (tipo == "Vacaciones" && empleado.DiasVacacionesAcumuladas < diasSolicitados)
-            throw new InvalidOperationException("El empleado no tiene suficientes días de vacaciones acumulados.");
+        var tipoCanonica = tipoConfig.Nombre;
+
+        // ─── Determinar si la solicitud es POR HORAS o POR DÍAS ─────────────
+        bool esPorHoras = request.HorasSolicitadas.HasValue
+                          && request.HorasSolicitadas.Value > 0m
+                          && (!request.DiasSolicitados.HasValue || request.DiasSolicitados.Value == 0m);
+
+        if (esPorHoras && !tipoConfig.PermitePorHoras)
+            throw new InvalidOperationException($"El tipo de solicitud '{tipoCanonica}' no se puede solicitar por horas, solo por días completos.");
+
+        // Para solicitudes por horas, FechaInicio y FechaFin deben ser el MISMO día
+        if (esPorHoras && request.FechaInicio.Date != request.FechaFin.Date)
+            throw new InvalidOperationException("Las solicitudes por horas deben iniciar y finalizar el mismo día.");
+
+        // Validar HorasSolicitadas contra jornada diaria (8h por defecto desde ConfiguracionSede)
+        decimal? horasSolicitadas = null;
+        decimal diasSolicitados;
+        string unidadTiempo;
+
+        if (esPorHoras)
+        {
+            horasSolicitadas = request.HorasSolicitadas!.Value;
+            if (horasSolicitadas <= 0m)
+                throw new InvalidOperationException("Las horas solicitadas deben ser mayores a 0.");
+
+            // Obtener jornada máxima diaria de la sede (default 8h)
+            var jornadaHoras = 8m;
+            var sede = await _context.ConfiguracionesSede
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+            if (sede is not null)
+            {
+                var hs = (sede.HoraSalidaOficial - sede.HoraEntradaOficial).TotalMinutes;
+                hs = Math.Max(0, hs - sede.DuracionAlmuerzoMinutos);
+                jornadaHoras = (decimal)Math.Round(hs / 60.0, 2);
+            }
+
+            if (horasSolicitadas > jornadaHoras)
+                throw new InvalidOperationException(
+                    $"No se pueden solicitar más de {jornadaHoras} horas por día (jornada diaria).");
+
+            // Para permisos por horas, días = 0 (fracción de día)
+            diasSolicitados = 0m;
+            unidadTiempo = "Horas";
+        }
+        else
+        {
+            diasSolicitados = request.DiasSolicitados ?? CalcularDiasEntreFechas(request.FechaInicio, request.FechaFin);
+            if (diasSolicitados <= 0)
+                throw new InvalidOperationException("La cantidad de días solicitados debe ser mayor a cero.");
+
+            if (tipoConfig.MaximoDiasPorSolicitud.HasValue && diasSolicitados > tipoConfig.MaximoDiasPorSolicitud.Value)
+                throw new InvalidOperationException($"La solicitud no puede superar el límite de {tipoConfig.MaximoDiasPorSolicitud.Value} días para '{tipoCanonica}'.");
+
+            unidadTiempo = "Dias";
+        }
+
+        // ─── Validaciones de saldo para tipos que descuentan vacaciones ──────
+        if (tipoConfig.DescuentaVacaciones)
+        {
+            if (empleado.DiasVacacionesAcumuladas < diasSolicitados)
+                throw new InvalidOperationException("El empleado no tiene suficientes días de vacaciones acumulados.");
+        }
+
+        // ─── Verificar que no existan solicitudes solapadas ────────────────
+        var inicio = NormalizeToUtcDate(request.FechaInicio);
+        var fin    = NormalizeToUtcDate(request.FechaFin);
+
+        bool solapado = await _context.HistorialPermisosVacaciones
+            .AnyAsync(p =>
+                p.IdEmpleado == request.IdEmpleado
+                && p.EstadoSolicitud != "Rechazado"
+                && p.FechaInicio <= fin
+                && p.FechaFin    >= inicio,
+                cancellationToken);
+
+        if (solapado)
+            throw new InvalidOperationException(
+                "Ya existe una solicitud aprobada/pendiente en ese rango de fechas.");
 
         var solicitud = new HistorialPermisoVacacion
         {
             IdEmpleado = request.IdEmpleado,
-            TipoSolicitud = tipo,
-            FechaInicio = NormalizeToUtcDate(request.FechaInicio),
-            FechaFin = NormalizeToUtcDate(request.FechaFin),
+            TipoSolicitud = tipoCanonica,
+            FechaInicio = inicio,
+            FechaFin = fin,
             DiasSolicitados = diasSolicitados,
+            HorasSolicitadas = horasSolicitadas,
             Motivo = request.Motivo.Trim(),
             EstadoSolicitud = "Pendiente",
             FechaRespuesta = null,
@@ -69,6 +154,8 @@ public class SolicitarPermisoVacacionCommandHandler : IRequestHandler<SolicitarP
             FechaInicio = solicitud.FechaInicio,
             FechaFin = solicitud.FechaFin,
             DiasSolicitados = solicitud.DiasSolicitados,
+            HorasSolicitadas = solicitud.HorasSolicitadas,
+            UnidadTiempo = unidadTiempo,
             Motivo = solicitud.Motivo,
             EstadoSolicitud = solicitud.EstadoSolicitud,
             FechaRespuesta = solicitud.FechaRespuesta,

@@ -8,4 +8,5 @@ public class SolicitarPermisoVacacionRequestDto
     public DateTime FechaFin { get; set; }
     public string Motivo { get; set; } = string.Empty;
     public decimal? DiasSolicitados { get; set; }
+    public decimal? HorasSolicitadas { get; set; }
 }

@@ -51,15 +51,20 @@ public class PermisoVacacionController : ControllerBase
     {
         var data = await _mediator.Send(new SolicitarPermisoVacacionCommand
         {
-            IdEmpleado    = request.IdEmpleado,
-            TipoSolicitud = request.TipoSolicitud,
-            FechaInicio   = request.FechaInicio,
-            FechaFin      = request.FechaFin,
-            Motivo        = request.Motivo,
-            DiasSolicitados = request.DiasSolicitados
+            IdEmpleado       = request.IdEmpleado,
+            TipoSolicitud    = request.TipoSolicitud,
+            FechaInicio      = request.FechaInicio,
+            FechaFin         = request.FechaFin,
+            Motivo           = request.Motivo,
+            DiasSolicitados  = request.DiasSolicitados,
+            HorasSolicitadas = request.HorasSolicitadas
         });
 
-        return Ok(ApiResponse<PermisoVacacionResponseDto>.Ok(data, "Solicitud enviada correctamente."));
+        string msg = data.UnidadTiempo == "Horas"
+            ? $"Solicitud enviada correctamente ({data.HorasSolicitadas} horas)."
+            : "Solicitud enviada correctamente.";
+
+        return Ok(ApiResponse<PermisoVacacionResponseDto>.Ok(data, msg));
     }
 
     [HttpGet("solicitudes")]

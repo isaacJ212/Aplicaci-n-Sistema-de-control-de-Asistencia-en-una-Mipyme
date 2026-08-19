@@ -45,6 +45,13 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .HasColumnType("interval")
                         .HasColumnName("hora_salida_oficial");
 
+                    b.Property<string>("IpEstacionPermitida")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasDefaultValue("127.0.0.1,::1,192.168.1.0/24")
+                        .HasColumnName("ip_estacion_permitida");
+
                     b.Property<decimal>("LatitudSede")
                         .HasPrecision(10, 8)
                         .HasColumnType("numeric(10,8)")
@@ -83,9 +90,252 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("token_qr_actual");
 
+                    b.Property<bool>("ValidarIpEn2Fa")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("validar_ip_en_2fa");
+
                     b.HasKey("IdSede");
 
                     b.ToTable("configuracion_sede", (string)null);
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.DiaFeriado", b =>
+                {
+                    b.Property<int>("IdDiaFeriado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_dia_feriado");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdDiaFeriado"));
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("descripcion");
+
+                    b.Property<bool>("EsMovil")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("es_movil");
+
+                    b.Property<bool>("EsRecuperable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("es_recuperable");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("date")
+                        .HasColumnName("fecha");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("nombre");
+
+                    b.HasKey("IdDiaFeriado");
+
+                    b.HasIndex("Fecha")
+                        .IsUnique();
+
+                    b.ToTable("dias_feriados", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            IdDiaFeriado = 1,
+                            Descripcion = "Feriado Nacional Obligatorio",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Año Nuevo"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 2,
+                            Descripcion = "Semana Santa",
+                            EsMovil = true,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 4, 2, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Jueves Santo"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 3,
+                            Descripcion = "Semana Santa",
+                            EsMovil = true,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 4, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Viernes Santo"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 4,
+                            Descripcion = "Feriado Nacional Obligatorio",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Día Internacional de los Trabajadores"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 5,
+                            Descripcion = "Feriado Nacional",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 7, 19, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Día de la Revolución"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 6,
+                            Descripcion = "Feriado Local Managua",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 8, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Santo Domingo de Guzmán (Bajada)"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 7,
+                            Descripcion = "Feriado Local Managua",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 8, 10, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Santo Domingo de Guzmán (Dejada)"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 8,
+                            Descripcion = "Fiestas Patrias",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 9, 14, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Batalla de San Jacinto"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 9,
+                            Descripcion = "Fiestas Patrias",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 9, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Día de la Independencia de Centroamérica"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 10,
+                            Descripcion = "Feriado Nacional",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 12, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Día de la Inmaculada Concepción de María"
+                        },
+                        new
+                        {
+                            IdDiaFeriado = 11,
+                            Descripcion = "Feriado Nacional Obligatorio",
+                            EsMovil = false,
+                            EsRecuperable = true,
+                            Fecha = new DateTime(2026, 12, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nombre = "Navidad"
+                        });
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.DispositivoBiometrico", b =>
+                {
+                    b.Property<int>("IdDispositivo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_dispositivo");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdDispositivo"));
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
+
+                    b.Property<string>("ClaveComunicacion")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("clave_comunicacion");
+
+                    b.Property<string>("DireccionIp")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("direccion_ip");
+
+                    b.Property<string>("EstadoConexion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Desconectado")
+                        .HasColumnName("estado_conexion");
+
+                    b.Property<string>("NombreDispositivo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("nombre_dispositivo");
+
+                    b.Property<int>("Puerto")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(4370)
+                        .HasColumnName("puerto");
+
+                    b.Property<string>("TipoProtocolo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("ZKTeco_Standalone")
+                        .HasColumnName("tipo_protocolo");
+
+                    b.Property<string>("Ubicacion")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("ubicacion");
+
+                    b.Property<DateTime?>("UltimaSincronizacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ultima_sincronizacion");
+
+                    b.HasKey("IdDispositivo");
+
+                    b.ToTable("dispositivos_biometricos", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            IdDispositivo = 1,
+                            Activo = true,
+                            DireccionIp = "192.168.1.201",
+                            EstadoConexion = "Conectado",
+                            NombreDispositivo = "Reloj Marcador Principal (Recepción)",
+                            Puerto = 4370,
+                            TipoProtocolo = "ZKTeco_Standalone",
+                            Ubicacion = "Entrada Principal / Recepción"
+                        },
+                        new
+                        {
+                            IdDispositivo = 2,
+                            Activo = true,
+                            DireccionIp = "192.168.1.202",
+                            EstadoConexion = "Desconectado",
+                            NombreDispositivo = "Reloj Marcador Taller / Bodega",
+                            Puerto = 4370,
+                            TipoProtocolo = "ZKTeco_Standalone",
+                            Ubicacion = "Acceso Bodega"
+                        });
                 });
 
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Empleado", b =>
@@ -195,14 +445,22 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdEvaluacion"));
 
-                    b.Property<int?>("CalificacionCumplimientoFunciones")
-                        .HasColumnType("integer")
-                        .HasColumnName("calificacion_cumplimiento_funciones");
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Pendiente")
+                        .HasColumnName("estado");
 
-                    b.Property<DateTime?>("FechaEvaluacion")
+                    b.Property<DateTime?>("FechaCompletada")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_completada");
+
+                    b.Property<DateTime>("FechaCreacion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_evaluacion")
+                        .HasColumnName("fecha_creacion")
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<int>("IdEmpleado")
@@ -223,18 +481,56 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("periodo");
 
-                    b.Property<decimal?>("PorcentajePuntualidad")
+                    b.Property<string>("Perspectiva")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Jefe")
+                        .HasColumnName("perspectiva");
+
+                    b.Property<decimal>("PuntajeFinal")
+                        .ValueGeneratedOnAdd()
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)")
-                        .HasColumnName("porcentaje_puntualidad");
+                        .HasDefaultValue(0m)
+                        .HasColumnName("puntaje_final");
 
                     b.HasKey("IdEvaluacion");
 
-                    b.HasIndex("IdEmpleado");
-
                     b.HasIndex("IdEvaluador");
 
+                    b.HasIndex("IdEmpleado", "Periodo");
+
                     b.ToTable("evaluaciones_desempeno", (string)null);
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.EvaluacionRespuesta", b =>
+                {
+                    b.Property<int>("IdRespuesta")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_respuesta");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdRespuesta"));
+
+                    b.Property<int>("Calificacion")
+                        .HasColumnType("integer")
+                        .HasColumnName("calificacion");
+
+                    b.Property<int>("IdEvaluacion")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_evaluacion");
+
+                    b.Property<int>("NumeroPregunta")
+                        .HasColumnType("integer")
+                        .HasColumnName("numero_pregunta");
+
+                    b.HasKey("IdRespuesta");
+
+                    b.HasIndex("IdEvaluacion");
+
+                    b.ToTable("evaluacion_respuestas", (string)null);
                 });
 
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.HistorialAsistencia", b =>
@@ -345,6 +641,9 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("FechaRespuesta")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_respuesta");
+
+                    b.Property<decimal?>("HorasSolicitadas")
+                        .HasColumnType("numeric");
 
                     b.Property<int>("IdEmpleado")
                         .HasColumnType("integer")
@@ -542,6 +841,160 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.ToTable("horas_extras", (string)null);
                 });
 
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.ParametroLaboral", b =>
+                {
+                    b.Property<int>("IdParametro")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_parametro");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdParametro"));
+
+                    b.Property<string>("Clave")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("clave");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("descripcion");
+
+                    b.Property<DateTime>("FechaModificacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_modificacion")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("numeric(10,4)")
+                        .HasColumnName("valor");
+
+                    b.HasKey("IdParametro");
+
+                    b.HasIndex("Clave")
+                        .IsUnique();
+
+                    b.ToTable("parametros_laborales", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            IdParametro = 1,
+                            Clave = "INSS_LABORAL",
+                            Descripcion = "Aporte INSS laboral del empleado (%)",
+                            FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Valor = 7.00m
+                        },
+                        new
+                        {
+                            IdParametro = 2,
+                            Clave = "INSS_PATRONAL",
+                            Descripcion = "Aporte INSS patronal de la empresa (%)",
+                            FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Valor = 21.50m
+                        },
+                        new
+                        {
+                            IdParametro = 3,
+                            Clave = "INATEC",
+                            Descripcion = "Aporte INATEC patronal (%)",
+                            FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Valor = 2.00m
+                        },
+                        new
+                        {
+                            IdParametro = 4,
+                            Clave = "HORAS_LABORALES_MES",
+                            Descripcion = "Horas laborales mensuales promedio para cálculo de horas extras y tardanzas",
+                            FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Valor = 240.00m
+                        },
+                        new
+                        {
+                            IdParametro = 5,
+                            Clave = "TASA_PRESTACIONES_MENSUAL",
+                            Descripcion = "Días de provisión mensual para Aguinaldo, Vacaciones e Indemnización",
+                            FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Valor = 2.50m
+                        });
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.PeriodoCierrePlanilla", b =>
+                {
+                    b.Property<int>("IdPeriodoCierre")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_periodo_cierre");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdPeriodoCierre"));
+
+                    b.Property<bool>("Cerrado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("cerrado");
+
+                    b.Property<DateTime?>("FechaCierreDefinitivo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_cierre_definitivo");
+
+                    b.Property<DateTime>("FechaCorteHorasExtras")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_corte_horas_extras");
+
+                    b.Property<DateTime>("FechaEmisionPlanilla")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_emision_planilla");
+
+                    b.Property<int?>("IdUsuarioCierre")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_usuario_cierre");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("text")
+                        .HasColumnName("observaciones");
+
+                    b.Property<string>("Periodo")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("periodo");
+
+                    b.HasKey("IdPeriodoCierre");
+
+                    b.HasIndex("IdUsuarioCierre");
+
+                    b.HasIndex("Periodo")
+                        .IsUnique();
+
+                    b.ToTable("periodos_cierre_planilla", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            IdPeriodoCierre = 1,
+                            Cerrado = true,
+                            FechaCierreDefinitivo = new DateTime(2026, 5, 30, 18, 0, 0, 0, DateTimeKind.Utc),
+                            FechaCorteHorasExtras = new DateTime(2026, 5, 25, 23, 59, 59, 0, DateTimeKind.Utc),
+                            FechaEmisionPlanilla = new DateTime(2026, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Observaciones = "Cierre de planilla Mayo 2026 (Rubí del Valle)",
+                            Periodo = "2026-05"
+                        },
+                        new
+                        {
+                            IdPeriodoCierre = 2,
+                            Cerrado = false,
+                            FechaCorteHorasExtras = new DateTime(2026, 8, 25, 23, 59, 59, 0, DateTimeKind.Utc),
+                            FechaEmisionPlanilla = new DateTime(2026, 8, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Observaciones = "Periodo activo Agosto 2026",
+                            Periodo = "2026-08"
+                        });
+                });
+
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<int>("IdRefreshToken")
@@ -593,6 +1046,70 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.RegistroMarcajeBiometrico", b =>
+                {
+                    b.Property<int>("IdRegistroBiometrico")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_registro_biometrico");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdRegistroBiometrico"));
+
+                    b.Property<string>("ErrorProcesamiento")
+                        .HasColumnType("text")
+                        .HasColumnName("error_procesamiento");
+
+                    b.Property<DateTime>("FechaHora")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_hora");
+
+                    b.Property<DateTime?>("FechaProcesado")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_procesado");
+
+                    b.Property<int?>("IdAsistenciaGenerada")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_asistencia_generada");
+
+                    b.Property<int>("IdDispositivo")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_dispositivo");
+
+                    b.Property<string>("NumeroEnrollamiento")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("numero_enrollamiento");
+
+                    b.Property<bool>("Procesado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("procesado");
+
+                    b.Property<int>("TipoMarcaje")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("tipo_marcaje");
+
+                    b.Property<string>("TipoVerificacion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Huella")
+                        .HasColumnName("tipo_verificacion");
+
+                    b.HasKey("IdRegistroBiometrico");
+
+                    b.HasIndex("IdAsistenciaGenerada");
+
+                    b.HasIndex("IdDispositivo", "NumeroEnrollamiento", "FechaHora");
+
+                    b.ToTable("registros_marcajes_biometricos", (string)null);
+                });
+
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Rol", b =>
                 {
                     b.Property<int>("IdRol")
@@ -619,6 +1136,238 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("roles", (string)null);
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.TablaImpuestoRenta", b =>
+                {
+                    b.Property<int>("IdTablaIr")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_tabla_ir");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdTablaIr"));
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
+
+                    b.Property<int>("AnioVigencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2026)
+                        .HasColumnName("anio_vigencia");
+
+                    b.Property<decimal>("CuotaFija")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("cuota_fija");
+
+                    b.Property<decimal>("DesdeMontoAnual")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("desde_monto_anual");
+
+                    b.Property<decimal?>("HastaMontoAnual")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("hasta_monto_anual");
+
+                    b.Property<decimal>("MontoBaseExceso")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("monto_base_exceso");
+
+                    b.Property<decimal>("PorcentajeAplicable")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)")
+                        .HasColumnName("porcentaje_aplicable");
+
+                    b.HasKey("IdTablaIr");
+
+                    b.ToTable("tabla_impuesto_renta", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            IdTablaIr = 1,
+                            Activo = true,
+                            AnioVigencia = 2026,
+                            CuotaFija = 0.00m,
+                            DesdeMontoAnual = 0.00m,
+                            HastaMontoAnual = 100000.00m,
+                            MontoBaseExceso = 0.00m,
+                            PorcentajeAplicable = 0.00m
+                        },
+                        new
+                        {
+                            IdTablaIr = 2,
+                            Activo = true,
+                            AnioVigencia = 2026,
+                            CuotaFija = 0.00m,
+                            DesdeMontoAnual = 100000.01m,
+                            HastaMontoAnual = 200000.00m,
+                            MontoBaseExceso = 100000.00m,
+                            PorcentajeAplicable = 0.15m
+                        },
+                        new
+                        {
+                            IdTablaIr = 3,
+                            Activo = true,
+                            AnioVigencia = 2026,
+                            CuotaFija = 15000.00m,
+                            DesdeMontoAnual = 200000.01m,
+                            HastaMontoAnual = 350000.00m,
+                            MontoBaseExceso = 200000.00m,
+                            PorcentajeAplicable = 0.20m
+                        },
+                        new
+                        {
+                            IdTablaIr = 4,
+                            Activo = true,
+                            AnioVigencia = 2026,
+                            CuotaFija = 45000.00m,
+                            DesdeMontoAnual = 350000.01m,
+                            HastaMontoAnual = 500000.00m,
+                            MontoBaseExceso = 350000.00m,
+                            PorcentajeAplicable = 0.25m
+                        },
+                        new
+                        {
+                            IdTablaIr = 5,
+                            Activo = true,
+                            AnioVigencia = 2026,
+                            CuotaFija = 82500.00m,
+                            DesdeMontoAnual = 500000.01m,
+                            MontoBaseExceso = 500000.00m,
+                            PorcentajeAplicable = 0.30m
+                        });
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.TipoSolicitudPermiso", b =>
+                {
+                    b.Property<int>("IdTipoSolicitud")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_tipo_solicitud");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdTipoSolicitud"));
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("descripcion");
+
+                    b.Property<bool>("DescuentaVacaciones")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("descuenta_vacaciones");
+
+                    b.Property<string>("Icono")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("calendar")
+                        .HasColumnName("icono");
+
+                    b.Property<int?>("MaximoDiasPorSolicitud")
+                        .HasColumnType("integer")
+                        .HasColumnName("maximo_dias_por_solicitud");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("nombre");
+
+                    b.Property<bool>("PermitePorHoras")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("permite_por_horas");
+
+                    b.Property<bool>("RequiereComprobante")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("requiere_comprobante");
+
+                    b.HasKey("IdTipoSolicitud");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
+                    b.ToTable("tipos_solicitud_permiso", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            IdTipoSolicitud = 1,
+                            Activo = true,
+                            Descripcion = "Días de descanso anual remunerado con cargo al saldo acumulado",
+                            DescuentaVacaciones = true,
+                            Icono = "beach_access",
+                            MaximoDiasPorSolicitud = 30,
+                            Nombre = "Vacaciones",
+                            PermitePorHoras = false,
+                            RequiereComprobante = false
+                        },
+                        new
+                        {
+                            IdTipoSolicitud = 2,
+                            Activo = true,
+                            Descripcion = "Incapacidad médica o cita médica justificada",
+                            DescuentaVacaciones = false,
+                            Icono = "local_hospital",
+                            MaximoDiasPorSolicitud = 15,
+                            Nombre = "Permiso Médico",
+                            PermitePorHoras = true,
+                            RequiereComprobante = true
+                        },
+                        new
+                        {
+                            IdTipoSolicitud = 3,
+                            Activo = true,
+                            Descripcion = "Asuntos personales o trámites administrativos",
+                            DescuentaVacaciones = false,
+                            Icono = "person",
+                            MaximoDiasPorSolicitud = 3,
+                            Nombre = "Permiso Personal",
+                            PermitePorHoras = true,
+                            RequiereComprobante = false
+                        },
+                        new
+                        {
+                            IdTipoSolicitud = 4,
+                            Activo = true,
+                            Descripcion = "Fallecimiento de familiar directo o calamidad doméstica (Arto. 73 Código del Trabajo)",
+                            DescuentaVacaciones = false,
+                            Icono = "favorite",
+                            MaximoDiasPorSolicitud = 5,
+                            Nombre = "Duelo / Calamidad",
+                            PermitePorHoras = false,
+                            RequiereComprobante = true
+                        },
+                        new
+                        {
+                            IdTipoSolicitud = 5,
+                            Activo = true,
+                            Descripcion = "Permiso por exámenes o capacitaciones laborales autorizadas",
+                            DescuentaVacaciones = false,
+                            Icono = "school",
+                            MaximoDiasPorSolicitud = 7,
+                            Nombre = "Licencia de Estudio",
+                            PermitePorHoras = true,
+                            RequiereComprobante = true
+                        });
                 });
 
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Usuario", b =>
@@ -668,6 +1417,20 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("secret_2fa");
+
+                    b.Property<DateTime?>("UltimaFechaLogin")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ultima_fecha_login");
+
+                    b.Property<string>("UltimaIpLogin")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("ultima_ip_login");
+
+                    b.Property<string>("UltimaMacLogin")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("ultima_mac_login");
 
                     b.HasKey("IdUsuario");
 
@@ -763,6 +1526,17 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.Navigation("Evaluador");
                 });
 
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.EvaluacionRespuesta", b =>
+                {
+                    b.HasOne("MipymeAsistencia.Domain.Entities.EvaluacionDesempeno", "Evaluacion")
+                        .WithMany("Respuestas")
+                        .HasForeignKey("IdEvaluacion")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Evaluacion");
+                });
+
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.HistorialAsistencia", b =>
                 {
                     b.HasOne("MipymeAsistencia.Domain.Entities.Empleado", "Empleado")
@@ -821,6 +1595,16 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.Navigation("UsuarioAprobador");
                 });
 
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.PeriodoCierrePlanilla", b =>
+                {
+                    b.HasOne("MipymeAsistencia.Domain.Entities.Usuario", "UsuarioCierre")
+                        .WithMany()
+                        .HasForeignKey("IdUsuarioCierre")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("UsuarioCierre");
+                });
+
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("MipymeAsistencia.Domain.Entities.Usuario", "Usuario")
@@ -830,6 +1614,24 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.RegistroMarcajeBiometrico", b =>
+                {
+                    b.HasOne("MipymeAsistencia.Domain.Entities.HistorialAsistencia", "AsistenciaGenerada")
+                        .WithMany()
+                        .HasForeignKey("IdAsistenciaGenerada")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MipymeAsistencia.Domain.Entities.DispositivoBiometrico", "Dispositivo")
+                        .WithMany("RegistrosMarcajes")
+                        .HasForeignKey("IdDispositivo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AsistenciaGenerada");
+
+                    b.Navigation("Dispositivo");
                 });
 
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Usuario", b =>
@@ -854,6 +1656,11 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.Navigation("Empleado");
                 });
 
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.DispositivoBiometrico", b =>
+                {
+                    b.Navigation("RegistrosMarcajes");
+                });
+
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Empleado", b =>
                 {
                     b.Navigation("Evaluaciones");
@@ -867,6 +1674,11 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                     b.Navigation("Solicitudes");
 
                     b.Navigation("ValidacionesQrMarcaje");
+                });
+
+            modelBuilder.Entity("MipymeAsistencia.Domain.Entities.EvaluacionDesempeno", b =>
+                {
+                    b.Navigation("Respuestas");
                 });
 
             modelBuilder.Entity("MipymeAsistencia.Domain.Entities.Rol", b =>
