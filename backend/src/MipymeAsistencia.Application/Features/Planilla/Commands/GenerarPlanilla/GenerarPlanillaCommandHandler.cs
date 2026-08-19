@@ -61,18 +61,28 @@ public class GenerarPlanillaCommandHandler
         if (empleado is null)
             throw new KeyNotFoundException($"Empleado con id {request.IdEmpleado} no encontrado.");
 
-        // ── Suma horas extras aprobadas del periodo ───────────────────────────
-        // Extrae año y mes del formato YYYY-MM
+        // ── Extrae año y mes del formato YYYY-MM ───────────────────────────
         var partes = request.PeriodoMesAnio.Split('-');
         var anio   = int.Parse(partes[0]);
         var mes    = int.Parse(partes[1]);
 
-        var horasExtrasAprobadas = await _context.HorasExtras
+        // ── Consulta fecha de corte del periodo (si existe) ──────────────────
+        var periodoCierre = await _context.PeriodosCierrePlanilla
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Periodo == request.PeriodoMesAnio, cancellationToken);
+
+        var queryHorasExtras = _context.HorasExtras
             .Where(h => h.IdEmpleado == request.IdEmpleado &&
                         h.Estado     == "Aprobado"          &&
                         h.Fecha.Year == anio                &&
-                        h.Fecha.Month == mes)
-            .ToListAsync(cancellationToken);
+                        h.Fecha.Month == mes);
+
+        if (periodoCierre != null)
+        {
+            queryHorasExtras = queryHorasExtras.Where(h => h.Fecha <= periodoCierre.FechaCorteHorasExtras);
+        }
+
+        var horasExtrasAprobadas = await queryHorasExtras.ToListAsync(cancellationToken);
 
         var totalHorasExtras = horasExtrasAprobadas.Sum(h => h.CantidadHoras);
         var pagoHorasExtras  = horasExtrasAprobadas.Sum(h => h.MontoPagar);
