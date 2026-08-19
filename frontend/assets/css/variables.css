@@ -1,33 +1,42 @@
 /* ============================================================
-   DESIGN TOKENS — MipymeAsistencia
-   Modifica aquí para cambiar toda la paleta de la app
+   DESIGN TOKENS — MipymeAsistencia (Café & Tostaduría Rubí del Valle / Meseta Verde)
+   Paleta moderna, armoniosa y optimizada para alto rendimiento visual
    ============================================================ */
 :root {
-  /* ── Paleta principal ──────────────────────────────────── */
-  --color-primary:        #2563EB;   /* azul corporativo       */
-  --color-primary-dark:   #1D4ED8;   /* hover / active         */
-  --color-primary-light:  #DBEAFE;   /* fondos suaves          */
-  --color-accent:         #10B981;   /* éxito / aprobado       */
-  --color-warning:        #F59E0B;   /* pendiente / alerta     */
-  --color-danger:         #EF4444;   /* error / rechazado      */
+  /* ── Paleta principal: Indigo & Slate ──────────────────── */
+  --color-primary:        #4F46E5;   /* Indigo corporativo moderno */
+  --color-primary-dark:   #4338CA;   /* Hover / active             */
+  --color-primary-light:  #EEF2FF;   /* Fondos suaves / chips      */
+  --color-accent:         #10B981;   /* Éxito / esmeralda          */
+  --color-accent-light:   #ECFDF5;   /* Fondo éxito                */
+  --color-warning:        #F59E0B;   /* Alerta / ámbar             */
+  --color-warning-light:  #FFFBEB;   /* Fondo alerta               */
+  --color-danger:         #EF4444;   /* Error / rubí               */
+  --color-danger-light:   #FEF2F2;   /* Fondo error                */
+  --color-purple:         #7C3AED;   /* RRHH / Evaluaciones 360°   */
+  --color-purple-light:   #EDE9FE;   /* Fondo RRHH                 */
 
-  /* ── Neutrales ─────────────────────────────────────────── */
+  /* ── Neutrales y Superficies ────────────────────────────── */
   --color-bg:             #F8FAFC;
   --color-surface:        #FFFFFF;
+  --color-surface-hover:  #F1F5F9;
   --color-border:         #E2E8F0;
-  --color-text:           #1E293B;
+  --color-border-hover:   #CBD5E1;
+  --color-text:           #0F172A;
   --color-text-muted:     #64748B;
   --color-text-light:     #94A3B8;
 
   /* ── Sidebar ───────────────────────────────────────────── */
-  --sidebar-bg:           #1E293B;
-  --sidebar-text:         #CBD5E1;
-  --sidebar-active-bg:    #2563EB;
+  --sidebar-bg:           #0F172A;
+  --sidebar-text:         #94A3B8;
+  --sidebar-hover-bg:     rgba(255, 255, 255, 0.06);
+  --sidebar-hover-text:   #F8FAFC;
+  --sidebar-active-bg:    #4F46E5;
   --sidebar-active-text:  #FFFFFF;
-  --sidebar-width:        240px;
+  --sidebar-width:        250px;
 
   /* ── Tipografía ────────────────────────────────────────── */
-  --font-family:          'Inter', system-ui, -apple-system, sans-serif;
+  --font-family:          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-size-xs:         0.75rem;   /* 12px */
   --font-size-sm:         0.875rem;  /* 14px */
   --font-size-base:       1rem;      /* 16px */
@@ -47,19 +56,20 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
 
-  /* ── Bordes y sombras ──────────────────────────────────── */
-  --radius-sm:   0.25rem;
-  --radius-md:   0.5rem;
-  --radius-lg:   0.75rem;
-  --radius-xl:   1rem;
+  /* ── Bordes y sombras pulidas ──────────────────────────── */
+  --radius-sm:   0.375rem;
+  --radius-md:   0.625rem;
+  --radius-lg:   0.875rem;
+  --radius-xl:   1.25rem;
   --radius-full: 9999px;
 
-  --shadow-sm:  0 1px 2px 0 rgb(0 0 0 / .05);
-  --shadow-md:  0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
-  --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
-  --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+  --shadow-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl:  0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 
-  /* ── Transiciones ──────────────────────────────────────── */
-  --transition: 150ms ease;
-  --transition-md: 250ms ease;
+  /* ── Transiciones fluidas ──────────────────────────────── */
+  --transition-fast: 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition:      200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-md:   300ms cubic-bezier(0.16, 1, 0.3, 1);
 }

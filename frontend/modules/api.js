@@ -253,3 +253,15 @@ export const tipoSolicitudPermisoApi = {
   actualizar: (id, body)           => api.put(`/tiposolicitudpermiso/${id}`, body),
   eliminar:   (id)                 => api.delete(`/tiposolicitudpermiso/${id}`),
 };
+
+export const auditoriaApi = {
+  getAll:           (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.entidad)    qs.set('entidad', params.entidad);
+    if (params.idRegistro) qs.set('idRegistro', params.idRegistro);
+    if (params.limite)     qs.set('limite', params.limite);
+    const q = qs.toString();
+    return api.get(`/auditoria${q ? '?' + q : ''}`);
+  },
+  getPorEmpleado:   (idEmpleado) => api.get(`/auditoria/empleado/${idEmpleado}`),
+};
