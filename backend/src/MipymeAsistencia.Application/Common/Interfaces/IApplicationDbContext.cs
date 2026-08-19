@@ -20,5 +20,8 @@ public interface IApplicationDbContext
     DbSet<DiaFeriado> DiasFeriados { get; }
     DbSet<ParametroLaboral> ParametrosLaborales { get; }
     DbSet<TablaImpuestoRenta> TablaImpuestoRenta { get; }
+    DbSet<PeriodoCierrePlanilla> PeriodosCierrePlanilla { get; }
+    DbSet<DispositivoBiometrico> DispositivosBiometricos { get; }
+    DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
