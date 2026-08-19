@@ -98,17 +98,25 @@ export const AsistenciaService = {
     latitud,
     longitud,
     tipoMarcaje = 'Automatico',
+    codigoOtpGenerado = '',
   }) {
-    if (!qrToken) throw new Error('Escanea el código QR del kiosco primero.');
-    if (latitud == null || longitud == null) throw new Error('Faltan las coordenadas GPS.');
+    const cleanToken = String(qrToken || '').trim();
+    const cleanOtp   = String(codigoOtpGenerado || '').trim();
+
+    if (!cleanToken && !cleanOtp) {
+      throw new Error('Escanea el código QR del kiosco o ingresa el código OTP para registrar marcaje.');
+    }
+    if (latitud == null || longitud == null) {
+      throw new Error('Faltan las coordenadas GPS para validar la ubicación.');
+    }
 
     const body = {
       idEmpleado: idEmpleado ? Number(idEmpleado) : 0,
       tipoMarcaje,
       latitudMarcaje: Number(latitud),
       longitudMarcaje: Number(longitud),
-      tokenQrEscaneado: String(qrToken).trim(),
-      codigoOtpGenerado: '',
+      tokenQrEscaneado: cleanToken,
+      codigoOtpGenerado: cleanOtp,
     };
 
     return asistenciaApi.registrar(body);
