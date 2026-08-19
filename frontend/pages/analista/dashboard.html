@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard RRHH — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+</head>
+<body>
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Dashboard — Analista RRHH</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-rol">Analista RRHH</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Bienvenido al Portal de Recursos Humanos</h1>
+          <p>Desde aquí puedes revisar asistencias, gestionar solicitudes y administrar las evaluaciones de desempeño 360° de todos los empleados.</p>
+        </div>
+      </div>
+
+      <!-- Stats rápidos -->
+      <div class="stats-grid" style="margin-bottom:var(--space-6)">
+        <div class="stat-card"><div class="stat-card-top"><div class="stat-icon blue">📋</div></div>
+          <div class="stat-value" id="stat-evals">—</div><div class="stat-label">Evaluaciones Totales</div></div>
+        <div class="stat-card"><div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
+          <div class="stat-value" id="stat-pend">—</div><div class="stat-label">Evaluaciones Pendientes</div></div>
+        <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-comp">—</div><div class="stat-label">Evaluaciones Completadas</div></div>
+        <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">⭐</div></div>
+          <div class="stat-value" id="stat-prom">—</div><div class="stat-label">Puntaje Promedio</div></div>
+      </div>
+
+      <!-- Accesos rápidos -->
+      <div class="stats-grid">
+        <div class="card" style="cursor:pointer" data-nav="pages/analista/evaluacion.html">
+          <div class="card-title">📊 Gestionar Evaluaciones 360°</div>
+          <p style="font-size:var(--font-size-sm);color:var(--color-text-muted)">
+            Asigna formularios, consulta resultados y monitorea el avance por período semestral.
+          </p>
+        </div>
+        <div class="card" style="cursor:pointer" data-nav="pages/admin/informe-asistencia.html">
+          <div class="card-title">📅 Informes de Asistencia</div>
+          <p style="font-size:var(--font-size-sm);color:var(--color-text-muted)">
+            Revisa las asistencias, tardanzas y ausencias del personal.
+          </p>
+        </div>
+        <div class="card" style="cursor:pointer" data-nav="pages/admin/aprobaciones.html">
+          <div class="card-title">✅ Aprobaciones</div>
+          <p style="font-size:var(--font-size-sm);color:var(--color-text-muted)">
+            Gestiona las solicitudes de permisos y vacaciones pendientes de aprobación.
+          </p>
+        </div>
+        <div class="card" style="cursor:pointer" data-nav="pages/admin/planillas.html">
+          <div class="card-title">💰 Pre-Planilla</div>
+          <p style="font-size:var(--font-size-sm);color:var(--color-text-muted)">
+            Prepara y revisa las pre-planillas antes del cierre de período.
+          </p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initAnalistaLayout }       from '../../modules/layout.js';
+import { evaluacionApi }            from '../../modules/api.js';
+
+await initAnalistaLayout('dashboard');
+
+// Stats de evaluaciones
+try {
+  const lista = await evaluacionApi.getAll().catch(() => []);
+  const pend  = lista.filter(e => e.estado === 'Pendiente').length;
+  const comp  = lista.filter(e => e.estado === 'Completada');
+  const prom  = comp.length ? (comp.reduce((s,e) => s+(e.puntajeFinal??0), 0)/comp.length).toFixed(1) + '%' : '—';
+  document.getElementById('stat-evals').textContent = lista.length;
+  document.getElementById('stat-pend').textContent  = pend;
+  document.getElementById('stat-comp').textContent  = comp.length;
+  document.getElementById('stat-prom').textContent  = prom;
+} catch {}
+
+// Navegación cards
+document.querySelectorAll('[data-nav]').forEach(card => {
+  card.addEventListener('click', () => {
+    const base = window.location.origin;
+    const path = window.location.pathname;
+    const idx  = path.indexOf('/frontend/');
+    const root = idx !== -1 ? base + path.slice(0, idx) + '/frontend/' : base + '/frontend/';
+    window.location.href = root + card.dataset.nav;
+  });
+});
+</script>
+</body>
+</html>
