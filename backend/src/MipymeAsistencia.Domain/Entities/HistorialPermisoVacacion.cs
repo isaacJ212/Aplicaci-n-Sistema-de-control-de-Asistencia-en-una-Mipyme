@@ -9,6 +9,7 @@ public class HistorialPermisoVacacion
     public DateTime FechaInicio { get; set; }
     public DateTime FechaFin { get; set; }
     public decimal DiasSolicitados { get; set; }
+    public decimal? HorasSolicitadas { get; set; }
     public string Motivo { get; set; } = string.Empty;
     public string EstadoSolicitud { get; set; } = "Pendiente";
     public DateTime? FechaRespuesta { get; set; }
