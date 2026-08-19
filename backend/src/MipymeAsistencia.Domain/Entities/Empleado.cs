@@ -12,6 +12,7 @@ public class Empleado
     public string Nombres { get; set; } = string.Empty;
     public string Apellidos { get; set; } = string.Empty;
     public string CargoFuncion { get; set; } = string.Empty;
+    public string Departamento { get; set; } = "General";
     public string Responsabilidades { get; set; } = string.Empty;
     public DateTime FechaContratacion { get; set; }
     public decimal SalarioBaseMensual { get; set; }
