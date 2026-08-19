@@ -23,6 +23,26 @@ public class RegistrarHoraExtraCommandHandler
         if (empleado is null)
             throw new KeyNotFoundException($"Empleado con id {request.IdEmpleado} no encontrado.");
 
+        var fechaUtc = request.Fecha.ToUniversalTime();
+        var fechaDate = fechaUtc.Date;
+        var periodoStr = fechaUtc.ToString("yyyy-MM");
+
+        // Validar si el periodo de planilla está cerrado o ya pasó la fecha de corte
+        var periodoCierre = await _context.PeriodosCierrePlanilla
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Periodo == periodoStr, cancellationToken);
+
+        if (periodoCierre != null)
+        {
+            if (periodoCierre.Cerrado)
+                throw new InvalidOperationException(
+                    $"No se pueden registrar horas extras para el periodo {periodoStr} porque ya se encuentra cerrado.");
+
+            if (fechaUtc > periodoCierre.FechaCorteHorasExtras)
+                throw new InvalidOperationException(
+                    $"La fecha de la hora extra ({fechaUtc:yyyy-MM-dd}) supera la fecha límite de corte ({periodoCierre.FechaCorteHorasExtras:yyyy-MM-dd}) para el periodo {periodoStr}.");
+        }
+
         // Obtener parámetro de horas laborales al mes (default 240)
         var paramHorasMes = await _context.ParametrosLaborales
             .AsNoTracking()
@@ -30,9 +50,6 @@ public class RegistrarHoraExtraCommandHandler
         var horasLaboralesMes = paramHorasMes != null && paramHorasMes.Valor > 0 ? paramHorasMes.Valor : 240m;
 
         // Validar si la fecha de la hora extra es un día feriado o descanso semanal (domingo)
-        var fechaUtc = request.Fecha.ToUniversalTime();
-        var fechaDate = fechaUtc.Date;
-
         var feriado = await _context.DiasFeriados
             .AsNoTracking()
             .FirstOrDefaultAsync(f => f.Fecha.Date == fechaDate, cancellationToken);

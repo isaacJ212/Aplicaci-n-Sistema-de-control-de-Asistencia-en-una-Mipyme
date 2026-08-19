@@ -25,6 +25,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<DiaFeriado> DiasFeriados => Set<DiaFeriado>();
     public DbSet<ParametroLaboral> ParametrosLaborales => Set<ParametroLaboral>();
     public DbSet<TablaImpuestoRenta> TablaImpuestoRenta => Set<TablaImpuestoRenta>();
+    public DbSet<PeriodoCierrePlanilla> PeriodosCierrePlanilla => Set<PeriodoCierrePlanilla>();
+    public DbSet<DispositivoBiometrico> DispositivosBiometricos => Set<DispositivoBiometrico>();
+    public DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos => Set<RegistroMarcajeBiometrico>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -370,6 +373,118 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 new TablaImpuestoRenta { IdTablaIr = 4, DesdeMontoAnual = 350000.01m, HastaMontoAnual = 500000.00m, PorcentajeAplicable = 0.25m, MontoBaseExceso = 350000.00m, CuotaFija = 45000.00m, AnioVigencia = 2026, Activo = true },
                 new TablaImpuestoRenta { IdTablaIr = 5, DesdeMontoAnual = 500000.01m, HastaMontoAnual = null, PorcentajeAplicable = 0.30m, MontoBaseExceso = 500000.00m, CuotaFija = 82500.00m, AnioVigencia = 2026, Activo = true }
             );
+        });
+
+        modelBuilder.Entity<PeriodoCierrePlanilla>(entity =>
+        {
+            entity.ToTable("periodos_cierre_planilla");
+            entity.HasKey(x => x.IdPeriodoCierre);
+            entity.Property(x => x.IdPeriodoCierre).HasColumnName("id_periodo_cierre");
+            entity.Property(x => x.Periodo).HasColumnName("periodo").HasMaxLength(7);
+            entity.Property(x => x.FechaCorteHorasExtras).HasColumnName("fecha_corte_horas_extras");
+            entity.Property(x => x.FechaEmisionPlanilla).HasColumnName("fecha_emision_planilla");
+            entity.Property(x => x.Cerrado).HasColumnName("cerrado").HasDefaultValue(false);
+            entity.Property(x => x.FechaCierreDefinitivo).HasColumnName("fecha_cierre_definitivo");
+            entity.Property(x => x.IdUsuarioCierre).HasColumnName("id_usuario_cierre");
+            entity.Property(x => x.Observaciones).HasColumnName("observaciones");
+
+            entity.HasIndex(x => x.Periodo).IsUnique();
+
+            entity.HasOne(x => x.UsuarioCierre)
+                .WithMany()
+                .HasForeignKey(x => x.IdUsuarioCierre)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasData(
+                new PeriodoCierrePlanilla
+                {
+                    IdPeriodoCierre = 1,
+                    Periodo = "2026-05",
+                    FechaCorteHorasExtras = new DateTime(2026, 5, 25, 23, 59, 59, DateTimeKind.Utc),
+                    FechaEmisionPlanilla = new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc),
+                    Cerrado = true,
+                    FechaCierreDefinitivo = new DateTime(2026, 5, 30, 18, 0, 0, DateTimeKind.Utc),
+                    Observaciones = "Cierre de planilla Mayo 2026 (Rubí del Valle)"
+                },
+                new PeriodoCierrePlanilla
+                {
+                    IdPeriodoCierre = 2,
+                    Periodo = "2026-08",
+                    FechaCorteHorasExtras = new DateTime(2026, 8, 25, 23, 59, 59, DateTimeKind.Utc),
+                    FechaEmisionPlanilla = new DateTime(2026, 8, 30, 0, 0, 0, DateTimeKind.Utc),
+                    Cerrado = false,
+                    Observaciones = "Periodo activo Agosto 2026"
+                }
+            );
+        });
+
+        modelBuilder.Entity<DispositivoBiometrico>(entity =>
+        {
+            entity.ToTable("dispositivos_biometricos");
+            entity.HasKey(x => x.IdDispositivo);
+            entity.Property(x => x.IdDispositivo).HasColumnName("id_dispositivo");
+            entity.Property(x => x.NombreDispositivo).HasColumnName("nombre_dispositivo").HasMaxLength(100);
+            entity.Property(x => x.DireccionIp).HasColumnName("direccion_ip").HasMaxLength(50);
+            entity.Property(x => x.Puerto).HasColumnName("puerto").HasDefaultValue(4370);
+            entity.Property(x => x.TipoProtocolo).HasColumnName("tipo_protocolo").HasMaxLength(50).HasDefaultValue("ZKTeco_Standalone");
+            entity.Property(x => x.Ubicacion).HasColumnName("ubicacion").HasMaxLength(150);
+            entity.Property(x => x.ClaveComunicacion).HasColumnName("clave_comunicacion").HasMaxLength(100);
+            entity.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
+            entity.Property(x => x.UltimaSincronizacion).HasColumnName("ultima_sincronizacion");
+            entity.Property(x => x.EstadoConexion).HasColumnName("estado_conexion").HasMaxLength(30).HasDefaultValue("Desconectado");
+
+            entity.HasData(
+                new DispositivoBiometrico
+                {
+                    IdDispositivo = 1,
+                    NombreDispositivo = "Reloj Marcador Principal (Recepción)",
+                    DireccionIp = "192.168.1.201",
+                    Puerto = 4370,
+                    TipoProtocolo = "ZKTeco_Standalone",
+                    Ubicacion = "Entrada Principal / Recepción",
+                    Activo = true,
+                    EstadoConexion = "Conectado"
+                },
+                new DispositivoBiometrico
+                {
+                    IdDispositivo = 2,
+                    NombreDispositivo = "Reloj Marcador Taller / Bodega",
+                    DireccionIp = "192.168.1.202",
+                    Puerto = 4370,
+                    TipoProtocolo = "ZKTeco_Standalone",
+                    Ubicacion = "Acceso Bodega",
+                    Activo = true,
+                    EstadoConexion = "Desconectado"
+                }
+            );
+        });
+
+        modelBuilder.Entity<RegistroMarcajeBiometrico>(entity =>
+        {
+            entity.ToTable("registros_marcajes_biometricos");
+            entity.HasKey(x => x.IdRegistroBiometrico);
+            entity.Property(x => x.IdRegistroBiometrico).HasColumnName("id_registro_biometrico");
+            entity.Property(x => x.IdDispositivo).HasColumnName("id_dispositivo");
+            entity.Property(x => x.NumeroEnrollamiento).HasColumnName("numero_enrollamiento").HasMaxLength(50);
+            entity.Property(x => x.FechaHora).HasColumnName("fecha_hora");
+            entity.Property(x => x.TipoMarcaje).HasColumnName("tipo_marcaje").HasDefaultValue(0);
+            entity.Property(x => x.TipoVerificacion).HasColumnName("tipo_verificacion").HasMaxLength(30).HasDefaultValue("Huella");
+            entity.Property(x => x.Procesado).HasColumnName("procesado").HasDefaultValue(false);
+            entity.Property(x => x.FechaProcesado).HasColumnName("fecha_procesado");
+            entity.Property(x => x.IdAsistenciaGenerada).HasColumnName("id_asistencia_generada");
+            entity.Property(x => x.ErrorProcesamiento).HasColumnName("error_procesamiento");
+
+            entity.HasIndex(x => new { x.IdDispositivo, x.NumeroEnrollamiento, x.FechaHora });
+
+            entity.HasOne(x => x.Dispositivo)
+                .WithMany(x => x.RegistrosMarcajes)
+                .HasForeignKey(x => x.IdDispositivo)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.AsistenciaGenerada)
+                .WithMany()
+                .HasForeignKey(x => x.IdAsistenciaGenerada)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         base.OnModelCreating(modelBuilder);

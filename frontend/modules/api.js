@@ -219,3 +219,27 @@ export const configuracionLaboralApi = {
   actualizarTramoIr:(id, body)  => api.put(`/configuracionlaboral/tabla-ir/${id}`, body),
   eliminarTramoIr:  (id)        => api.delete(`/configuracionlaboral/tabla-ir/${id}`),
 };
+
+export const periodoCierreApi = {
+  getAll:         (soloAbiertos = null) =>
+    api.get(`/periodocierreplanilla${soloAbiertos !== null ? `?soloAbiertos=${soloAbiertos}` : ''}`),
+  getByPeriodo:   (periodo)     => api.get(`/periodocierreplanilla/${encodeURIComponent(periodo)}`),
+  configurar:     (body)        => api.post('/periodocierreplanilla', body),
+  cerrarPeriodo:  (periodo, body = {}) =>
+    api.post(`/periodocierreplanilla/${encodeURIComponent(periodo)}/cerrar`, body),
+  reabrirPeriodo: (periodo, body = {}) =>
+    api.post(`/periodocierreplanilla/${encodeURIComponent(periodo)}/reabrir`, body),
+};
+
+export const biometricoApi = {
+  getDispositivos: ()           => api.get('/biometrico/dispositivos'),
+  getById:         (id)         => api.get(`/biometrico/dispositivos/${id}`),
+  crear:           (body)       => api.post('/biometrico/dispositivos', body),
+  actualizar:      (id, body)   => api.put(`/biometrico/dispositivos/${id}`, body),
+  eliminar:        (id)         => api.delete(`/biometrico/dispositivos/${id}`),
+  testConexion:    (id)         => api.post(`/biometrico/dispositivos/${id}/test-conexion`),
+  sincronizar:     (id = null)  => api.post(`/biometrico/sincronizar${id ? `?idDispositivo=${id}` : ''}`),
+  ingestarLote:    (body)       => api.post('/biometrico/ingestar-lote', body),
+  getRegistrosCrudos: (id = null, limite = 50) =>
+    api.get(`/biometrico/registros-crudos?limite=${limite}${id ? `&idDispositivo=${id}` : ''}`),
+};

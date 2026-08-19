@@ -28,6 +28,15 @@ public class AprobarRechazarHoraExtraCommandHandler
             throw new InvalidOperationException(
                 $"La hora extra ya fue {horaExtra.Estado.ToLower()}. Solo se pueden gestionar registros en estado Pendiente.");
 
+        var periodoStr = horaExtra.Fecha.ToString("yyyy-MM");
+        var periodoCierre = await _context.PeriodosCierrePlanilla
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Periodo == periodoStr, cancellationToken);
+
+        if (periodoCierre != null && periodoCierre.Cerrado)
+            throw new InvalidOperationException(
+                $"No se pueden aprobar ni rechazar horas extras del periodo {periodoStr} porque ya se encuentra cerrado.");
+
         horaExtra.Estado             = request.Estado;
         horaExtra.IdUsuarioAprobador = request.IdUsuarioAprobador;
 
