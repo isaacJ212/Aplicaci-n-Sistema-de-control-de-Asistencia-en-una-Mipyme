@@ -161,9 +161,9 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initEmpleadoLayout }                    from '../../modules/layout.js';
-import { evaluacionApi, authApi }                from '../../modules/api.js';
-import { toast, formatDate, show, hide }          from '../../modules/utils.js';
+import { initEmpleadoLayout, updateEmpleadoSidebarEvaluacion } from '../../modules/layout.js';
+import { evaluacionApi, authApi }                              from '../../modules/api.js';
+import { toast, formatDate, show, hide }                        from '../../modules/utils.js';
 
 await initEmpleadoLayout('evaluacion');
 
@@ -351,6 +351,7 @@ document.getElementById('form-submit').addEventListener('click', async () => {
                 : pct >= 40 ? '📈 Desempeño Regular'
                 : '⚠️ Requiere mejora';
     window.scrollTo(0,0);
+    await updateEmpleadoSidebarEvaluacion();
   } catch (err) {
     toast('Error al enviar: ' + err.message, 'error');
   } finally {
@@ -366,11 +367,12 @@ document.getElementById('form-submit').addEventListener('click', async () => {
     evaluacionActual = null;
   }));
 
-document.getElementById('btn-al-inicio').addEventListener('click', () => {
+document.getElementById('btn-al-inicio').addEventListener('click', async () => {
   document.getElementById('vista-resultado').style.display = 'none';
   document.getElementById('vista-lista').style.display     = '';
   evaluacionActual = null;
-  init();
+  await init();
+  await updateEmpleadoSidebarEvaluacion();
 });
 
 document.getElementById('btn-refresh').addEventListener('click', init);

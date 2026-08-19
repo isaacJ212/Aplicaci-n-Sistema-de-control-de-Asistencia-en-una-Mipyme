@@ -139,6 +139,37 @@ async function loadSidebar(htmlFile, currentPage) {
   }
 }
 
+export async function updateEmpleadoSidebarEvaluacion() {
+  try {
+    const link = document.querySelector('.sidebar-link[data-page="evaluacion"]');
+    if (!link) return;
+    const title = link.previousElementSibling;
+
+    const evals = await evaluacionApi.getAll().catch(() => []);
+    const pendientes = Array.isArray(evals) ? evals.filter(e => e.estado === 'Pendiente') : [];
+
+    if (pendientes.length > 0) {
+      link.style.display = 'flex';
+      if (title && title.classList.contains('sidebar-section-title')) title.style.display = '';
+
+      let badge = link.querySelector('.eval-pending-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'eval-pending-badge';
+        badge.style.cssText = 'margin-left:auto;background:#EF4444;color:#FFF;font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:999px;box-shadow:0 0 8px rgba(239,68,68,0.5);';
+        link.appendChild(badge);
+      }
+      badge.textContent = `${pendientes.length} pendiente${pendientes.length > 1 ? 's' : ''}`;
+    } else {
+      // Si no tiene evaluaciones pendientes o ya las completó, ocultar del sidebar
+      link.style.display = 'none';
+      if (title && title.classList.contains('sidebar-section-title') && title.textContent.includes('Desempeño')) {
+        title.style.display = 'none';
+      }
+    }
+  } catch {}
+}
+
 export async function initAdminLayout(currentPage = '') {
   if (!AuthService.requireAuth('Admin')) return;
   await loadSidebar('sidebar-admin.html', currentPage);
@@ -147,6 +178,7 @@ export async function initAdminLayout(currentPage = '') {
 export async function initEmpleadoLayout(currentPage = '') {
   if (!AuthService.requireAuth('Empleado')) return;
   await loadSidebar('sidebar-empleado.html', currentPage);
+  await updateEmpleadoSidebarEvaluacion();
 }
 
 export async function initAnalistaLayout(currentPage = '') {

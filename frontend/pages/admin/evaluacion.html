@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Evaluación 360° — MipymeAsistencia</title>
+  <title>Gestión de Evaluaciones 360° — Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../../assets/css/variables.css" />
@@ -15,35 +15,29 @@
     .chip-green  { background:#DCFCE7;color:#166534; }
     .chip-yellow { background:#FEF9C3;color:#854D0E; }
     .chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
-    .chip-gray   { background:var(--color-border);color:var(--color-text-muted); }
     .chip-red    { background:#FEE2E2;color:#991B1B; }
 
-    /* Barra de puntaje */
-    .score-bar-bg { flex:1;height:8px;background:var(--color-border);border-radius:999px;overflow:hidden; }
+    /* Barra puntaje en tabla */
+    .score-bar-wrap { display:flex;align-items:center;gap:var(--space-2);min-width:140px; }
+    .score-bar-bg   { flex:1;height:8px;background:var(--color-border);border-radius:999px;overflow:hidden; }
     .score-bar-fill { height:100%;border-radius:999px;transition:width .4s; }
     .fill-green  { background:#22C55E; }
     .fill-yellow { background:#F59E0B; }
     .fill-red    { background:#EF4444; }
-    .score-wrap  { display:flex;align-items:center;gap:var(--space-2);min-width:140px; }
-    .score-label { font-size:.75rem;font-weight:700;min-width:38px;text-align:right; }
-
-    /* Grid de perspectivas */
-    .persp-chips { display:flex;flex-wrap:wrap;gap:var(--space-2); }
-
-    /* Detalle respuestas */
-    .resp-table { width:100%;border-collapse:collapse;font-size:var(--font-size-sm); }
-    .resp-table th { background:var(--color-bg);font-weight:600;padding:var(--space-2) var(--space-3);text-align:left;border-bottom:2px solid var(--color-border); }
-    .resp-table td { padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);vertical-align:middle; }
-    .resp-table tr:last-child td { border-bottom:none; }
-    .stars { color:#F59E0B;letter-spacing:2px; }
+    .score-num   { font-size:.75rem;font-weight:700;min-width:36px;text-align:right; }
 
     /* Filtros */
     .filtros-bar { display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:flex-end;
                    background:var(--color-surface);border:1px solid var(--color-border);
                    border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);margin-bottom:var(--space-5); }
-    .filtro-group { display:flex;flex-direction:column;gap:var(--space-1);min-width:150px; }
+    .filtro-group { display:flex;flex-direction:column;gap:var(--space-1);min-width:140px; }
     .filtro-label { font-size:var(--font-size-xs);font-weight:600;color:var(--color-text-muted);
                     text-transform:uppercase;letter-spacing:.04em; }
+
+    /* Tabla detalle respuestas */
+    .resp-table { width:100%;border-collapse:collapse;font-size:var(--font-size-sm); }
+    .resp-table th { background:var(--color-bg);font-weight:600;padding:var(--space-2) var(--space-3);text-align:left;border-bottom:2px solid var(--color-border); }
+    .resp-table td { padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);vertical-align:middle; }
   </style>
 </head>
 <body>
@@ -51,7 +45,7 @@
   <div id="sidebar-container"></div>
   <main class="main-content">
     <header class="topbar">
-      <span class="topbar-title">Evaluación 360°</span>
+      <span class="topbar-title">Evaluaciones 360°</span>
       <div class="topbar-right">
         <span class="topbar-badge" id="badge-total">0 evaluaciones</span>
       </div>
@@ -61,15 +55,18 @@
       <div class="page-header">
         <div class="page-header-text">
           <h1>Gestión de Evaluaciones 360°</h1>
-          <p>Crea formularios semestrales, asigna perspectivas y consulta resultados ponderados.</p>
+          <p>Aplica la evaluación a todos los colaboradores de la empresa, asigna perspectivas y consulta el historial semestral.</p>
         </div>
-        <button class="btn btn-primary" id="btn-nueva">＋ Nueva evaluación</button>
+        <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-masiva" style="background:#2563EB;border-color:#2563EB">🚀 Aplicar a todos los empleados</button>
+          <button class="btn btn-secondary" id="btn-nueva">＋ Asignar individual</button>
+        </div>
       </div>
 
       <!-- Stats -->
       <div class="stats-grid" style="margin-bottom:var(--space-5)">
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon blue">📋</div></div>
-          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total</div></div>
+          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total Evaluaciones</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
           <div class="stat-value" id="stat-pend">—</div><div class="stat-label">Pendientes</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">✅</div></div>
@@ -87,12 +84,14 @@
           </select>
         </div>
         <div class="filtro-group">
-          <span class="filtro-label">Período</span>
-          <select class="form-input" id="f-periodo" style="min-width:130px">
-            <option value="">— Todos —</option>
-            <option value="2026-S1">2026-S1</option>
-            <option value="2026-S2">2026-S2</option>
-            <option value="2027-S1">2027-S1</option>
+          <span class="filtro-label">Período Semestral</span>
+          <select class="form-input" id="f-periodo" style="min-width:140px">
+            <option value="">— Todos (Historial) —</option>
+            <option value="2025-S1">2025 · Semestre 1</option>
+            <option value="2025-S2">2025 · Semestre 2</option>
+            <option value="2026-S1">2026 · Semestre 1</option>
+            <option value="2026-S2">2026 · Semestre 2</option>
+            <option value="2027-S1">2027 · Semestre 1</option>
           </select>
         </div>
         <div class="filtro-group">
@@ -113,14 +112,18 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>#</th><th>Evaluado</th><th>Evaluador</th><th>Perspectiva</th>
-                <th>Período</th><th>Estado</th><th>Puntaje</th><th>Fecha</th><th>Acciones</th>
+                <th>Empleado evaluado</th>
+                <th>Evaluador</th>
+                <th>Perspectiva</th>
+                <th>Período</th>
+                <th>Estado</th>
+                <th>Puntaje</th>
+                <th>Fecha</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="tbody">
-              <tr><td colspan="9"><div class="empty-state">
-                <div class="empty-icon">⏳</div><h3>Cargando...</h3>
-              </div></td></tr>
+              <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando evaluaciones...</h3></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -129,51 +132,95 @@
   </main>
 </div>
 
-<!-- ═══ MODAL CREAR ═══ -->
-<div class="modal-overlay hidden" id="modal-crear">
-  <div class="modal" style="max-width:520px">
+<!-- ═══ MODAL DETALLE ═══ -->
+<div class="modal-overlay hidden" id="modal-detalle">
+  <div class="modal modal-lg">
     <div class="modal-header">
-      <span class="modal-title">Nueva Evaluación 360°</span>
+      <h2 class="modal-title">Detalle de Evaluación 360°</h2>
+      <button class="btn btn-ghost btn-sm" id="det-close">✕</button>
+    </div>
+    <div class="modal-body" id="det-body">
+      <div class="grid grid-2" style="gap:var(--space-4);margin-bottom:var(--space-4)">
+        <div><strong>Empleado:</strong> <span id="det-empleado">—</span></div>
+        <div><strong>Evaluador:</strong> <span id="det-evaluador">—</span></div>
+        <div><strong>Perspectiva:</strong> <span id="det-perspectiva">—</span></div>
+        <div><strong>Período:</strong> <span id="det-periodo">—</span></div>
+        <div><strong>Estado:</strong> <span id="det-estado">—</span></div>
+        <div><strong>Observaciones:</strong> <span id="det-obs">—</span></div>
+      </div>
+
+      <div id="det-score-card" class="card" style="margin-bottom:var(--space-4);display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-weight:600">Puntaje Final Ponderado:</span>
+          <span id="det-score-val" style="font-size:var(--font-size-2xl);font-weight:700;color:var(--color-primary)">—</span>
+        </div>
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:4px" id="det-score-lbl">—</div>
+      </div>
+
+      <div id="det-respuestas-card" style="display:none">
+        <h3 style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2)">Respuestas por Pregunta (Escala Likert 1-5):</h3>
+        <div class="table-wrapper">
+          <table class="resp-table">
+            <thead>
+              <tr><th>#</th><th>Pregunta</th><th>Calificación</th></tr>
+            </thead>
+            <tbody id="det-resp-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="det-cancel">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CREAR INDIVIDUAL ═══ -->
+<div class="modal-overlay hidden" id="modal-crear">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">＋ Nueva Evaluación 360°</h2>
       <button class="btn btn-ghost btn-sm" id="crear-close">✕</button>
     </div>
     <div class="modal-body">
-      <form id="form-crear" novalidate>
-        <div class="form-grid">
-          <div class="form-group full">
-            <label class="form-label">Empleado a evaluar *</label>
-            <select class="form-input" id="c-empleado">
-              <option value="">— Seleccionar —</option>
-            </select>
-            <span class="form-error hidden" id="err-cemp"></span>
-          </div>
-          <div class="form-group full">
-            <label class="form-label">Evaluador *</label>
-            <select class="form-input" id="c-evaluador">
-              <option value="">— Seleccionar usuario evaluador —</option>
-            </select>
-            <span class="form-hint">Déjalo vacío para asignarte a ti mismo como evaluador.</span>
-            <span class="form-error hidden" id="err-ceval"></span>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Perspectiva *</label>
-            <select class="form-input" id="c-perspectiva">
-              <option value="Autoevaluacion">Autoevaluación</option>
-              <option value="Jefe" selected>Jefe / Supervisor</option>
-              <option value="Par">Par / Colega</option>
-              <option value="Subordinado">Subordinado</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Período semestral *</label>
-            <select class="form-input" id="c-periodo">
-              <option value="2026-S1">2026 — Semestre 1</option>
-              <option value="2026-S2" selected>2026 — Semestre 2</option>
-              <option value="2027-S1">2027 — Semestre 1</option>
-              <option value="2027-S2">2027 — Semestre 2</option>
-            </select>
-          </div>
+      <div class="form-group">
+        <label class="form-label">Empleado evaluado <span class="text-danger">*</span></label>
+        <select class="form-input" id="c-empleado">
+          <option value="">— Selecciona un empleado —</option>
+        </select>
+        <span class="form-error hidden" id="err-cemp"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Perspectiva <span class="text-danger">*</span></label>
+        <select class="form-input" id="c-perspectiva">
+          <option value="Autoevaluacion">🪞 Autoevaluación (el propio empleado)</option>
+          <option value="Jefe" selected>👔 Jefe directo / Supervisor</option>
+          <option value="Par">🤝 Par / Colega de equipo</option>
+          <option value="Subordinado">👥 Subordinado</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Evaluador (quien califica)</label>
+        <select class="form-input" id="c-evaluador">
+          <option value="">— El evaluador asignado (o tú mismo) —</option>
+        </select>
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:4px">
+          Si es autoevaluación, selecciona al mismo usuario del empleado.
         </div>
-      </form>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Período <span class="text-danger">*</span></label>
+        <select class="form-input" id="c-periodo">
+          <option value="2025-S1">2025 · Semestre 1</option>
+          <option value="2025-S2">2025 · Semestre 2</option>
+          <option value="2026-S1">2026 · Semestre 1</option>
+          <option value="2026-S2" selected>2026 · Semestre 2</option>
+          <option value="2027-S1">2027 · Semestre 1</option>
+        </select>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="crear-cancel">Cancelar</button>
@@ -184,16 +231,45 @@
   </div>
 </div>
 
-<!-- ═══ MODAL DETALLE / RESULTADOS ═══ -->
-<div class="modal-overlay hidden" id="modal-detalle">
-  <div class="modal" style="max-width:680px">
+<!-- ═══ MODAL ASIGNACIÓN MASIVA ═══ -->
+<div class="modal-overlay hidden" id="modal-masiva">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <span class="modal-title" id="det-titulo">Resultados de Evaluación</span>
-      <button class="btn btn-ghost btn-sm" id="det-close">✕</button>
+      <span class="modal-title">🚀 Aplicar Evaluación 360° a Todos los Empleados</span>
+      <button class="btn btn-ghost btn-sm" id="masiva-close">✕</button>
     </div>
-    <div class="modal-body" id="det-body"></div>
+    <div class="modal-body">
+      <div style="background:#DBEAFE;color:#1E40AF;border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-4);font-size:var(--font-size-sm)">
+        <strong>📢 Asignación Semestral Masiva:</strong><br>
+        Se generará el formulario de <strong>Autoevaluación (20 preguntas ponderadas)</strong> en estado <em>Pendiente</em> para todos los colaboradores activos.
+        Aparecerá en el portal de cada empleado para ser completado.
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Período Semestral a Aplicar <span class="text-danger">*</span></label>
+        <select class="form-input" id="m-periodo">
+          <option value="2026-S2">2026 · Segundo Semestre (S2) — Actual</option>
+          <option value="2026-S1">2026 · Primer Semestre (S1)</option>
+          <option value="2027-S1">2027 · Primer Semestre (S1)</option>
+          <option value="2027-S2">2027 · Segundo Semestre (S2)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Perspectiva Inicial</label>
+        <select class="form-input" id="m-perspectiva">
+          <option value="Autoevaluacion">🪞 Autoevaluación (el propio colaborador responde)</option>
+          <option value="Jefe">👔 Evaluación por Jefatura Directa</option>
+        </select>
+      </div>
+
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2)">
+        * Si un empleado ya tiene asignada la evaluación para este período, no se duplicará.
+      </div>
+    </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" id="det-cancel">Cerrar</button>
+      <button class="btn btn-secondary" id="masiva-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="masiva-submit" style="background:#2563EB;border-color:#2563EB">🚀 Aplicar a todos</button>
     </div>
   </div>
 </div>
@@ -201,218 +277,225 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAdminLayout }                        from '../../modules/layout.js';
-import { evaluacionApi, empleadoApi, authApi }    from '../../modules/api.js';
-import { toast, formatDate, show, hide, debounce } from '../../modules/utils.js';
+import { initAdminLayout }                    from '../../modules/layout.js';
+import { evaluacionApi, empleadoApi, authApi } from '../../modules/api.js';
+import { toast, formatDate, show, hide }      from '../../modules/utils.js';
 
 await initAdminLayout('evaluacion');
 
 const PERSPECTIVA_LABEL = {
   Autoevaluacion: '🪞 Autoevaluación',
-  Jefe:           '👔 Jefe',
-  Par:            '🤝 Par',
+  Jefe:           '👔 Jefe directo',
+  Par:            '🤝 Par / Colega',
   Subordinado:    '👥 Subordinado',
 };
 
-const LIKERT = ['', 'Malo', 'Regular', 'Bueno', 'Muy bueno', 'Excelente'];
+const state = {
+  lista:       [],
+  usuarios:    [],
+  empleados:   [],
+  evaluacionId: null,
+};
 
-const state = { lista: [], empleados: [], usuarios: [] };
-
-/* ── Cargar datos iniciales ──────────────────────────────── */
+/* ── Init ─────────────────────────────────────────────────── */
 async function init() {
-  const [emps, evals] = await Promise.all([
-    empleadoApi.getAll().catch(() => []),
-    evaluacionApi.getAll().catch(() => []),
-  ]);
-  state.empleados = Array.isArray(emps)  ? emps  : [];
-  state.lista     = Array.isArray(evals) ? evals : [];
+  try {
+    const [evals, emps] = await Promise.all([
+      evaluacionApi.getAll().catch(() => []),
+      empleadoApi.getAll().catch(() => []),
+    ]);
+    state.lista     = Array.isArray(evals) ? evals : [];
+    state.empleados = Array.isArray(emps)  ? emps  : [];
 
-  // Poblar selects de empleado en filtro y modal
-  const opts = state.empleados.map(e =>
-    `<option value="${e.idEmpleado}">${e.nombres} ${e.apellidos}</option>`).join('');
-  document.getElementById('f-empleado').innerHTML = '<option value="">— Todos —</option>' + opts;
-  document.getElementById('c-empleado').innerHTML = '<option value="">— Seleccionar —</option>' + opts;
-
-  actualizarStats();
-  renderTabla();
+    poblarSelectEmpleados();
+    actualizarStats();
+    renderTabla();
+  } catch (err) {
+    toast('Error al cargar datos: ' + err.message, 'error');
+  }
 }
 
-/* ── Cargar usuarios para el select de evaluador ─────────── */
+/* ── Poblar select ────────────────────────────────────────── */
+function poblarSelectEmpleados() {
+  const opts = state.empleados.map(e =>
+    `<option value="${e.idEmpleado}">${e.nombre ?? e.nombreCompleto ?? `Empleado #${e.idEmpleado}`}</option>`
+  ).join('');
+  document.getElementById('f-empleado').innerHTML = '<option value="">— Todos —</option>' + opts;
+  document.getElementById('c-empleado').innerHTML = '<option value="">— Selecciona un empleado —</option>' + opts;
+}
+
 async function cargarUsuarios() {
   if (state.usuarios.length) return;
-  // Usamos la lista de empleados como proxy para usuarios
-  state.usuarios = state.empleados;
-  const opts = state.empleados.map(e =>
-    `<option value="${e.idUsuario}">${e.nombres} ${e.apellidos} (${e.email})</option>`).join('');
-  document.getElementById('c-evaluador').innerHTML =
-    '<option value="">— Yo mismo (JWT) —</option>' + opts;
+  state.usuarios = state.empleados.map(e => ({
+    idUsuario: e.idUsuario ?? e.idEmpleado,
+    nombre:    e.nombre ?? e.nombreCompleto ?? `Empleado #${e.idEmpleado}`,
+  }));
+  const opts = state.usuarios.map(u =>
+    `<option value="${u.idUsuario}">${u.nombre}</option>`
+  ).join('');
+  document.getElementById('c-evaluador').innerHTML = '<option value="">— El evaluador asignado (o tú mismo) —</option>' + opts;
 }
 
-/* ── Stats ───────────────────────────────────────────────── */
+/* ── Stats ────────────────────────────────────────────────── */
 function actualizarStats() {
-  const lista = state.lista;
-  const comp  = lista.filter(e => e.estado === 'Completada');
+  const total = state.lista.length;
+  const pend  = state.lista.filter(e => e.estado === 'Pendiente').length;
+  const comp  = state.lista.filter(e => e.estado === 'Completada');
   const prom  = comp.length
     ? (comp.reduce((s, e) => s + (e.puntajeFinal ?? 0), 0) / comp.length).toFixed(1) + '%'
     : '—';
-  document.getElementById('stat-total').textContent = lista.length;
-  document.getElementById('stat-pend').textContent  = lista.filter(e => e.estado === 'Pendiente').length;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pend').textContent  = pend;
   document.getElementById('stat-comp').textContent  = comp.length;
   document.getElementById('stat-prom').textContent  = prom;
-  document.getElementById('badge-total').textContent = `${lista.length} evaluaciones`;
+  document.getElementById('badge-total').textContent = `${total} evaluaciones`;
 }
 
-/* ── Render tabla ────────────────────────────────────────── */
-function renderTabla(filtrada = state.lista) {
-  if (!filtrada.length) {
-    document.getElementById('tbody').innerHTML = `<tr><td colspan="9">
-      <div class="empty-state"><div class="empty-icon">📋</div>
-      <h3>Sin evaluaciones registradas</h3>
-      <p>Haz clic en "Nueva evaluación" para crear el primer formulario 360°.</p>
+/* ── Render tabla ─────────────────────────────────────────── */
+function renderTabla() {
+  const tbody = document.getElementById('tbody');
+  if (!state.lista.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No hay evaluaciones registradas</h3>
+        <p>Usa "🚀 Aplicar a todos los empleados" o "＋ Asignar individual" para comenzar.</p>
       </div></td></tr>`;
     return;
   }
 
-  document.getElementById('tbody').innerHTML = filtrada.map((e, i) => {
-    const color  = e.puntajeFinal >= 80 ? 'green' : e.puntajeFinal >= 50 ? 'yellow' : 'red';
-    const puntaje = e.estado === 'Completada'
-      ? `<div class="score-wrap">
-           <div class="score-bar-bg"><div class="score-bar-fill fill-${color}" style="width:${e.puntajeFinal}%"></div></div>
-           <span class="score-label">${e.puntajeFinal}%</span>
-         </div>`
-      : '<span class="chip chip-gray">—</span>';
+  const scoreBar = (pct) => {
+    const cls = pct >= 80 ? 'fill-green' : pct >= 50 ? 'fill-yellow' : 'fill-red';
+    return `<div class="score-bar-wrap">
+      <div class="score-bar-bg"><div class="score-bar-fill ${cls}" style="width:${pct}%"></div></div>
+      <span class="score-num">${pct}%</span>
+    </div>`;
+  };
+
+  tbody.innerHTML = state.lista.map(e => {
+    const puntaje = e.estado === 'Completada' ? scoreBar(e.puntajeFinal ?? 0) : '—';
+    const fecha = e.fechaCompletada
+      ? formatDate(e.fechaCompletada)
+      : (e.fechaCreacion ? formatDate(e.fechaCreacion) : '—');
 
     return `<tr>
-      <td class="text-muted">${i + 1}</td>
-      <td class="font-medium">${e.nombreEmpleado ?? `#${e.idEmpleado}`}</td>
-      <td style="font-size:var(--font-size-xs);color:var(--color-text-muted)">${e.nombreEvaluador ?? '—'}</td>
+      <td class="font-medium">${e.nombreEmpleado ?? `Empleado #${e.idEmpleado}`}</td>
+      <td>${e.nombreEvaluador ?? `Usuario #${e.idEvaluador}`}</td>
       <td><span class="chip chip-blue">${PERSPECTIVA_LABEL[e.perspectiva] ?? e.perspectiva}</span></td>
       <td>${e.periodo}</td>
       <td>${e.estado === 'Completada'
         ? '<span class="chip chip-green">✅ Completada</span>'
         : '<span class="chip chip-yellow">⏳ Pendiente</span>'}</td>
       <td>${puntaje}</td>
-      <td style="font-size:var(--font-size-xs)">${formatDate(e.fechaCreacion)}</td>
+      <td style="font-size:var(--font-size-xs);color:var(--color-text-muted)">${fecha}</td>
       <td>
-        <div class="row-actions">
-          ${e.estado === 'Completada'
-            ? `<button class="btn-icon" title="Ver resultados" data-accion="detalle" data-id="${e.idEvaluacion}">📊</button>`
-            : `<button class="btn-icon" title="Pendiente de respuesta" data-accion="detalle" data-id="${e.idEvaluacion}">👁</button>`}
-        </div>
+        <button class="btn-icon" data-accion="ver" data-id="${e.idEvaluacion}" title="Ver detalle">👁️</button>
       </td>
     </tr>`;
   }).join('');
 }
 
-/* ── Delegación clicks en tabla ──────────────────────────── */
-document.getElementById('tbody').addEventListener('click', async (e) => {
+/* ── Delegación tabla ─────────────────────────────────────── */
+document.getElementById('tbody').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-accion]');
   if (!btn) return;
-  if (btn.dataset.accion === 'detalle') abrirDetalle(Number(btn.dataset.id));
+  const id = Number(btn.dataset.id);
+  if (btn.dataset.accion === 'ver') verDetalle(id);
 });
 
 /* ── Modal detalle ───────────────────────────────────────── */
-async function abrirDetalle(id) {
-  show(document.getElementById('modal-detalle'));
-  document.getElementById('det-body').innerHTML =
-    '<div style="text-align:center;padding:var(--space-6)">⏳ Cargando...</div>';
-
+async function verDetalle(idEvaluacion) {
   try {
-    const ev = await evaluacionApi.getById(id);
-    document.getElementById('det-titulo').textContent =
-      `📊 ${ev.nombreEmpleado} — ${ev.periodo} (${PERSPECTIVA_LABEL[ev.perspectiva] ?? ev.perspectiva})`;
+    const ev = await evaluacionApi.getById(idEvaluacion);
+    state.evaluacionId = idEvaluacion;
 
-    const colorPunt = ev.puntajeFinal >= 80 ? 'green' : ev.puntajeFinal >= 50 ? 'yellow' : 'red';
+    document.getElementById('det-empleado').textContent    = ev.nombreEmpleado ?? `Empleado #${ev.idEmpleado}`;
+    document.getElementById('det-evaluador').textContent   = ev.nombreEvaluador ?? `Usuario #${ev.idEvaluador}`;
+    document.getElementById('det-perspectiva').textContent = PERSPECTIVA_LABEL[ev.perspectiva] ?? ev.perspectiva;
+    document.getElementById('det-periodo').textContent     = ev.periodo;
+    document.getElementById('det-estado').textContent      = ev.estado;
+    document.getElementById('det-obs').textContent         = ev.observaciones || 'Sin observaciones.';
 
-    let respHtml = '';
-    if (ev.respuestas?.length) {
-      respHtml = `
-      <div style="margin-top:var(--space-5)">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
-                    color:var(--color-text-muted);margin-bottom:var(--space-3)">Detalle por pregunta</div>
-        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--radius-md)">
-          <table class="resp-table">
-            <thead><tr><th>#</th><th>Pregunta</th><th>Cal.</th><th>Nivel</th></tr></thead>
-            <tbody>
-              ${ev.respuestas.map(r => `
-                <tr>
-                  <td style="width:36px;text-align:center;color:var(--color-text-muted)">${r.numeroPregunta}</td>
-                  <td style="font-size:.75rem">${PREGUNTAS_TEXTO[r.numeroPregunta] ?? '—'}</td>
-                  <td style="text-align:center"><strong>${r.calificacion}</strong>/5</td>
-                  <td><span class="stars">${'★'.repeat(r.calificacion)}${'☆'.repeat(5-r.calificacion)}</span>
-                      <span style="font-size:.65rem;color:var(--color-text-muted);margin-left:4px">${LIKERT[r.calificacion]}</span></td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+    if (ev.estado === 'Completada') {
+      const scoreCard = document.getElementById('det-score-card');
+      show(scoreCard);
+      const pct = ev.puntajeFinal ?? 0;
+      document.getElementById('det-score-val').textContent = pct + '%';
+      document.getElementById('det-score-lbl').textContent =
+        pct >= 80 ? 'Excelente' : pct >= 60 ? 'Bueno' : pct >= 40 ? 'Regular' : 'Requiere mejora';
+
+      const respCard = document.getElementById('det-respuestas-card');
+      show(respCard);
+      const tbody = document.getElementById('det-resp-tbody');
+      tbody.innerHTML = (ev.respuestas ?? []).map(r => `
+        <tr>
+          <td style="font-weight:700;color:var(--color-primary)">${r.numeroPregunta}</td>
+          <td style="font-size:var(--font-size-xs)">${PREGUNTAS_TEXTO[r.numeroPregunta] ?? '—'}</td>
+          <td style="text-align:center"><span class="chip ${r.calificacion >= 4 ? 'chip-green' : r.calificacion >= 3 ? 'chip-yellow' : 'chip-red'}">${r.calificacion} / 5</span></td>
+        </tr>
+      `).join('');
+    } else {
+      hide(document.getElementById('det-score-card'));
+      hide(document.getElementById('det-respuestas-card'));
     }
 
-    document.getElementById('det-body').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3) var(--space-6);margin-bottom:var(--space-4)">
-        <div><div style="font-size:var(--font-size-xs);color:var(--color-text-muted);text-transform:uppercase;margin-bottom:2px">Evaluado</div>
-          <div class="font-medium">${ev.nombreEmpleado}</div></div>
-        <div><div style="font-size:var(--font-size-xs);color:var(--color-text-muted);text-transform:uppercase;margin-bottom:2px">Evaluador</div>
-          <div>${ev.nombreEvaluador ?? '—'}</div></div>
-        <div><div style="font-size:var(--font-size-xs);color:var(--color-text-muted);text-transform:uppercase;margin-bottom:2px">Perspectiva</div>
-          <span class="chip chip-blue">${PERSPECTIVA_LABEL[ev.perspectiva] ?? ev.perspectiva}</span></div>
-        <div><div style="font-size:var(--font-size-xs);color:var(--color-text-muted);text-transform:uppercase;margin-bottom:2px">Período</div>
-          <div>${ev.periodo}</div></div>
-        <div><div style="font-size:var(--font-size-xs);color:var(--color-text-muted);text-transform:uppercase;margin-bottom:2px">Estado</div>
-          ${ev.estado === 'Completada'
-            ? '<span class="chip chip-green">✅ Completada</span>'
-            : '<span class="chip chip-yellow">⏳ Pendiente</span>'}</div>
-        <div><div style="font-size:var(--font-size-xs);color:var(--color-text-muted);text-transform:uppercase;margin-bottom:2px">Completada</div>
-          <div>${ev.fechaCompletada ? formatDate(ev.fechaCompletada) : '—'}</div></div>
-      </div>
-
-      ${ev.estado === 'Completada' ? `
-      <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-4);text-align:center;margin-bottom:var(--space-4)">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--color-text-muted);margin-bottom:var(--space-2)">Puntaje Final (fórmula 360°)</div>
-        <div style="font-size:2.5rem;font-weight:700;color:var(--color-${colorPunt === 'green' ? 'success' : colorPunt === 'yellow' ? 'warning' : 'danger'},var(--color-text))">${ev.puntajeFinal}%</div>
-        <div class="score-wrap" style="max-width:300px;margin:var(--space-2) auto 0">
-          <div class="score-bar-bg" style="height:12px">
-            <div class="score-bar-fill fill-${colorPunt}" style="width:${ev.puntajeFinal}%;height:100%"></div>
-          </div>
-        </div>
-        <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2)">
-          ${ev.puntajeFinal >= 80 ? '🏆 Desempeño Excelente' : ev.puntajeFinal >= 60 ? '👍 Desempeño Bueno' : ev.puntajeFinal >= 40 ? '📈 Desempeño Regular' : '⚠️ Requiere mejora'}
-        </div>
-      </div>
-      ${ev.observaciones ? `<div style="background:var(--color-primary-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--font-size-sm);font-style:italic;margin-bottom:var(--space-3)">💬 ${ev.observaciones}</div>` : ''}
-      ` : '<div style="text-align:center;padding:var(--space-4);color:var(--color-text-muted)">⏳ Esta evaluación aún no ha sido respondida.</div>'}
-      ${respHtml}`;
+    show(document.getElementById('modal-detalle'));
   } catch (err) {
-    document.getElementById('det-body').innerHTML =
-      `<div class="empty-state"><div class="empty-icon">⚠️</div><h3>${err.message}</h3></div>`;
+    toast('Error al cargar detalle: ' + err.message, 'error');
   }
 }
 
-// Textos cortos de las preguntas para la tabla de detalle
 const PREGUNTAS_TEXTO = {
-  1:'¿Comprende las implicaciones de sus decisiones en el negocio?',
-  2:'¿Determina objetivos claros y establece prioridades?',
-  3:'¿Considera los riesgos antes de ejecutar una acción relevante?',
-  4:'¿Completa en tiempo y forma los proyectos asignados?',
-  5:'¿Jerarquiza y reordena prioridades ante cambios?',
-  6:'¿Utiliza eficientemente los recursos asignados?',
-  7:'¿Se enfoca en la causa raíz para resolver problemas?',
-  8:'¿Conserva la calma y objetividad bajo presión?',
-  9:'¿Analiza información de múltiples fuentes antes de decidir?',
-  10:'¿Es un miembro activo y colaborativo del equipo?',
-  11:'¿Inspira y motiva al equipo para alcanzar metas?',
-  12:'¿Comparte conocimientos y experiencia con los demás?',
-  13:'¿Expresa ideas con claridad, precisión y respeto?',
-  14:'¿Escucha activamente y acepta críticas constructivas?',
-  15:'¿Fomenta el diálogo para resolver diferencias?',
-  16:'¿Entiende necesidades del cliente y supera expectativas?',
-  17:'¿Procura la satisfacción del cliente con excelencia?',
+  1:'¿Comprende las implicaciones de sus decisiones en el negocio a corto y largo plazo?',
+  2:'¿Determina objetivos claros y establece prioridades efectivas para alcanzarlos?',
+  3:'¿Considera los riesgos e implicaciones antes de ejecutar una acción relevante?',
+  4:'¿Completa de manera efectiva, en tiempo y forma, los proyectos asignados?',
+  5:'¿Es capaz de jerarquizar y reordenar prioridades ante cambios o imprevistos?',
+  6:'¿Utiliza eficientemente los recursos asignados (presupuesto, herramientas, tiempo)?',
+  7:'¿Se enfoca en la causa raíz de los asuntos clave para resolver problemas efectivamente?',
+  8:'¿Conserva la calma, la objetividad y el control en situaciones complicadas o bajo presión?',
+  9:'¿Recauda y analiza información de diferentes fuentes antes de tomar una decisión?',
+  10:'¿Se desempeña como un miembro activo, colaborativo y comprometido con el grupo?',
+  11:'¿Inspira, motiva y guía al equipo para el logro de las metas comunes?',
+  12:'¿Comparte activamente sus conocimientos, habilidades y experiencia con los demás?',
+  13:'¿Expresa sus ideas y opiniones con claridad, precisión y respeto hacia la otra persona?',
+  14:'¿Escucha activamente y muestra apertura ante críticas constructivas u opiniones ajenas?',
+  15:'¿Fomenta el diálogo abierto y directo para resolver diferencias o alinear expectativas?',
+  16:'¿Entiende las necesidades del cliente (interno/externo) y busca superar sus expectativas?',
+  17:'¿Procura la satisfacción del cliente brindando un servicio de excelencia?',
   18:'¿Es percibido como persona de confianza e integridad?',
   19:'¿Demuestra flexibilidad ante nuevos procesos y tecnologías?',
   20:'¿Busca formas de optimizar e innovar en sus aportes?',
 };
 
-/* ── Modal crear ─────────────────────────────────────────── */
+/* ── Modal asignación masiva ──────────────────────────── */
+document.getElementById('btn-masiva')?.addEventListener('click', () => {
+  show(document.getElementById('modal-masiva'));
+});
+
+document.getElementById('masiva-submit')?.addEventListener('click', async () => {
+  const periodo = document.getElementById('m-periodo').value;
+  const perspectiva = document.getElementById('m-perspectiva').value;
+
+  const btn = document.getElementById('masiva-submit');
+  btn.disabled = true;
+  btn.textContent = 'Aplicando a todos...';
+
+  try {
+    const res = await evaluacionApi.asignarMasivo({ periodo, perspectiva });
+    toast(`✅ ${res?.message || 'Evaluaciones asignadas correctamente a todos los empleados.'}`, 'success', 5000);
+    hide(document.getElementById('modal-masiva'));
+    await cargarYRenderizar();
+  } catch (err) {
+    toast('Error al asignar masivamente: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Aplicar a todos';
+  }
+});
+
+/* ── Modal crear individual ──────────────────────────────── */
 document.getElementById('btn-nueva').addEventListener('click', async () => {
   await cargarUsuarios();
   document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
@@ -476,10 +559,14 @@ document.getElementById('btn-limpiar').addEventListener('click', () => {
   document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-crear'))));
 ['det-close','det-cancel'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-detalle'))));
+['masiva-close','masiva-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-masiva'))));
 document.getElementById('modal-crear').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-crear')) hide(document.getElementById('modal-crear')); });
 document.getElementById('modal-detalle').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-detalle')) hide(document.getElementById('modal-detalle')); });
+document.getElementById('modal-masiva')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-masiva')) hide(document.getElementById('modal-masiva')); });
 
 /* ── Init ────────────────────────────────────────────────── */
 init();
