@@ -243,3 +243,11 @@ export const biometricoApi = {
   getRegistrosCrudos: (id = null, limite = 50) =>
     api.get(`/biometrico/registros-crudos?limite=${limite}${id ? `&idDispositivo=${id}` : ''}`),
 };
+
+export const tipoSolicitudPermisoApi = {
+  getAll:     (soloActivos = true) => api.get(`/tiposolicitudpermiso?soloActivos=${soloActivos}`),
+  getById:    (id)                 => api.get(`/tiposolicitudpermiso/${id}`),
+  crear:      (body)               => api.post('/tiposolicitudpermiso', body),
+  actualizar: (id, body)           => api.put(`/tiposolicitudpermiso/${id}`, body),
+  eliminar:   (id)                 => api.delete(`/tiposolicitudpermiso/${id}`),
+};

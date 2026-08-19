@@ -38,6 +38,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
         var empleado = await _context.Empleados
             .FirstOrDefaultAsync(e => e.IdUsuario == usuario.IdUsuario, cancellationToken);
 
+        // Registrar metadatos de la estación de trabajo
+        if (!string.IsNullOrWhiteSpace(request.IpOrigen))
+            usuario.UltimaIpLogin = request.IpOrigen.Trim();
+        if (!string.IsNullOrWhiteSpace(request.MacAddress))
+            usuario.UltimaMacLogin = request.MacAddress.Trim();
+        usuario.UltimaFechaLogin = DateTime.UtcNow;
+
         if (usuario.Es2FaActivo)
         {
             var codigo = Random.Shared.Next(100000, 999999).ToString("D6");
