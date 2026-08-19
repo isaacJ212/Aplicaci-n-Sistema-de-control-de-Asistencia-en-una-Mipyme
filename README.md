@@ -65,6 +65,7 @@ dotnet run
 
 ---
 
+
 ## 🔑 Credenciales de Acceso para Pruebas
 
 | Rol | Correo | Contraseña | Portal |
@@ -72,3 +73,27 @@ dotnet run
 | **👑 Administrador** | `isaac@gmail.com` | `123456789` | `/admin/dashboard` |
 | **📊 Analista RRHH** | `analista@mipyme.com` | `123456789` | `/analista/dashboard` |
 | **👷 Empleado** | `master@gmail.com` | `123456789` | `/empleado/dashboard` |
+
+## 🌐 Rutas del frontend
+* `/login` → Pantalla de inicio de sesión
+* `/admin/dashboard` → Panel administrativo
+* `/empleado/dashboard` → Panel de empleado
+* `/empleado/marcaje` → Marcaje GPS / QR
+* `/kiosko-qr` → Kiosko QR público
+
+---
+
+## 📄 Archivos clave
+* `server.js` — servidor Express de frontend
+* `frontend/modules/config.js` — base URL de la API
+* `backend/Dockerfile` — construcción del backend
+* `docker-compose.yml` — despliegue Docker
+* `backend/MipymeAsistencia.sln` — solución .NET
+
+## link del deploy 
+
+- https://aplicaci-n-sistema-de-control-de-74ff.onrender.com/pages/admin/rendimiento.html
+- https://aplicaci-n-sistema-de-control-de.onrender.com/swagger/index.html
+
+
+
