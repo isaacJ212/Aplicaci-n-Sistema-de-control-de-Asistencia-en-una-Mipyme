@@ -28,15 +28,20 @@ public class SolicitarPermisoVacacionCommandHandler : IRequestHandler<SolicitarP
             throw new InvalidOperationException("La fecha de inicio no puede ser mayor que la fecha final.");
 
         var tipo = request.TipoSolicitud.Trim();
-        if (tipo != "Permiso" && tipo != "Vacacion")
-            throw new InvalidOperationException("El tipo de solicitud debe ser 'Permiso' o 'Vacacion'.");
+        var tiposValidos = new[] { "Vacaciones", "Permiso Medico", "Permiso Personal", "Permiso", "Vacacion" };
+        if (!tiposValidos.Contains(tipo))
+            throw new InvalidOperationException("El tipo de solicitud debe ser 'Vacaciones', 'Permiso Medico' o 'Permiso Personal'.");
+
+        // Normalizar alias cortos al valor canónico
+        if (tipo == "Vacacion") tipo = "Vacaciones";
+        if (tipo == "Permiso")  tipo = "Permiso Personal";
 
         var diasSolicitados = request.DiasSolicitados ?? CalcularDiasEntreFechas(request.FechaInicio, request.FechaFin);
 
         if (diasSolicitados <= 0)
             throw new InvalidOperationException("La cantidad de días solicitados debe ser mayor a cero.");
 
-        if (tipo == "Vacacion" && empleado.DiasVacacionesAcumuladas < diasSolicitados)
+        if (tipo == "Vacaciones" && empleado.DiasVacacionesAcumuladas < diasSolicitados)
             throw new InvalidOperationException("El empleado no tiene suficientes días de vacaciones acumulados.");
 
         var solicitud = new HistorialPermisoVacacion
