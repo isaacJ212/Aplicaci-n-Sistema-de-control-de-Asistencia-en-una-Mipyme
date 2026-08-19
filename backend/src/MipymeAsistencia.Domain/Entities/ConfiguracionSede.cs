@@ -13,4 +13,6 @@ public class ConfiguracionSede
     public int MinutosTolerancia { get; set; } = 10;
     public string? TokenQrActual { get; set; }
     public DateTime? QrUltimaActualizacion { get; set; }
+    public string? IpEstacionPermitida { get; set; } = "127.0.0.1,::1,192.168.1.0/24";
+    public bool ValidarIpEn2Fa { get; set; } = true;
 }
