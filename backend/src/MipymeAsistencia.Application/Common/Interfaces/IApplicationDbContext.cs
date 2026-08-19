@@ -24,5 +24,6 @@ public interface IApplicationDbContext
     DbSet<DispositivoBiometrico> DispositivosBiometricos { get; }
     DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos { get; }
     DbSet<TipoSolicitudPermiso> TiposSolicitudPermiso { get; }
+    DbSet<AuditoriaLog> AuditoriaLogs { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

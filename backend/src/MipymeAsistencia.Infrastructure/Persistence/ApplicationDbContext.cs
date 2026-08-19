@@ -29,6 +29,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<DispositivoBiometrico> DispositivosBiometricos => Set<DispositivoBiometrico>();
     public DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos => Set<RegistroMarcajeBiometrico>();
     public DbSet<TipoSolicitudPermiso> TiposSolicitudPermiso => Set<TipoSolicitudPermiso>();
+    public DbSet<AuditoriaLog> AuditoriaLogs => Set<AuditoriaLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -516,6 +517,20 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 new TipoSolicitudPermiso { IdTipoSolicitud = 4, Nombre = "Duelo / Calamidad", Descripcion = "Fallecimiento de familiar directo o calamidad doméstica (Arto. 73 Código del Trabajo)", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = false, MaximoDiasPorSolicitud = 5, Icono = "favorite", Activo = true },
                 new TipoSolicitudPermiso { IdTipoSolicitud = 5, Nombre = "Licencia de Estudio", Descripcion = "Permiso por exámenes o capacitaciones laborales autorizadas", RequiereComprobante = true, DescuentaVacaciones = false, PermitePorHoras = true, MaximoDiasPorSolicitud = 7, Icono = "school", Activo = true }
             );
+        });
+
+        modelBuilder.Entity<AuditoriaLog>(entity =>
+        {
+            entity.ToTable("auditoria_logs");
+            entity.HasKey(x => x.IdLog);
+            entity.Property(x => x.IdLog).HasColumnName("id_log");
+            entity.Property(x => x.Entidad).HasColumnName("entidad").HasMaxLength(50);
+            entity.Property(x => x.IdRegistro).HasColumnName("id_registro");
+            entity.Property(x => x.Accion).HasColumnName("accion").HasMaxLength(50);
+            entity.Property(x => x.Usuario).HasColumnName("usuario").HasMaxLength(100);
+            entity.Property(x => x.Descripcion).HasColumnName("descripcion");
+            entity.Property(x => x.DetallesJson).HasColumnName("detalles_json").HasColumnType("jsonb");
+            entity.Property(x => x.FechaEvento).HasColumnName("fecha_evento").HasDefaultValueSql("NOW()");
         });
 
         base.OnModelCreating(modelBuilder);

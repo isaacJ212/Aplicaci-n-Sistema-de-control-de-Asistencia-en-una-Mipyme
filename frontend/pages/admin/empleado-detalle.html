@@ -133,7 +133,7 @@
 <script type="module">
 import { initAdminLayout }                                         from '../../modules/layout.js';
 import { empleadoApi, asistenciaApi, horasExtrasApi,
-         planillaApi, permisoApi }                                 from '../../modules/api.js';
+         planillaApi, permisoApi, auditoriaApi }                   from '../../modules/api.js';
 import { toast, formatDate, formatCurrency }                       from '../../modules/utils.js';
 
 await initAdminLayout('empleados');
@@ -159,18 +159,20 @@ function chip(estado) {
 
 /* ── Carga todo en paralelo ──────────────────────────────── */
 try {
-  const [emp, asistencias, horasExtras, permisos, planillas] = await Promise.all([
+  const [emp, asistencias, horasExtras, permisos, planillas, auditLogs] = await Promise.all([
     empleadoApi.getById(idEmpleado),
     asistenciaApi.historial(idEmpleado).catch(() => []),
     horasExtrasApi.getByEmpleado(idEmpleado).catch(() => []),
     permisoApi.getMias(idEmpleado).catch(() => []),
     planillaApi.getByEmpleado(idEmpleado).catch(() => []),
+    auditoriaApi.getPorEmpleado(idEmpleado).catch(() => []),
   ]);
 
   const asist   = Array.isArray(asistencias)  ? asistencias  : [];
   const extras  = Array.isArray(horasExtras)  ? horasExtras  : [];
   const perms   = Array.isArray(permisos)     ? permisos     : [];
   const plans   = Array.isArray(planillas)    ? planillas    : [];
+  const logs    = Array.isArray(auditLogs)    ? auditLogs    : [];
 
   /* topbar */
   const nombreCompleto = `${emp.nombres ?? ''} ${emp.apellidos ?? ''}`.trim();
@@ -228,6 +230,7 @@ try {
       <button class="tab-btn" data-tab="extras">⏱ Horas extras (${extras.length})</button>
       <button class="tab-btn" data-tab="permisos">🌴 Permisos / Vacaciones (${perms.length})</button>
       <button class="tab-btn" data-tab="planillas">💵 Planillas (${plans.length})</button>
+      <button class="tab-btn" data-tab="auditoria">📜 Auditoría & Log (${logs.length})</button>
     </div>
 
     <!-- TAB: DATOS PERSONALES ───────────────────────────── -->
@@ -366,6 +369,41 @@ try {
                   </tr>`).join('')}
                 </tbody>
               </table>
+            </div>`
+        }
+      </div>
+    </div>
+
+    <!-- TAB: AUDITORÍA & LOG ──────────────────────────────── -->
+    <div id="tab-auditoria" class="tab-panel">
+      <div class="card" style="padding:0">
+        <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span class="card-title">📜 Registro de Auditoría y Trazabilidad</span>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:2px">
+              Historial inmutable de eventos, modificaciones y acciones administrativas para este expediente.
+            </div>
+          </div>
+          <span style="font-size:var(--font-size-sm);color:var(--color-text-muted)">${logs.length} eventos</span>
+        </div>
+        ${!logs.length
+          ? `<div class="empty-state"><div class="empty-icon">📜</div><h3>Sin registros de auditoría</h3><p>Los cambios en el expediente se registrarán automáticamente aquí.</p></div>`
+          : `<div style="padding:var(--space-5)">
+              <div style="position:relative;padding-left:var(--space-6);border-left:2px solid var(--color-border)">
+                ${logs.map(log => `
+                  <div style="position:relative;margin-bottom:var(--space-5)">
+                    <div style="position:absolute;left:calc(-1 * var(--space-6) - 5px);top:2px;width:10px;height:10px;border-radius:50%;background:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-light)"></div>
+                    <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);flex-wrap:wrap">
+                      <span class="chip chip-blue" style="font-weight:700">${log.accion}</span>
+                      <span style="font-size:var(--font-size-xs);color:var(--color-text-muted)">por <strong>${log.usuario}</strong></span>
+                      <span style="font-size:var(--font-size-xs);color:var(--color-text-light);margin-left:auto">${new Date(log.fechaEvento).toLocaleString('es-NI')}</span>
+                    </div>
+                    <div style="font-size:var(--font-size-sm);color:var(--color-text);background:var(--color-bg);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--color-border)">
+                      ${log.descripcion}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
             </div>`
         }
       </div>
