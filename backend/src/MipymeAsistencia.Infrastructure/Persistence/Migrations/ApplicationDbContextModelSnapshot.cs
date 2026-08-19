@@ -122,6 +122,22 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("dias_vacaciones_acumuladas");
 
+                    b.Property<string>("EstadoCivil")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Soltero")
+                        .HasColumnName("estado_civil");
+
+                    b.Property<string>("EstadoEmpleado")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Activo")
+                        .HasColumnName("estado_empleado");
+
                     b.Property<DateTime>("FechaContratacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_contratacion");
@@ -140,6 +156,14 @@ namespace MipymeAsistencia.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("nombres");
+
+                    b.Property<string>("NumeroInss")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("")
+                        .HasColumnName("numero_inss");
 
                     b.Property<string>("Responsabilidades")
                         .IsRequired()

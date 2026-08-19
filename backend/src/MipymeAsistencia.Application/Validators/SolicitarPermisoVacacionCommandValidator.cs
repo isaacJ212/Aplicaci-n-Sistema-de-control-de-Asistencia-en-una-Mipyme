@@ -12,8 +12,11 @@ public class SolicitarPermisoVacacionCommandValidator : AbstractValidator<Solici
 
         RuleFor(x => x.TipoSolicitud)
             .NotEmpty().WithMessage("El tipo de solicitud es obligatorio.")
-            .Must(tipo => tipo == "Permiso" || tipo == "Vacacion")
-            .WithMessage("El tipo de solicitud debe ser 'Permiso' o 'Vacacion'.");
+            .Must(tipo => new[]
+            {
+                "Vacaciones", "Permiso Medico", "Permiso Personal", "Permiso", "Vacacion"
+            }.Contains(tipo))
+            .WithMessage("El tipo de solicitud debe ser 'Vacaciones', 'Permiso Medico' o 'Permiso Personal'.");
 
         RuleFor(x => x.FechaInicio)
             .NotEmpty().WithMessage("La fecha de inicio es obligatoria.");

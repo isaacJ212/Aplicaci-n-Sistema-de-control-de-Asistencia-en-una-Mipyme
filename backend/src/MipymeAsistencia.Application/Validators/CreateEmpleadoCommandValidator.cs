@@ -14,6 +14,20 @@ public class CreateEmpleadoCommandValidator : AbstractValidator<CreateEmpleadoCo
             .NotEmpty().WithMessage("La cédula es obligatoria.")
             .MaximumLength(20).WithMessage("La cédula no puede exceder 20 caracteres.");
 
+        RuleFor(x => x.NumeroInss)
+            .NotEmpty().WithMessage("El número de INSS es obligatorio.")
+            .Matches("^\\d{9}$").WithMessage("El número de INSS debe tener exactamente 9 dígitos.");
+
+        RuleFor(x => x.EstadoCivil)
+            .NotEmpty().WithMessage("El estado civil es obligatorio.")
+            .Must(v => new[] { "Soltero", "Casado", "Divorciado", "Viudo", "Unión libre" }.Contains(v))
+            .WithMessage("El estado civil no es válido.");
+
+        RuleFor(x => x.EstadoEmpleado)
+            .NotEmpty().WithMessage("El estado del empleado es obligatorio.")
+            .Must(v => new[] { "Activo", "Inactivo", "Suspendido", "Embargado" }.Contains(v))
+            .WithMessage("El estado del empleado no es válido.");
+
         RuleFor(x => x.Nombres)
             .NotEmpty().WithMessage("Los nombres son obligatorios.")
             .MaximumLength(100).WithMessage("Los nombres no pueden exceder 100 caracteres.");

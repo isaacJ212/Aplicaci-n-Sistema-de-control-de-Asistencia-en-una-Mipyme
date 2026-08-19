@@ -7,5 +7,5 @@ public class ResponderPermisoVacacionCommand : IRequest<PermisoVacacionResponseD
 {
     public int IdSolicitud { get; set; }
     public int IdUsuarioAprobador { get; set; }
-    public string EstadoSolicitud { get; set; } = "Aceptado";
+    public string EstadoSolicitud { get; set; } = "Aprobado";
 }

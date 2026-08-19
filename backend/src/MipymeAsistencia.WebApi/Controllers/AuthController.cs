@@ -6,6 +6,8 @@ using MipymeAsistencia.Application.Features.Auth.Commands.Login;
 using MipymeAsistencia.Application.Features.Auth.Commands.Logout;
 using MipymeAsistencia.Application.Features.Auth.Commands.RefreshToken;
 using MipymeAsistencia.Application.Features.Auth.Commands.Register;
+using MipymeAsistencia.Application.Features.Auth.Commands.Verify2Fa;
+using MipymeAsistencia.Application.Features.Auth.Commands.Enable2Fa;
 using MipymeAsistencia.Application.Features.Auth.Queries.GetCurrentUser;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -74,6 +76,42 @@ public class AuthController : ControllerBase
         });
 
         return Ok(ApiResponse<LoginResponseDto>.Ok(data, "Token renovado correctamente."));
+    }
+
+    /// <summary>Verifica el código de seguridad de dos pasos y emite el JWT si es válido.</summary>
+    [HttpPost("verify-2fa")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Verify2Fa([FromBody] Verify2FaRequestDto request)
+    {
+        var data = await _mediator.Send(new Verify2FaCommand
+        {
+            Email = request.Email,
+            Code = request.Code
+        });
+
+        return Ok(ApiResponse<LoginResponseDto>.Ok(data, "Validación de dos pasos exitosa."));
+    }
+
+    /// <summary>Activa o desactiva la autenticación en dos pasos del usuario actual.</summary>
+    [HttpPost("toggle-2fa")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Toggle2Fa([FromBody] Enable2FaRequestDto request)
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("sub");
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized(ApiResponse<object>.Unauthorized("Token inválido."));
+
+        var data = await _mediator.Send(new Enable2FaCommand
+        {
+            Email = email,
+            Enabled = request.Enabled
+        });
+
+        return Ok(ApiResponse<object>.Ok(data, request.Enabled ? "Autenticación en dos pasos activada." : "Autenticación en dos pasos desactivada."));
     }
 
     /// <summary>Devuelve los datos del usuario autenticado extraídos del JWT.</summary>
