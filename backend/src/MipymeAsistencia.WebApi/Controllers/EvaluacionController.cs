@@ -160,4 +160,64 @@ public class EvaluacionController : ControllerBase
         return Ok(ApiResponse<EvaluacionResponseDto>.Ok(
             data, $"Evaluación completada. Puntaje final: {data.PuntajeFinal}%"));
     }
+
+
+    [HttpPost("asignar-masivo")]
+    [Authorize(Roles = "Admin,Analista")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AsignarMasivo(
+        [FromBody] AsignarMasivoRequestDto request,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Periodo))
+            return BadRequest(ApiResponse<object>.BadRequest("El período es obligatorio. Ej: 2026-S2"));
+
+        var empleados = await _context.Empleados
+            .Where(e => e.EstadoEmpleado == "Activo" && e.IdUsuario > 0)
+            .ToListAsync(ct);
+
+        int creadas = 0;
+        int omitidas = 0;
+        var perspectiva = string.IsNullOrWhiteSpace(request.Perspectiva) ? "Autoevaluacion" : request.Perspectiva;
+
+        foreach (var emp in empleados)
+        {
+            var yaExiste = await _context.EvaluacionesDesempeno
+                .AnyAsync(e => e.IdEmpleado == emp.IdEmpleado 
+                            && e.IdEvaluador == emp.IdUsuario 
+                            && e.Perspectiva == perspectiva
+                            && e.Periodo == request.Periodo, ct);
+
+            if (!yaExiste)
+            {
+                var nueva = new Domain.Entities.EvaluacionDesempeno
+                {
+                    IdEmpleado = emp.IdEmpleado,
+                    IdEvaluador = emp.IdUsuario,
+                    Perspectiva = perspectiva,
+                    Periodo = request.Periodo,
+                    Estado = "Pendiente",
+                    PuntajeFinal = 0m,
+                    FechaCreacion = DateTime.UtcNow
+                };
+
+                _context.EvaluacionesDesempeno.Add(nueva);
+                creadas++;
+            }
+            else
+            {
+                omitidas++;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        return Ok(ApiResponse<object>.Ok(new 
+        { 
+            creadas, 
+            omitidas, 
+            totalEmpleados = empleados.Count,
+            periodo = request.Periodo
+        }, $"Se asignaron {creadas} evaluaciones para el período {request.Periodo}. ({omitidas} ya existían)"));
+    }
 }

@@ -149,11 +149,64 @@ export function initLoginApp({ CONFIG, utils, AuthService: authService, authApi:
       if (data?.requires2Fa) {
         pendingLogin = { email, password };
         setFormMode('verify');
-        if (data.codigo2FaSoloPruebas) {
-          toast(`Código 2FA de estación: ${data.codigo2FaSoloPruebas}`, 'info', 6000);
-        } else {
-          toast('Se ha enviado un código a su estación de trabajo.', 'info', 3000);
+        const codigoEstacion = data.codigo2FaSoloPruebas || data.codigo;
+
+        // 1. Notificación de escritorio en la PC (Web Notification API nativa de Linux/Windows/Mac)
+        if ('Notification' in window) {
+          if (Notification.permission === 'granted') {
+            try {
+              new Notification('🖥️ Estación de Trabajo — Código 2FA', {
+                body: `Tu código de verificación es: ${codigoEstacion}`,
+                icon: '/assets/icons/shield.png',
+                requireInteraction: true,
+              });
+            } catch {}
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(perm => {
+              if (perm === 'granted') {
+                try {
+                  new Notification('🖥️ Estación de Trabajo — Código 2FA', {
+                    body: `Tu código de verificación es: ${codigoEstacion}`,
+                    requireInteraction: true,
+                  });
+                } catch {}
+              }
+            });
+          }
         }
+
+        // 2. Banner de Estación de Trabajo en pantalla
+        let stationCard = document.getElementById('estacion-2fa-card');
+        if (!stationCard) {
+          stationCard = document.createElement('div');
+          stationCard.id = 'estacion-2fa-card';
+          stationCard.style.cssText = 'background:#EEF2FF;border:2px solid #6366F1;border-radius:12px;padding:16px;margin-bottom:20px;text-align:center;animation:fadeIn 0.3s ease;';
+          verifyForm.prepend(stationCard);
+        }
+        stationCard.innerHTML = `
+          <div style="font-size:1.4rem;margin-bottom:4px">🖥️</div>
+          <div style="font-weight:700;color:#3730A3;font-size:0.95rem;margin-bottom:6px">
+            Código Enviado a esta Estación de Trabajo
+          </div>
+          <div style="font-size:0.8rem;color:#4F46E5;margin-bottom:12px">
+            Se ha verificado la estación física. Tu código temporal de acceso es:
+          </div>
+          <div style="display:inline-block;background:#312E81;color:#A5B4FC;font-size:1.6rem;font-weight:800;letter-spacing:6px;padding:8px 20px;border-radius:8px;margin-bottom:12px;font-family:monospace">
+            ${codigoEstacion || '123456'}
+          </div>
+          <div>
+            <button type="button" id="btn-autofill-2fa" class="btn btn-sm" style="background:#4F46E5;color:#FFF;border-radius:6px;padding:6px 14px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer">
+              📋 Autocompletar código
+            </button>
+          </div>
+        `;
+
+        document.getElementById('btn-autofill-2fa')?.addEventListener('click', () => {
+          verifyCodeInput.value = codigoEstacion || '';
+          verifyCodeInput.focus();
+        });
+
+        toast(`🖥️ Código de estación: ${codigoEstacion}`, 'info', 7000);
         verifyCodeInput.focus();
         setLoading(false);
         return;

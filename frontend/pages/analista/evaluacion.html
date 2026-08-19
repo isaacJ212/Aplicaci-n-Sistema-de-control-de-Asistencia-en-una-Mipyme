@@ -40,7 +40,7 @@
     .filtro-label { font-size:var(--font-size-xs);font-weight:600;color:var(--color-text-muted);
                     text-transform:uppercase;letter-spacing:.04em; }
 
-    /* Modal asignación masiva */
+    /* Modal asignación preview */
     .pregunta-preview { background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-md);
                         padding:var(--space-3);margin-bottom:var(--space-2);font-size:var(--font-size-sm); }
     .pregunta-preview strong { display:block;font-size:.7rem;color:var(--color-primary);margin-bottom:2px; }
@@ -62,21 +62,24 @@
       <div class="page-header">
         <div class="page-header-text">
           <h1>Gestión de Evaluaciones de Desempeño (Modelo 360°)</h1>
-          <p>Asigna formularios de evaluación semestral a los empleados. Los empleados verán el formulario en su portal.</p>
+          <p>Aplica la evaluación semestral a todos los empleados de la empresa o asigna evaluaciones individuales. Consulta el historial semestral.</p>
         </div>
-        <button class="btn btn-primary" id="btn-nueva">＋ Asignar evaluación</button>
+        <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-masiva" style="background:#7C3AED;border-color:#7C3AED">🚀 Aplicar a todos los empleados</button>
+          <button class="btn btn-secondary" id="btn-nueva">＋ Asignar individual</button>
+        </div>
       </div>
 
       <!-- Stats -->
       <div class="stats-grid" style="margin-bottom:var(--space-5)">
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon blue">📋</div></div>
-          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total</div></div>
+          <div class="stat-value" id="stat-total">—</div><div class="stat-label">Total Evaluaciones</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon yellow">⏳</div></div>
           <div class="stat-value" id="stat-pend">—</div><div class="stat-label">Pendientes</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">✅</div></div>
           <div class="stat-value" id="stat-comp">—</div><div class="stat-label">Completadas</div></div>
         <div class="stat-card"><div class="stat-card-top"><div class="stat-icon green">⭐</div></div>
-          <div class="stat-value" id="stat-prom">—</div><div class="stat-label">Puntaje promedio</div></div>
+          <div class="stat-value" id="stat-prom">—</div><div class="stat-label">Puntaje promedio global</div></div>
       </div>
 
       <!-- Filtros -->
@@ -88,12 +91,14 @@
           </select>
         </div>
         <div class="filtro-group">
-          <span class="filtro-label">Período</span>
-          <select class="form-input" id="f-periodo" style="min-width:130px">
-            <option value="">— Todos —</option>
-            <option value="2026-S1">2026-S1</option>
-            <option value="2026-S2">2026-S2</option>
-            <option value="2027-S1">2027-S1</option>
+          <span class="filtro-label">Período Semestral</span>
+          <select class="form-input" id="f-periodo" style="min-width:140px">
+            <option value="">— Todos (Historial) —</option>
+            <option value="2025-S1">2025 · Semestre 1</option>
+            <option value="2025-S2">2025 · Semestre 2</option>
+            <option value="2026-S1">2026 · Semestre 1</option>
+            <option value="2026-S2">2026 · Semestre 2</option>
+            <option value="2027-S1">2027 · Semestre 1</option>
           </select>
         </div>
         <div class="filtro-group">
@@ -144,11 +149,54 @@
   </div>
 </div>
 
-<!-- ═══ MODAL NUEVA EVALUACIÓN ═══ -->
+<!-- ═══ MODAL ASIGNACIÓN MASIVA ═══ -->
+<div class="modal-overlay hidden" id="modal-masiva">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title">🚀 Aplicar Evaluación 360° a Todos los Empleados</span>
+      <button class="btn btn-ghost btn-sm" id="masiva-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#EDE9FE;color:#5B21B6;border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-4);font-size:var(--font-size-sm)">
+        <strong>📢 Asignación Semestral Automática:</strong><br>
+        Se generará automáticamente el formulario de <strong>Autoevaluación (20 preguntas)</strong> en estado <em>Pendiente</em> para todos los colaboradores activos.
+        A cada usuario le aparecerá la notificación y el formulario en su portal.
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Período Semestral a Aplicar <span class="text-danger">*</span></label>
+        <select class="form-input" id="m-periodo">
+          <option value="2026-S2">2026 · Segundo Semestre (S2) — Actual</option>
+          <option value="2026-S1">2026 · Primer Semestre (S1)</option>
+          <option value="2027-S1">2027 · Primer Semestre (S1)</option>
+          <option value="2027-S2">2027 · Segundo Semestre (S2)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Perspectiva Inicial</label>
+        <select class="form-input" id="m-perspectiva">
+          <option value="Autoevaluacion">🪞 Autoevaluación (el propio colaborador responde)</option>
+          <option value="Jefe">👔 Evaluación por Jefatura Directa</option>
+        </select>
+      </div>
+
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2)">
+        * Si un empleado ya tiene asignada la evaluación para este período, no se duplicará.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="masiva-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="masiva-submit" style="background:#7C3AED;border-color:#7C3AED">🚀 Aplicar a todos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL NUEVA EVALUACIÓN INDIVIDUAL ═══ -->
 <div class="modal-overlay hidden" id="modal-nueva">
   <div class="modal" style="max-width:540px">
     <div class="modal-header">
-      <span class="modal-title">＋ Asignar Evaluación 360°</span>
+      <span class="modal-title">＋ Asignar Evaluación Individual 360°</span>
       <button class="btn btn-ghost btn-sm" id="nueva-close">✕</button>
     </div>
     <div class="modal-body">
@@ -176,7 +224,6 @@
         </select>
         <p style="font-size:.72rem;color:var(--color-text-muted);margin-top:4px">
           Si seleccionas <em>Autoevaluación</em>, el evaluador y el evaluado serán el mismo empleado.
-          Para otras perspectivas, puedes indicar el evaluador debajo.
         </p>
       </div>
       <div class="form-group" id="n-evaluador-group">
@@ -189,10 +236,11 @@
         <label class="form-label">Período semestral <span class="text-danger">*</span></label>
         <select class="form-input" id="n-periodo">
           <option value="">— Selecciona el período —</option>
-          <option value="2026-S1">2026 · Primer Semestre (S1)</option>
-          <option value="2026-S2">2026 · Segundo Semestre (S2)</option>
-          <option value="2027-S1">2027 · Primer Semestre (S1)</option>
-          <option value="2027-S2">2027 · Segundo Semestre (S2)</option>
+          <option value="2025-S1">2025 · Semestre 1</option>
+          <option value="2025-S2">2025 · Semestre 2</option>
+          <option value="2026-S1">2026 · Semestre 1</option>
+          <option value="2026-S2">2026 · Semestre 2</option>
+          <option value="2027-S1">2027 · Semestre 1</option>
         </select>
       </div>
 
@@ -217,9 +265,9 @@
 <div id="toast-container"></div>
 
 <script type="module">
-import { initAnalistaLayout }               from '../../modules/layout.js';
+import { initAnalistaLayout }                  from '../../modules/layout.js';
 import { evaluacionApi, empleadoApi, authApi } from '../../modules/api.js';
-import { toast, formatDate, show, hide }    from '../../modules/utils.js';
+import { toast, formatDate, show, hide }       from '../../modules/utils.js';
 
 await initAnalistaLayout('evaluacion');
 
@@ -310,7 +358,7 @@ function renderTabla(lista) {
       <div class="empty-state">
         <div class="empty-icon">📋</div>
         <h3>No hay evaluaciones con esos filtros</h3>
-        <p>Usa el botón "Asignar evaluación" para crear formularios 360°.</p>
+        <p>Usa el botón "🚀 Aplicar a todos los empleados" o "＋ Asignar individual".</p>
       </div></td></tr>`;
     return;
   }
@@ -397,7 +445,33 @@ document.getElementById('tbody').addEventListener('click', async (ev) => {
   }
 });
 
-/* ── Modal nueva evaluación ───────────────────────────── */
+/* ── Modal asignación masiva ──────────────────────────── */
+document.getElementById('btn-masiva')?.addEventListener('click', () => {
+  show(document.getElementById('modal-masiva'));
+});
+
+document.getElementById('masiva-submit')?.addEventListener('click', async () => {
+  const periodo = document.getElementById('m-periodo').value;
+  const perspectiva = document.getElementById('m-perspectiva').value;
+
+  const btn = document.getElementById('masiva-submit');
+  btn.disabled = true;
+  btn.textContent = 'Aplicando a todos...';
+
+  try {
+    const res = await evaluacionApi.asignarMasivo({ periodo, perspectiva });
+    toast(`✅ ${res?.message || 'Evaluaciones asignadas correctamente a todos los empleados.'}`, 'success', 5000);
+    hide(document.getElementById('modal-masiva'));
+    await cargarTabla();
+  } catch (err) {
+    toast('Error al asignar masivamente: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Aplicar a todos';
+  }
+});
+
+/* ── Modal individual ─────────────────────────────────── */
 document.getElementById('btn-nueva').addEventListener('click', () => {
   document.getElementById('n-empleado').value   = '';
   document.getElementById('n-perspectiva').value = '';
@@ -464,6 +538,9 @@ document.getElementById('btn-limpiar').addEventListener('click', () => {
 );
 ['nueva-close','nueva-cancel'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-nueva')))
+);
+['masiva-close','masiva-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(document.getElementById('modal-masiva')))
 );
 
 /* ── Arranque ─────────────────────────────────────────── */
