@@ -11,4 +11,5 @@ public class LoginResponseDto
     public bool Requires2Fa { get; set; }
     public string? Message { get; set; }
     public bool Es2FaActivo { get; set; }
+    public string? Codigo2FaSoloPruebas { get; set; }
 }
