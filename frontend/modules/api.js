@@ -135,11 +135,12 @@ export const sedeApi = {
 };
 
 export const empleadoApi = {
-  getAll:  ()          => api.get('/empleado'),
-  getById: (id)        => api.get(`/empleado/${id}`),
-  create:  (body)      => api.post('/empleado', body),
-  update:  (id, body)  => api.put(`/empleado/${id}`, body),
-  delete:  (id)        => api.delete(`/empleado/${id}`),
+  getAll:              ()          => api.get('/empleado'),
+  getById:             (id)        => api.get(`/empleado/${id}`),
+  create:              (body)      => api.post('/empleado', body),
+  update:              (id, body)  => api.put(`/empleado/${id}`, body),
+  delete:              (id)        => api.delete(`/empleado/${id}`),
+  acumularVacaciones:  (id)        => api.put(`/empleado/${id}/acumular-vacaciones`),
 };
 
 export const asistenciaApi = {
@@ -152,6 +153,14 @@ export const asistenciaApi = {
   registrar:       (body)        => api.post('/asistencia/registrar', body),
   alertasTardanza: (periodo = '', umbral = 3) =>
     api.get(`/asistencia/alertas-tardanza?periodo=${encodeURIComponent(periodo)}&umbral=${umbral}`),
+  informe: (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.idEmpleado) qs.set('idEmpleado', params.idEmpleado);
+    if (params.fechaDesde) qs.set('fechaDesde', params.fechaDesde);
+    if (params.fechaHasta) qs.set('fechaHasta', params.fechaHasta);
+    const q = qs.toString();
+    return api.get(`/asistencia/informe${q ? '?' + q : ''}`);
+  },
 };
 
 export const horasExtrasApi = {
@@ -169,7 +178,21 @@ export const planillaApi = {
   export:        (params = '') => api.download(`/planilla/export${params}`),
 };
 
-export const permisoApi = {
+export const evaluacionApi = {
+  getPreguntas:   ()              => api.get('/evaluacion/preguntas'),
+  getAll:         (params = {})   => {
+    const qs = new URLSearchParams();
+    if (params.idEmpleado)  qs.set('idEmpleado',  params.idEmpleado);
+    if (params.idEvaluador) qs.set('idEvaluador', params.idEvaluador);
+    if (params.periodo)     qs.set('periodo',      params.periodo);
+    if (params.estado)      qs.set('estado',       params.estado);
+    const q = qs.toString();
+    return api.get(`/evaluacion${q ? '?' + q : ''}`);
+  },
+  getById:        (id)            => api.get(`/evaluacion/${id}`),
+  crear:          (body)          => api.post('/evaluacion', body),
+  responder:      (id, body)      => api.put(`/evaluacion/${id}/responder`, body),
+};
   getSolicitudes: (params = '') => api.get(`/permisovacacion/solicitudes${params}`),
   getMias:        (id, params = '') => api.get(`/permisovacacion/mis-solicitudes/${id}${params}`),
   solicitar:      (body)        => api.post('/permisovacacion/solicitar', body),
