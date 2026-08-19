@@ -23,5 +23,6 @@ public interface IApplicationDbContext
     DbSet<PeriodoCierrePlanilla> PeriodosCierrePlanilla { get; }
     DbSet<DispositivoBiometrico> DispositivosBiometricos { get; }
     DbSet<RegistroMarcajeBiometrico> RegistrosMarcajesBiometricos { get; }
+    DbSet<TipoSolicitudPermiso> TiposSolicitudPermiso { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
