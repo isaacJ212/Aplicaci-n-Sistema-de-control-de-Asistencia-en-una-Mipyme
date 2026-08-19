@@ -28,7 +28,7 @@
       <div class="page-header">
         <div class="page-header-text">
           <h1>Mis Solicitudes</h1>
-          <p>Solicita permisos, vacaciones o tiempo personal y consulta el estado de cada solicitud.</p>
+          <p>Solicita permisos, vacaciones o tiempo por horas y consulta el estado de cada solicitud.</p>
         </div>
         <button class="btn btn-primary" id="btn-nueva">＋ Nueva solicitud</button>
       </div>
@@ -64,7 +64,7 @@
             <thead>
               <tr>
                 <th>Tipo</th><th>Desde</th><th>Hasta</th>
-                <th>Días</th><th>Motivo</th><th>Estado</th><th>Respuesta</th>
+                <th>Duración</th><th>Motivo</th><th>Estado</th><th>Respuesta</th>
               </tr>
             </thead>
             <tbody id="tbody"></tbody>
@@ -79,7 +79,7 @@
 <div class="modal-overlay hidden" id="modal-sol">
   <div class="modal modal-max-500">
     <div class="modal-header">
-      <span class="modal-title">Nueva Solicitud</span>
+      <span class="modal-title">Nueva Solicitud de Permiso / Ausencia</span>
       <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
     </div>
     <div class="modal-body">
@@ -88,25 +88,46 @@
           <div class="form-group full">
             <label class="form-label">Tipo de solicitud *</label>
             <select class="form-input" id="f-tipo">
-              <option value="Vacaciones">Vacaciones</option>
-              <option value="Permiso Medico">Permiso Médico</option>
-              <option value="Permiso Personal">Permiso Personal</option>
+              <option value="">Cargando tipos...</option>
             </select>
+            <div id="tipo-info-badge" style="margin-top:6px;font-size:0.75rem;color:var(--color-primary);"></div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Fecha inicio *</label>
+
+          <div class="form-group full" id="group-modalidad" style="display:none;background:var(--color-bg);padding:10px;border-radius:var(--radius-md);border:1px solid var(--color-border)">
+            <label class="form-label" style="margin-bottom:6px">Modalidad de solicitud</label>
+            <div style="display:flex;gap:16px;font-size:0.85rem">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="radio" name="modalidad" id="mod-dias" value="dias" checked /> Días completos
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="radio" name="modalidad" id="mod-horas" value="horas" /> Por horas (mismo día)
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" id="group-inicio">
+            <label class="form-label" id="label-inicio">Fecha de inicio *</label>
             <input type="date" class="form-input" id="f-inicio" />
             <span class="form-error hidden" id="err-inicio"></span>
           </div>
-          <div class="form-group">
-            <label class="form-label">Fecha fin *</label>
+
+          <div class="form-group" id="group-fin">
+            <label class="form-label">Fecha de fin *</label>
             <input type="date" class="form-input" id="f-fin" />
             <span class="form-error hidden" id="err-fin"></span>
           </div>
+
+          <div class="form-group full" id="group-horas" style="display:none">
+            <label class="form-label">Cantidad de horas solicitadas *</label>
+            <input type="number" class="form-input" id="f-horas" step="0.5" min="0.5" max="8" placeholder="Ej. 2.5" />
+            <span class="form-hint">Máximo según jornada laboral oficial (8h diarias).</span>
+            <span class="form-error hidden" id="err-horas"></span>
+          </div>
+
           <div class="form-group full">
-            <label class="form-label">Motivo / descripción *</label>
+            <label class="form-label">Motivo / justificación *</label>
             <textarea class="form-input resize-vertical" id="f-motivo" rows="3"
-              placeholder="Describe brevemente el motivo de tu solicitud..."></textarea>
+              placeholder="Describe detalladamente el motivo de tu solicitud..."></textarea>
             <span class="form-error hidden" id="err-motivo"></span>
           </div>
         </div>
@@ -122,8 +143,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initEmpleadoLayout }          from '../../modules/layout.js';
-import { authApi, permisoApi,
-         empleadoApi }                  from '../../modules/api.js';
+import { authApi, permisoApi, tipoSolicitudPermisoApi, empleadoApi } from '../../modules/api.js';
 import { toast, formatDate, show, hide } from '../../modules/utils.js';
 
 await initEmpleadoLayout('solicitudes');
@@ -137,13 +157,14 @@ const chipTipo = (t) =>
 
 const tbody = document.getElementById('tbody');
 let idEmpleado = null;
+let catalogoTipos = [];
 
 async function init() {
   const me = await authApi.me();
   idEmpleado = me.idEmpleado ?? null;
   if (!idEmpleado) { toast('No tienes expediente de empleado.','warning'); return; }
 
-  // Días de vacaciones acumuladas
+  // Cargar saldo de vacaciones
   try {
     const emp = await empleadoApi.getById(idEmpleado);
     const dias = emp.diasVacacionesAcumuladas ?? 0;
@@ -151,16 +172,89 @@ async function init() {
     document.getElementById('stat-vacaciones').textContent = dias;
   } catch { /* silencioso */ }
 
-  // Fecha mínima = mañana
-  const man = new Date(); man.setDate(man.getDate()+1);
-  const manStr = man.toISOString().split('T')[0];
-  document.getElementById('f-inicio').min = manStr;
-  document.getElementById('f-fin').min    = manStr;
-  document.getElementById('f-inicio').value = manStr;
-  document.getElementById('f-fin').value    = manStr;
+  // Cargar catálogo de tipos configurables
+  try {
+    const tipos = await tipoSolicitudPermisoApi.getAll(true);
+    catalogoTipos = Array.isArray(tipos) ? tipos : (tipos.data ?? []);
+    renderTiposSelect();
+  } catch {
+    catalogoTipos = [
+      { nombre: 'Vacaciones', permitePorHoras: false, descuentaVacaciones: true },
+      { nombre: 'Permiso Médico', permitePorHoras: true, descuentaVacaciones: false },
+      { nombre: 'Permiso Personal', permitePorHoras: true, descuentaVacaciones: false }
+    ];
+    renderTiposSelect();
+  }
+
+  // Fechas por defecto
+  const hoyStr = new Date().toISOString().split('T')[0];
+  document.getElementById('f-inicio').min = hoyStr;
+  document.getElementById('f-fin').min    = hoyStr;
+  document.getElementById('f-inicio').value = hoyStr;
+  document.getElementById('f-fin').value    = hoyStr;
 
   cargar();
 }
+
+function renderTiposSelect() {
+  const select = document.getElementById('f-tipo');
+  select.innerHTML = catalogoTipos.map(t =>
+    `<option value="${t.nombre}">${t.nombre} ${t.descuentaVacaciones ? '🌴 (Descuenta saldo)' : ''}</option>`
+  ).join('');
+
+  actualizarOpcionesTipo();
+}
+
+function actualizarOpcionesTipo() {
+  const selNombre = document.getElementById('f-tipo').value;
+  const tipoObj = catalogoTipos.find(t => t.nombre === selNombre);
+
+  const badge = document.getElementById('tipo-info-badge');
+  const groupModalidad = document.getElementById('group-modalidad');
+  const modHoras = document.getElementById('mod-horas');
+  const modDias = document.getElementById('mod-dias');
+
+  if (!tipoObj) {
+    badge.textContent = '';
+    return;
+  }
+
+  let info = [];
+  if (tipoObj.descuentaVacaciones) info.push('🌴 Descuenta de vacaciones');
+  if (tipoObj.requiereComprobante) info.push('📄 Requiere comprobante médico/justificante');
+  if (tipoObj.maximoDiasPorSolicitud) info.push(`⏱ Máximo ${tipoObj.maximoDiasPorSolicitud} días`);
+  badge.textContent = info.join(' | ');
+
+  if (tipoObj.permitePorHoras) {
+    groupModalidad.style.display = 'block';
+  } else {
+    groupModalidad.style.display = 'none';
+    modDias.checked = true;
+    cambiarModalidad('dias');
+  }
+}
+
+document.getElementById('f-tipo').addEventListener('change', actualizarOpcionesTipo);
+
+function cambiarModalidad(modo) {
+  const groupFin = document.getElementById('group-fin');
+  const groupHoras = document.getElementById('group-horas');
+  const labelInicio = document.getElementById('label-inicio');
+
+  if (modo === 'horas') {
+    groupFin.style.display = 'none';
+    groupHoras.style.display = 'block';
+    labelInicio.textContent = 'Fecha de la solicitud *';
+  } else {
+    groupFin.style.display = 'block';
+    groupHoras.style.display = 'none';
+    labelInicio.textContent = 'Fecha de inicio *';
+  }
+}
+
+document.querySelectorAll('input[name="modalidad"]').forEach(r => {
+  r.addEventListener('change', (e) => cambiarModalidad(e.target.value));
+});
 
 async function cargar() {
   tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
@@ -181,16 +275,25 @@ async function cargar() {
       return;
     }
 
-    tbody.innerHTML = lista.map(p => `
-      <tr>
-        <td>${chipTipo(p.tipoSolicitud)}</td>
-        <td>${formatDate(p.fechaInicio)}</td>
-        <td>${formatDate(p.fechaFin)}</td>
-        <td class="font-medium">${p.diasSolicitados} día${p.diasSolicitados!==1?'s':''}</td>
-        <td class="text-wrap-normal">${p.motivo??'—'}</td>
-        <td>${chip(p.estadoSolicitud)}</td>
-        <td>${p.fechaRespuesta ? formatDate(p.fechaRespuesta) : '—'}</td>
-      </tr>`).join('');
+    tbody.innerHTML = lista.map(p => {
+      let duracionTexto = '';
+      if (p.horasSolicitadas && p.horasSolicitadas > 0) {
+        duracionTexto = `<span class="chip chip-blue">${p.horasSolicitadas} hr${p.horasSolicitadas !== 1 ? 's' : ''}</span>`;
+      } else {
+        duracionTexto = `<span class="font-medium">${p.diasSolicitados} día${p.diasSolicitados !== 1 ? 's' : ''}</span>`;
+      }
+
+      return `
+        <tr>
+          <td>${chipTipo(p.tipoSolicitud)}</td>
+          <td>${formatDate(p.fechaInicio)}</td>
+          <td>${formatDate(p.fechaFin)}</td>
+          <td>${duracionTexto}</td>
+          <td class="text-wrap-normal">${p.motivo??'—'}</td>
+          <td>${chip(p.estadoSolicitud)}</td>
+          <td>${p.fechaRespuesta ? formatDate(p.fechaRespuesta) : '—'}</td>
+        </tr>`;
+    }).join('');
   } catch (err) {
     toast(err.message, 'error');
   }
@@ -200,43 +303,45 @@ async function cargar() {
 document.getElementById('btn-nueva').addEventListener('click', () => {
   document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
   show(document.getElementById('modal-sol'));
+  actualizarOpcionesTipo();
 });
-
-// Calcular días automáticamente al cambiar fechas
-function calcDias() {
-  const ini = document.getElementById('f-inicio').value;
-  const fin = document.getElementById('f-fin').value;
-  if (ini && fin && fin >= ini) {
-    const d = Math.ceil((new Date(fin)-new Date(ini))/(1000*60*60*24))+1;
-    document.getElementById('f-fin').title = `${d} día${d!==1?'s':''}`;
-  }
-}
-document.getElementById('f-inicio').addEventListener('change', calcDias);
-document.getElementById('f-fin').addEventListener('change', calcDias);
 
 // Guardar
 document.getElementById('modal-save').addEventListener('click', async () => {
   let ok = true;
   document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; hide(e); });
 
-  const tipo   = document.getElementById('f-tipo').value;
+  const tipo = document.getElementById('f-tipo').value;
+  const esPorHoras = document.querySelector('input[name="modalidad"]:checked')?.value === 'horas';
   const inicio = document.getElementById('f-inicio').value;
-  const fin    = document.getElementById('f-fin').value;
+  const fin = esPorHoras ? inicio : document.getElementById('f-fin').value;
   const motivo = document.getElementById('f-motivo').value.trim();
+  const horas = esPorHoras ? parseFloat(document.getElementById('f-horas').value || 0) : null;
 
-  if (!inicio) { show(document.getElementById('err-inicio')); document.getElementById('err-inicio').textContent='La fecha de inicio es obligatoria.'; ok=false; }
-  if (!fin)    { show(document.getElementById('err-fin'));    document.getElementById('err-fin').textContent='La fecha de fin es obligatoria.'; ok=false; }
-  if (inicio && fin && fin < inicio) { show(document.getElementById('err-fin')); document.getElementById('err-fin').textContent='La fecha fin debe ser igual o posterior al inicio.'; ok=false; }
+  if (!inicio) { show(document.getElementById('err-inicio')); document.getElementById('err-inicio').textContent='La fecha es obligatoria.'; ok=false; }
+  if (!esPorHoras && !fin) { show(document.getElementById('err-fin')); document.getElementById('err-fin').textContent='La fecha fin es obligatoria.'; ok=false; }
+  if (!esPorHoras && inicio && fin && fin < inicio) { show(document.getElementById('err-fin')); document.getElementById('err-fin').textContent='La fecha fin debe ser igual o posterior al inicio.'; ok=false; }
+  if (esPorHoras && (!horas || horas <= 0)) { show(document.getElementById('err-horas')); document.getElementById('err-horas').textContent='Ingresa una cantidad de horas válida (ej. 2).'; ok=false; }
   if (!motivo) { show(document.getElementById('err-motivo')); document.getElementById('err-motivo').textContent='El motivo es obligatorio.'; ok=false; }
   if (!ok) return;
 
-  const dias = Math.ceil((new Date(fin)-new Date(inicio))/(1000*60*60*24))+1;
+  const dias = esPorHoras ? 0 : Math.ceil((new Date(fin)-new Date(inicio))/(1000*60*60*24))+1;
 
   const btn = document.getElementById('modal-save');
   const txt = document.getElementById('save-text');
   btn.disabled = true; txt.textContent = 'Enviando...';
   try {
-    await permisoApi.solicitar({ idEmpleado, tipoSolicitud: tipo, fechaInicio: inicio, fechaFin: fin, diasSolicitados: dias, motivo });
+    const payload = {
+      idEmpleado,
+      tipoSolicitud: tipo,
+      fechaInicio: inicio,
+      fechaFin: fin,
+      diasSolicitados: esPorHoras ? 0 : dias,
+      horasSolicitadas: esPorHoras ? horas : null,
+      motivo
+    };
+
+    await permisoApi.solicitar(payload);
     toast('Solicitud enviada correctamente. Pendiente de aprobación.','success');
     hide(document.getElementById('modal-sol'));
     cargar();
