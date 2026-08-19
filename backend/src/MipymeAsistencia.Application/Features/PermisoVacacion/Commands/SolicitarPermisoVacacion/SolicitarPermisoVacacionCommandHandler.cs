@@ -38,7 +38,7 @@ public class SolicitarPermisoVacacionCommandHandler : IRequestHandler<SolicitarP
 
         // ─── Determinar si la solicitud es POR HORAS o POR DÍAS ─────────────
         bool esPorHoras = request.HorasSolicitadas.HasValue
-                          && request.HorasSolicitados.Value > 0m
+                          && request.HorasSolicitadas.Value > 0m
                           && (!request.DiasSolicitados.HasValue || request.DiasSolicitados.Value == 0m);
 
         // Para solicitudes por horas, FechaInicio y FechaFin deben ser el MISMO día

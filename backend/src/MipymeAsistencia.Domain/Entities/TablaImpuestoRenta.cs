@@ -1,0 +1,13 @@
+namespace MipymeAsistencia.Domain.Entities;
+
+public class TablaImpuestoRenta
+{
+    public int IdTablaIr { get; set; }
+    public decimal DesdeMontoAnual { get; set; }
+    public decimal? HastaMontoAnual { get; set; }
+    public decimal PorcentajeAplicable { get; set; }
+    public decimal MontoBaseExceso { get; set; }
+    public decimal CuotaFija { get; set; }
+    public int AnioVigencia { get; set; } = 2026;
+    public bool Activo { get; set; } = true;
+}
