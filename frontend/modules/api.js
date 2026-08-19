@@ -27,7 +27,7 @@ async function request(endpoint, options = {}) {
   }
 
 
-  if (response.status === 401 && !options._retry) {
+  if (response.status === 401 && !options._retry && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register') && !endpoint.includes('/auth/refresh')) {
     const renewed = await AuthService.tryRefresh();
     if (renewed) {
       return request(endpoint, { ...options, _retry: true });
