@@ -193,8 +193,29 @@ export const evaluacionApi = {
   crear:          (body)          => api.post('/evaluacion', body),
   responder:      (id, body)      => api.put(`/evaluacion/${id}/responder`, body),
 };
+
+export const permisoVacacionApi = {
   getSolicitudes: (params = '') => api.get(`/permisovacacion/solicitudes${params}`),
   getMias:        (id, params = '') => api.get(`/permisovacacion/mis-solicitudes/${id}${params}`),
   solicitar:      (body)        => api.post('/permisovacacion/solicitar', body),
   responder:      (id, body)    => api.put(`/permisovacacion/${id}/responder`, body),
+};
+
+export const diaFeriadoApi = {
+  getAll:    (anio = null) => api.get(`/diaferiado${anio ? `?anio=${anio}` : ''}`),
+  getById:   (id)          => api.get(`/diaferiado/${id}`),
+  esFeriado: (fecha)       => api.get(`/diaferiado/es-feriado?fecha=${encodeURIComponent(fecha)}`),
+  crear:     (body)        => api.post('/diaferiado', body),
+  actualizar:(id, body)    => api.put(`/diaferiado/${id}`, body),
+  eliminar:  (id)          => api.delete(`/diaferiado/${id}`),
+};
+
+export const configuracionLaboralApi = {
+  getParametros:    ()          => api.get('/configuracionlaboral/parametros'),
+  updateParametro:  (clave, body) => api.put(`/configuracionlaboral/parametros/${encodeURIComponent(clave)}`, body),
+  getTablaIr:       (anio = null, soloActivos = true) =>
+    api.get(`/configuracionlaboral/tabla-ir?soloActivos=${soloActivos}${anio ? `&anio=${anio}` : ''}`),
+  crearTramoIr:     (body)      => api.post('/configuracionlaboral/tabla-ir', body),
+  actualizarTramoIr:(id, body)  => api.put(`/configuracionlaboral/tabla-ir/${id}`, body),
+  eliminarTramoIr:  (id)        => api.delete(`/configuracionlaboral/tabla-ir/${id}`),
 };
