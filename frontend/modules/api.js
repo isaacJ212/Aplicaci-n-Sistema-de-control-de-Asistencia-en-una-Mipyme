@@ -171,11 +171,13 @@ export const horasExtrasApi = {
 };
 
 export const planillaApi = {
-  getAll:        (params = '') => api.get(`/planilla${params}`),
-  getByEmpleado: (id, periodo = '') =>
+  getAll:                 (params = '') => api.get(`/planilla${params}`),
+  getByEmpleado:          (id, periodo = '') =>
     api.get(`/planilla/empleado/${id}${periodo ? `?periodo=${periodo}` : ''}`),
-  generar:       (body)        => api.post('/planilla', body),
-  export:        (params = '') => api.download(`/planilla/export${params}`),
+  generar:                (body)        => api.post('/planilla', body),
+  generarPorDepartamento: (body)        => api.post('/planilla/generar-por-departamento', body),
+  getDepartamentos:       ()            => api.get('/planilla/departamentos'),
+  export:                 (params = '') => api.download(`/planilla/export${params}`),
 };
 
 export const evaluacionApi = {
@@ -265,3 +267,23 @@ export const auditoriaApi = {
   },
   getPorEmpleado:   (idEmpleado) => api.get(`/auditoria/empleado/${idEmpleado}`),
 };
+
+export const usuarioApi = {
+  getAll:         (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.estadoActivo !== undefined && params.estadoActivo !== null && params.estadoActivo !== '') {
+      qs.set('estadoActivo', params.estadoActivo);
+    }
+    if (params.idRol) qs.set('idRol', params.idRol);
+    if (params.search) qs.set('search', params.search);
+    const q = qs.toString();
+    return api.get(`/usuario${q ? '?' + q : ''}`);
+  },
+  getById:        (id) => api.get(`/usuario/${id}`),
+  cambiarEstado:  (id, estadoActivo) => api.put(`/usuario/${id}/estado`, { estadoActivo }),
+  cambiarRol:     (id, idRol) => api.put(`/usuario/${id}/rol`, { idRol: Number(idRol) }),
+  resetPassword:  (id, nuevaPassword) => api.put(`/usuario/${id}/reset-password`, { nuevaPassword }),
+  getRoles:       () => api.get('/usuario/roles'),
+  crear:          (body) => api.post('/usuario', body),
+};
+

@@ -28,23 +28,40 @@ public class RegistrarAsistenciaCommandHandler
     public async Task<AsistenciaResponseDto> Handle(
         RegistrarAsistenciaCommand request, CancellationToken cancellationToken)
     {
-        // ── 1. Verificar empleado ──────────────────────────────────────────
+        // ── 1. Verificar empleado y su estado ──────────────────────────────
         var empleado = await _context.Empleados
+            .Include(e => e.Usuario)
             .FirstOrDefaultAsync(e => e.IdEmpleado == request.IdEmpleado, cancellationToken)
             ?? throw new KeyNotFoundException("El empleado no existe.");
+
+        if (!string.Equals(empleado.EstadoEmpleado, "Activo", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"El empleado {empleado.Nombres} {empleado.Apellidos} no puede registrar asistencia porque se encuentra en estado '{empleado.EstadoEmpleado}'.");
+        }
+
+        if (empleado.Usuario != null && !empleado.Usuario.EstadoActivo)
+        {
+            throw new InvalidOperationException(
+                "La cuenta de usuario de este empleado se encuentra desactivada. Contacta al administrador.");
+        }
 
         // ── 2. Verificar sede ──────────────────────────────────────────────
         var sede = await _context.ConfiguracionesSede
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("No existe configuración de sede registrada.");
 
-        // ── 3. Validar token QR (no bloqueante si viene vacío) ─────────────
-        if (!string.IsNullOrWhiteSpace(request.TokenQrEscaneado)
-            && !string.IsNullOrWhiteSpace(sede.TokenQrActual)
-            && request.TokenQrEscaneado != sede.TokenQrActual)
+        // ── 3. Validar token QR (no bloqueante si viene vacío para marcaje manual) ─────────────
+        var tokenEscaneado = request.TokenQrEscaneado?.Trim() ?? string.Empty;
+        var tokenSede = sede.TokenQrActual?.Trim() ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(tokenEscaneado) && !string.IsNullOrWhiteSpace(tokenSede))
         {
-            throw new InvalidOperationException(
-                "El token QR no coincide con el activo de la sede. Escanea el QR actual.");
+            if (!string.Equals(tokenEscaneado, tokenSede, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "El código QR escaneado es inválido o ha expirado. Por favor enfoca el QR actualizado en la estación/kiosko.");
+            }
         }
 
         // ── 4. Calcular distancia GPS y validar geocerca ───────────────────
@@ -57,7 +74,7 @@ public class RegistrarAsistenciaCommandHandler
         if (!enRango)
         {
             throw new ArgumentException(
-                $"Estás fuera de la zona permitida. Distancia: {Math.Round(distancia, 0)}m · Radio permitido: {sede.RadioToleranciaMetros}m. Acercate a la sede para registrar.");
+                $"Estás fuera de la zona permitida. Distancia calculada: {Math.Round(distancia, 0)}m · Radio permitido: {sede.RadioToleranciaMetros}m. Acércate a la sede de la empresa para registrar.");
         }
 
         // ── 5. Buscar registro de asistencia de hoy ────────────────────────

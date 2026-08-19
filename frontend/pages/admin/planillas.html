@@ -14,6 +14,7 @@
     .chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600; }
     .chip-green  { background:#DCFCE7;color:#166534; }
     .chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
+    .chip-purple { background:#F3E8FF;color:#7E22CE; }
     .desglose-grid {
       display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);
       margin-bottom:var(--space-4);
@@ -47,12 +48,17 @@
       <div class="page-header">
         <div class="page-header-text">
           <h1>Planillas mensuales</h1>
-          <p>Genera, consulta y cierra la nómina de cada empleado. Los cálculos aplican INSS 7%, IR Ley 822 y prestaciones sociales de Nicaragua.</p>
+          <p>Genera la nómina individual o masivamente por <strong>departamento</strong>. Los cálculos aplican INSS 7%, IR Ley 822 y prestaciones laborales de Nicaragua.</p>
         </div>
-        <div style="display:flex;gap:var(--space-3)">
-          <button class="btn btn-secondary" id="btn-periodos">🔒 Cierres y Fechas de Corte</button>
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+          <button class="btn btn-secondary" id="btn-periodos">🔒 Cierres y Cortes</button>
           <button class="btn btn-secondary" id="btn-exportar">⬇ Exportar CSV</button>
-          <button class="btn btn-primary" id="btn-generar">＋ Generar planilla</button>
+          <button class="btn btn-secondary" id="btn-generar-depto" style="border-color:var(--color-primary);color:var(--color-primary)">
+            <span>⚡ Generar por Departamento</span>
+          </button>
+          <button class="btn btn-primary" id="btn-generar">
+            <span>＋ Planilla Individual</span>
+          </button>
         </div>
       </div>
 
@@ -83,11 +89,17 @@
       <!-- Filtros -->
       <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4)">
         <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:flex-end">
-          <div class="form-group" style="margin:0;min-width:180px">
+          <div class="form-group" style="margin:0;min-width:160px">
             <label class="form-label">Filtrar por período</label>
             <input type="month" class="form-input" id="filtro-periodo" />
           </div>
-          <div class="form-group" style="margin:0;min-width:220px">
+          <div class="form-group" style="margin:0;min-width:180px">
+            <label class="form-label">Filtrar por departamento</label>
+            <select class="form-input" id="filtro-departamento">
+              <option value="">Todos los departamentos</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:200px">
             <label class="form-label">Filtrar por empleado</label>
             <select class="form-input" id="filtro-empleado">
               <option value="">Todos los empleados</option>
@@ -105,6 +117,7 @@
             <thead>
               <tr>
                 <th>Empleado</th>
+                <th>Departamento</th>
                 <th>Período</th>
                 <th>Salario base</th>
                 <th>HH. Extras</th>
@@ -119,7 +132,7 @@
               </tr>
             </thead>
             <tbody id="tbody-planillas">
-              <tr><td colspan="12"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando planillas...</h3></div></td></tr>
+              <tr><td colspan="13"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando planillas...</h3></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -129,11 +142,59 @@
   </main>
 </div>
 
-<!-- ═══ MODAL GENERAR PLANILLA ═══ -->
+<!-- ═══ MODAL GENERAR PLANILLA POR DEPARTAMENTO ═══ -->
+<div class="modal-overlay hidden" id="modal-generar-depto">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <span class="modal-title">⚡ Generación Masiva por Departamento</span>
+      <button class="btn btn-ghost btn-sm" id="modal-depto-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--color-primary-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--font-size-sm);color:var(--color-primary-dark);margin-bottom:var(--space-4)">
+        🏢 Esta acción calculará automáticamente la planilla para <strong>todos los empleados activos</strong> del departamento seleccionado, deduciendo tardanzas válidas, calculando horas extras y aplicando las retenciones de ley.
+      </div>
+      <form id="form-planilla-depto" novalidate>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Departamento *</label>
+            <select class="form-input" id="gen-depto-select">
+              <option value="Todos">🌐 Todos los departamentos (Empresa completa)</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Período (mes) *</label>
+            <input type="month" class="form-input" id="gen-depto-periodo" />
+            <span class="form-error hidden" id="err-gen-depto-periodo"></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Comisiones generales (C$)</label>
+            <input type="number" class="form-input" id="gen-depto-comisiones" min="0" step="0.01" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Incentivos generales (C$)</label>
+            <input type="number" class="form-input" id="gen-depto-incentivos" min="0" step="0.01" value="0" />
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Otras deducciones generales (C$)</label>
+            <input type="number" class="form-input" id="gen-depto-otras" min="0" step="0.01" value="0" />
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-depto-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-depto-save">
+        <span id="save-depto-text">Generar Planillas del Departamento</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL GENERAR PLANILLA INDIVIDUAL ═══ -->
 <div class="modal-overlay hidden" id="modal-generar">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Generar planilla mensual</span>
+      <span class="modal-title">Generar planilla mensual individual</span>
       <button class="btn btn-ghost btn-sm" id="modal-close">✕</button>
     </div>
     <div class="modal-body">
@@ -254,38 +315,70 @@ import { toast, formatDate, formatCurrency, show, hide } from '../../modules/uti
 
 await initAdminLayout('planillas');
 
-const tbody      = document.getElementById('tbody-planillas');
-const badgeCount = document.getElementById('badge-count');
-const modalGen   = document.getElementById('modal-generar');
-const modalDesg  = document.getElementById('modal-desglose');
-const modalPer   = document.getElementById('modal-periodos-dialog');
+const tbody          = document.getElementById('tbody-planillas');
+const badgeCount     = document.getElementById('badge-count');
+const modalGen       = document.getElementById('modal-generar');
+const modalGenDepto  = document.getElementById('modal-generar-depto');
+const modalDesg      = document.getElementById('modal-desglose');
+const modalPer       = document.getElementById('modal-periodos-dialog');
 
 /* ── Estado ─────────────────────────────────────────────── */
-const state = { planillas: [], empleados: [] };
+const state = { planillas: [], empleados: [], departamentos: [] };
 
-/* ── Cargar empleados para los selects ──────────────────── */
-async function cargarEmpleados() {
+/* ── Cargar empleados y departamentos para los selects ──── */
+async function cargarCatalogos() {
   try {
-    const data = await empleadoApi.getAll();
-    state.empleados = Array.isArray(data) ? data : [];
+    const [empleadosData, deptosData] = await Promise.all([
+      empleadoApi.getAll(),
+      planillaApi.getDepartamentos().catch(() => [])
+    ]);
 
-    const opts = state.empleados.map(e =>
-      `<option value="${e.idEmpleado}">${e.nombres} ${e.apellidos}</option>`).join('');
+    state.empleados = Array.isArray(empleadosData) ? empleadosData : [];
+    
+    // Extraer departamentos únicos
+    const deptosSet = new Set(Array.isArray(deptosData) ? deptosData : []);
+    state.empleados.forEach(e => {
+      if (e.departamento) deptosSet.add(e.departamento);
+    });
+    if (deptosSet.size === 0) {
+      deptosSet.add('Administración');
+      deptosSet.add('Tecnología');
+      deptosSet.add('Ventas');
+      deptosSet.add('Operaciones');
+      deptosSet.add('Recursos Humanos');
+      deptosSet.add('Finanzas');
+    }
+    state.departamentos = Array.from(deptosSet).filter(Boolean).sort();
+
+    // Llenar select filtro empleados
+    const empOpts = state.empleados.map(e =>
+      `<option value="${e.idEmpleado}">${e.nombres} ${e.apellidos} (${e.departamento || 'General'})</option>`).join('');
 
     document.getElementById('filtro-empleado').innerHTML =
-      '<option value="">Todos los empleados</option>' + opts;
+      '<option value="">Todos los empleados</option>' + empOpts;
     document.getElementById('gen-empleado').innerHTML =
-      '<option value="">Selecciona un empleado...</option>' + opts;
-  } catch { /* silencioso */ }
+      '<option value="">Selecciona un empleado...</option>' + empOpts;
+
+    // Llenar select departamentos
+    const deptoOpts = state.departamentos.map(d => `<option value="${d}">${d}</option>`).join('');
+    document.getElementById('filtro-departamento').innerHTML =
+      '<option value="">Todos los departamentos</option>' + deptoOpts;
+    document.getElementById('gen-depto-select').innerHTML =
+      '<option value="Todos">🌐 Todos los departamentos (Empresa completa)</option>' + deptoOpts;
+
+  } catch (err) {
+    console.error('Error al cargar catálogos:', err);
+  }
 }
 
 /* ── Cargar planillas ───────────────────────────────────── */
-async function cargar(periodo = '', idEmpleado = '') {
-  tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
+async function cargar(periodo = '', departamento = '', idEmpleado = '') {
+  tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></td></tr>`;
   try {
     let params = [];
-    if (periodo)    params.push(`periodo=${encodeURIComponent(periodo)}`);
-    if (idEmpleado) params.push(`idEmpleado=${idEmpleado}`);
+    if (periodo)      params.push(`periodo=${encodeURIComponent(periodo)}`);
+    if (departamento) params.push(`departamento=${encodeURIComponent(departamento)}`);
+    if (idEmpleado)   params.push(`idEmpleado=${idEmpleado}`);
 
     const data = await planillaApi.getAll(params.length ? `?${params.join('&')}` : '');
     state.planillas = Array.isArray(data) ? data : [];
@@ -293,7 +386,7 @@ async function cargar(periodo = '', idEmpleado = '') {
     renderTabla();
   } catch (err) {
     toast(err.message, 'error');
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">⚠️</div><h3>${err.message}</h3></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">⚠️</div><h3>${err.message}</h3></div></td></tr>`;
   }
 }
 
@@ -304,21 +397,21 @@ function renderStats() {
   const inss   = state.planillas.reduce((s, p) => s + (p.inssLaboral   ?? 0), 0);
   const periodos = new Set(state.planillas.map(p => p.periodoMesAnio)).size;
 
-  badgeCount.textContent                                   = `${total} planilla${total !== 1 ? 's' : ''}`;
-  document.getElementById('stat-total').textContent       = total;
-  document.getElementById('stat-neto').textContent        = formatCurrency(neto);
-  document.getElementById('stat-inss').textContent        = formatCurrency(inss);
-  document.getElementById('stat-periodos').textContent    = periodos;
+  badgeCount.textContent                                = `${total} planilla${total !== 1 ? 's' : ''}`;
+  document.getElementById('stat-total').textContent     = total;
+  document.getElementById('stat-neto').textContent      = formatCurrency(neto);
+  document.getElementById('stat-inss').textContent      = formatCurrency(inss);
+  document.getElementById('stat-periodos').textContent  = periodos;
 }
 
 /* ── Tabla ──────────────────────────────────────────────── */
 function renderTabla() {
   if (!state.planillas.length) {
-    tbody.innerHTML = `<tr><td colspan="12">
+    tbody.innerHTML = `<tr><td colspan="13">
       <div class="empty-state">
         <div class="empty-icon">📄</div>
         <h3>Sin planillas para mostrar</h3>
-        <p>Usa los filtros o genera una nueva planilla.</p>
+        <p>Usa los filtros o genera una nueva planilla por departamento o individual.</p>
       </div></td></tr>`;
     return;
   }
@@ -328,6 +421,9 @@ function renderTabla() {
       <td>
         <div class="font-medium">${p.nombreEmpleado}</div>
         <div style="font-size:.75rem;color:var(--color-text-muted)">${p.cargoEmpleado ?? ''}</div>
+      </td>
+      <td>
+        <span class="chip chip-purple">${p.departamento || 'General'}</span>
       </td>
       <td><span class="chip chip-blue">${p.periodoMesAnio}</span></td>
       <td>${formatCurrency(p.salarioBase)}</td>
@@ -364,10 +460,16 @@ tbody.addEventListener('click', (e) => {
     <div class="desglose-grid">
       <div class="desglose-item"><div class="desglose-label">Empleado</div>
         <div class="desglose-value">${plan.nombreEmpleado}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Departamento</div>
+        <div class="desglose-value">${plan.departamento ?? 'General'}</div></div>
       <div class="desglose-item"><div class="desglose-label">Cargo</div>
         <div class="desglose-value">${plan.cargoEmpleado ?? '—'}</div></div>
       <div class="desglose-item"><div class="desglose-label">Período</div>
         <div class="desglose-value">${plan.periodoMesAnio}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Fecha emisión</div>
+        <div class="desglose-value">${formatDate(plan.fechaEmision)}</div></div>
+      <div class="desglose-item"><div class="desglose-label">Estado</div>
+        <div class="desglose-value" style="color:var(--color-accent)">Emitida</div></div>
     </div>
 
     <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--space-3)">Ingresos</p>
@@ -400,7 +502,8 @@ tbody.addEventListener('click', (e) => {
         <div class="desglose-value danger">- ${formatCurrency(plan.sindicato)}</div></div>
       <div class="desglose-item"><div class="desglose-label">Otras deducciones</div>
         <div class="desglose-value danger">- ${formatCurrency(plan.otrasDeducciones)}</div></div>
-      <div class="desglose-item"><div class="desglose-label">Total deducciones</div>
+      <div class="desglose-item" style="grid-column:1/-1">
+        <div class="desglose-label">Total deducciones</div>
         <div class="desglose-value danger" style="font-size:1.1rem">- ${formatCurrency(plan.totalDeducciones)}</div></div>
     </div>
 
@@ -426,30 +529,77 @@ tbody.addEventListener('click', (e) => {
       <div class="desglose-item"><div class="desglose-label">Indemnización (sal/30×2.5)</div>
         <div class="desglose-value">${formatCurrency(plan.acumuladoIndemnizacion)}</div></div>
     </div>
-
-    <div style="text-align:right;margin-top:var(--space-4);font-size:var(--font-size-xs);color:var(--color-text-muted)">
-      Emitida el ${formatDate(plan.fechaEmision)}
-    </div>
   `;
 
   show(modalDesg);
 });
 
-/* ── Generar planilla ───────────────────────────────────── */
-document.getElementById('btn-generar').addEventListener('click', () => {
-  // Default: período actual
+/* ── Generar planilla por Departamento ───────────────────── */
+document.getElementById('btn-generar-depto')?.addEventListener('click', () => {
+  const hoy = new Date();
+  document.getElementById('gen-depto-periodo').value =
+    `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+  show(modalGenDepto);
+});
+
+document.getElementById('modal-depto-save')?.addEventListener('click', async () => {
+  const depto = document.getElementById('gen-depto-select').value;
+  const periodo = document.getElementById('gen-depto-periodo').value;
+
+  const errEl = document.getElementById('err-gen-depto-periodo');
+  errEl.classList.add('hidden');
+
+  if (!periodo) {
+    errEl.textContent = 'El período es obligatorio.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const saveBtn = document.getElementById('modal-depto-save');
+  const saveText = document.getElementById('save-depto-text');
+  saveBtn.disabled = true;
+  saveText.textContent = 'Generando lote...';
+
+  try {
+    const res = await planillaApi.generarPorDepartamento({
+      periodoMesAnio: periodo,
+      departamento: depto,
+      comisionesGenerales: Number(document.getElementById('gen-depto-comisiones').value || 0),
+      incentivosGenerales: Number(document.getElementById('gen-depto-incentivos').value || 0),
+      otrasDeduccionesGenerales: Number(document.getElementById('gen-depto-otras').value || 0),
+    });
+
+    const info = res?.data || res;
+    toast(info.mensaje || 'Planillas procesadas correctamente.', 'success', 4000);
+    hide(modalGenDepto);
+    
+    // Filtrar por el período generado
+    document.getElementById('filtro-periodo').value = periodo;
+    if (depto !== 'Todos') {
+      document.getElementById('filtro-departamento').value = depto;
+    }
+    cargar(periodo, depto !== 'Todos' ? depto : '', '');
+  } catch (err) {
+    toast('Error al generar lote: ' + err.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveText.textContent = 'Generar Planillas del Departamento';
+  }
+});
+
+/* ── Generar planilla individual ─────────────────────────── */
+document.getElementById('btn-generar')?.addEventListener('click', () => {
   const hoy = new Date();
   document.getElementById('gen-periodo').value =
     `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
   show(modalGen);
 });
 
-document.getElementById('modal-save').addEventListener('click', async () => {
-  const idEmp  = document.getElementById('gen-empleado').value;
+document.getElementById('modal-save')?.addEventListener('click', async () => {
+  const idEmp   = document.getElementById('gen-empleado').value;
   const periodo = document.getElementById('gen-periodo').value;
   let ok = true;
 
-  // Validación mínima
   ['err-gen-empleado','err-gen-periodo'].forEach(id => {
     document.getElementById(id).classList.add('hidden');
     document.getElementById(id).textContent = '';
@@ -457,13 +607,11 @@ document.getElementById('modal-save').addEventListener('click', async () => {
   if (!idEmp) {
     show(document.getElementById('err-gen-empleado'));
     document.getElementById('err-gen-empleado').textContent = 'Selecciona un empleado.';
-    document.getElementById('gen-empleado').classList.add('error');
     ok = false;
   }
   if (!periodo) {
     show(document.getElementById('err-gen-periodo'));
     document.getElementById('err-gen-periodo').textContent = 'El período es obligatorio.';
-    document.getElementById('gen-periodo').classList.add('error');
     ok = false;
   }
   if (!ok) return;
@@ -485,7 +633,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
     });
     toast('Planilla generada correctamente.', 'success');
     hide(modalGen);
-    cargar();
+    cargar(periodo, '', '');
   } catch (err) {
     toast('Error: ' + err.message, 'error');
   } finally {
@@ -495,32 +643,34 @@ document.getElementById('modal-save').addEventListener('click', async () => {
 });
 
 /* ── Filtros ─────────────────────────────────────────────── */
-document.getElementById('btn-filtrar').addEventListener('click', () => {
-  const periodo    = document.getElementById('filtro-periodo').value;
-  const idEmpleado = document.getElementById('filtro-empleado').value;
-  cargar(periodo, idEmpleado);
+document.getElementById('btn-filtrar')?.addEventListener('click', () => {
+  const periodo      = document.getElementById('filtro-periodo').value;
+  const departamento = document.getElementById('filtro-departamento').value;
+  const idEmpleado   = document.getElementById('filtro-empleado').value;
+  cargar(periodo, departamento, idEmpleado);
 });
 
-document.getElementById('btn-limpiar').addEventListener('click', () => {
-  document.getElementById('filtro-periodo').value   = '';
-  document.getElementById('filtro-empleado').value  = '';
+document.getElementById('btn-limpiar')?.addEventListener('click', () => {
+  document.getElementById('filtro-periodo').value      = '';
+  document.getElementById('filtro-departamento').value = '';
+  document.getElementById('filtro-empleado').value     = '';
   cargar();
 });
 
 document.getElementById('btn-exportar')?.addEventListener('click', () => {
-  // Exportar como CSV con los datos ya cargados en memoria
   if (!state.planillas.length) {
     toast('No hay planillas para exportar.', 'warning');
     return;
   }
 
-  const headers = ['Empleado','Cargo','Período','Salario Base','HH Extras C$',
+  const headers = ['Empleado','Cargo','Departamento','Período','Salario Base','HH Extras C$',
     'Total Ingresos','INSS Laboral','IR Laboral','Deducción Tardanza',
     'Total Deducciones','Salario Neto','Emitida'];
 
   const rows = state.planillas.map(p => [
     `"${p.nombreEmpleado}"`,
     `"${p.cargoEmpleado ?? ''}"`,
+    `"${p.departamento ?? 'General'}"`,
     p.periodoMesAnio,
     p.salarioBase,
     p.pagoHorasExtras,
@@ -626,17 +776,20 @@ document.getElementById('btn-guardar-periodo')?.addEventListener('click', async 
 /* ── Cerrar modales ─────────────────────────────────────── */
 ['modal-close','modal-cancel'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(modalGen)));
+['modal-depto-close','modal-depto-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () => hide(modalGenDepto)));
 ['desglose-close','desglose-cerrar'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(modalDesg)));
 ['periodos-close','periodos-cerrar-btn'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => hide(modalPer)));
 
-modalGen.addEventListener('click',  e => { if(e.target===modalGen)  hide(modalGen);  });
-modalDesg.addEventListener('click', e => { if(e.target===modalDesg) hide(modalDesg); });
-modalPer.addEventListener('click',  e => { if(e.target===modalPer)   hide(modalPer);  });
+modalGen.addEventListener('click',      e => { if(e.target===modalGen)      hide(modalGen);      });
+modalGenDepto.addEventListener('click', e => { if(e.target===modalGenDepto) hide(modalGenDepto); });
+modalDesg.addEventListener('click',     e => { if(e.target===modalDesg)     hide(modalDesg);     });
+modalPer.addEventListener('click',      e => { if(e.target===modalPer)      hide(modalPer);      });
 
 /* ── Init ───────────────────────────────────────────────── */
-await cargarEmpleados();
+await cargarCatalogos();
 cargar();
 </script>
 </body>

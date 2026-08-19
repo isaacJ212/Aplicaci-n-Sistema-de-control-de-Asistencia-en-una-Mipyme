@@ -27,6 +27,7 @@ public class PlanillaResponseDto
     public int      IdEmpleado              { get; set; }
     public string   NombreEmpleado          { get; set; } = string.Empty;
     public string   CargoEmpleado           { get; set; } = string.Empty;
+    public string   Departamento            { get; set; } = "General";
     public string   PeriodoMesAnio          { get; set; } = string.Empty;
 
     // ── Ingresos ─────────────────────────────────────────────────────────────

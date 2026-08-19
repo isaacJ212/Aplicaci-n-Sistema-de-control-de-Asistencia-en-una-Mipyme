@@ -100,6 +100,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.Nombres).HasColumnName("nombres").HasMaxLength(100);
             entity.Property(x => x.Apellidos).HasColumnName("apellidos").HasMaxLength(100);
             entity.Property(x => x.CargoFuncion).HasColumnName("cargo_funcion").HasMaxLength(100);
+            entity.Property(x => x.Departamento).HasColumnName("departamento").HasMaxLength(100).HasDefaultValue("General");
             entity.Property(x => x.Responsabilidades).HasColumnName("responsabilidades");
             entity.Property(x => x.FechaContratacion).HasColumnName("fecha_contratacion");
             entity.Property(x => x.SalarioBaseMensual).HasColumnName("salario_base_mensual").HasPrecision(12, 2);

@@ -38,6 +38,7 @@ public class UpdateEmpleadoCommandHandler : IRequestHandler<UpdateEmpleadoComman
         empleado.Nombres = request.Nombres;
         empleado.Apellidos = request.Apellidos;
         empleado.CargoFuncion = request.CargoFuncion;
+        empleado.Departamento = string.IsNullOrWhiteSpace(request.Departamento) ? "General" : request.Departamento.Trim();
         empleado.Responsabilidades = request.Responsabilidades;
         empleado.FechaContratacion = fechaContratacionUtc;
         empleado.SalarioBaseMensual = request.SalarioBaseMensual;
@@ -60,6 +61,7 @@ public class UpdateEmpleadoCommandHandler : IRequestHandler<UpdateEmpleadoComman
             Nombres = empleado.Nombres,
             Apellidos = empleado.Apellidos,
             CargoFuncion = empleado.CargoFuncion,
+            Departamento = empleado.Departamento,
             Responsabilidades = empleado.Responsabilidades,
             FechaContratacion = empleado.FechaContratacion,
             SalarioBaseMensual = empleado.SalarioBaseMensual,
