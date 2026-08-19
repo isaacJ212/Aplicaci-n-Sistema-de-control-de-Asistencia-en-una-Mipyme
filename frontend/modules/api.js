@@ -200,6 +200,7 @@ export const permisoVacacionApi = {
   solicitar:      (body)        => api.post('/permisovacacion/solicitar', body),
   responder:      (id, body)    => api.put(`/permisovacacion/${id}/responder`, body),
 };
+export const permisoApi = permisoVacacionApi;
 
 export const diaFeriadoApi = {
   getAll:    (anio = null) => api.get(`/diaferiado${anio ? `?anio=${anio}` : ''}`),
