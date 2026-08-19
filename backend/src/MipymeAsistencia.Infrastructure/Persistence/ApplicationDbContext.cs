@@ -21,6 +21,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<HistorialPermisoVacacion> HistorialPermisosVacaciones => Set<HistorialPermisoVacacion>();
     public DbSet<HistorialPlanilla> HistorialPlanillas => Set<HistorialPlanilla>();
     public DbSet<EvaluacionDesempeno> EvaluacionesDesempeno => Set<EvaluacionDesempeno>();
+    public DbSet<EvaluacionRespuesta> EvaluacionRespuestas  => Set<EvaluacionRespuesta>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -235,11 +236,13 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.IdEvaluacion).HasColumnName("id_evaluacion");
             entity.Property(x => x.IdEmpleado).HasColumnName("id_empleado");
             entity.Property(x => x.IdEvaluador).HasColumnName("id_evaluador");
+            entity.Property(x => x.Perspectiva).HasColumnName("perspectiva").HasMaxLength(30).HasDefaultValue("Jefe");
             entity.Property(x => x.Periodo).HasColumnName("periodo").HasMaxLength(20);
-            entity.Property(x => x.PorcentajePuntualidad).HasColumnName("porcentaje_puntualidad").HasPrecision(5, 2);
-            entity.Property(x => x.CalificacionCumplimientoFunciones).HasColumnName("calificacion_cumplimiento_funciones");
+            entity.Property(x => x.PuntajeFinal).HasColumnName("puntaje_final").HasPrecision(5, 2).HasDefaultValue(0m);
             entity.Property(x => x.Observaciones).HasColumnName("observaciones");
-            entity.Property(x => x.FechaEvaluacion).HasColumnName("fecha_evaluacion").HasDefaultValueSql("NOW()");
+            entity.Property(x => x.Estado).HasColumnName("estado").HasMaxLength(20).HasDefaultValue("Pendiente");
+            entity.Property(x => x.FechaCreacion).HasColumnName("fecha_creacion").HasDefaultValueSql("NOW()");
+            entity.Property(x => x.FechaCompletada).HasColumnName("fecha_completada");
 
             entity.HasOne(x => x.Empleado)
                 .WithMany(x => x.Evaluaciones)
@@ -250,6 +253,25 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 .WithMany(x => x.EvaluacionesRealizadas)
                 .HasForeignKey(x => x.IdEvaluador)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.IdEmpleado, x.Periodo });
+        });
+
+        modelBuilder.Entity<EvaluacionRespuesta>(entity =>
+        {
+            entity.ToTable("evaluacion_respuestas");
+            entity.HasKey(x => x.IdRespuesta);
+            entity.Property(x => x.IdRespuesta).HasColumnName("id_respuesta");
+            entity.Property(x => x.IdEvaluacion).HasColumnName("id_evaluacion");
+            entity.Property(x => x.NumeroPregunta).HasColumnName("numero_pregunta");
+            entity.Property(x => x.Calificacion).HasColumnName("calificacion");
+
+            entity.HasOne(x => x.Evaluacion)
+                .WithMany(x => x.Respuestas)
+                .HasForeignKey(x => x.IdEvaluacion)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.IdEvaluacion);
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
