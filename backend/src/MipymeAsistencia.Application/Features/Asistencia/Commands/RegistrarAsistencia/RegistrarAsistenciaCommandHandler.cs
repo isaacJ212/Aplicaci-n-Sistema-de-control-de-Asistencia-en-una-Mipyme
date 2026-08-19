@@ -81,19 +81,33 @@ public class RegistrarAsistenciaCommandHandler
             var estadoEntrada  = "A Tiempo";
             var minutosTardanza = 0;
 
-            // Comparar con la hora oficial + margen de tolerancia de la sede
-            var horaLimiteTolerancia = sede.HoraEntradaOficial.Add(TimeSpan.FromMinutes(sede.MinutosTolerancia));
-            if (ahora > horaLimiteTolerancia)
+            // Validar si hoy es día feriado (no deducible / no computable para tardanza)
+            var esFeriadoHoy = await _context.DiasFeriados
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Fecha.Date == fechaHoy.ToDateTime(TimeOnly.MinValue).Date, cancellationToken);
+
+            if (esFeriadoHoy is not null)
             {
-                var tardanza = ahora - sede.HoraEntradaOficial;
-                minutosTardanza = (int)tardanza.TotalMinutes;
-                estadoEntrada   = "Tardanza";
-            }
-            else if (ahora > sede.HoraEntradaOficial)
-            {
-                // Entra dentro de la tolerancia — se marca A Tiempo, con nota informativa
+                // En día feriado no se penaliza con tardanza
                 minutosTardanza = 0;
                 estadoEntrada   = "A Tiempo";
+            }
+            else
+            {
+                // Comparar con la hora oficial + margen de tolerancia de la sede
+                var horaLimiteTolerancia = sede.HoraEntradaOficial.Add(TimeSpan.FromMinutes(sede.MinutosTolerancia));
+                if (ahora > horaLimiteTolerancia)
+                {
+                    var tardanza = ahora - sede.HoraEntradaOficial;
+                    minutosTardanza = (int)tardanza.TotalMinutes;
+                    estadoEntrada   = "Tardanza";
+                }
+                else if (ahora > sede.HoraEntradaOficial)
+                {
+                    // Entra dentro de la tolerancia — se marca A Tiempo, con nota informativa
+                    minutosTardanza = 0;
+                    estadoEntrada   = "A Tiempo";
+                }
             }
 
             asistencia = new HistorialAsistencia
@@ -110,9 +124,11 @@ public class RegistrarAsistenciaCommandHandler
             };
 
             _context.HistorialAsistencias.Add(asistencia);
-            mensaje = minutosTardanza > 0
-                ? $"Entrada registrada con {minutosTardanza} min de tardanza."
-                : "Entrada registrada a tiempo. ¡Buen día!";
+            mensaje = esFeriadoHoy is not null
+                ? $"Entrada registrada en día feriado ({esFeriadoHoy.Nombre}). ¡Buen día!"
+                : (minutosTardanza > 0
+                    ? $"Entrada registrada con {minutosTardanza} min de tardanza."
+                    : "Entrada registrada a tiempo. ¡Buen día!");
         }
         else if (asistencia.InicioAlmuerzo is null)
         {

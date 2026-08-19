@@ -23,18 +23,48 @@ public class RegistrarHoraExtraCommandHandler
         if (empleado is null)
             throw new KeyNotFoundException($"Empleado con id {request.IdEmpleado} no encontrado.");
 
+        // Obtener parámetro de horas laborales al mes (default 240)
+        var paramHorasMes = await _context.ParametrosLaborales
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Clave == "HORAS_LABORALES_MES", cancellationToken);
+        var horasLaboralesMes = paramHorasMes != null && paramHorasMes.Valor > 0 ? paramHorasMes.Valor : 240m;
+
+        // Validar si la fecha de la hora extra es un día feriado o descanso semanal (domingo)
+        var fechaUtc = request.Fecha.ToUniversalTime();
+        var fechaDate = fechaUtc.Date;
+
+        var feriado = await _context.DiasFeriados
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.Fecha.Date == fechaDate, cancellationToken);
+
+        var esFeriadoRecuperable = feriado != null && feriado.EsRecuperable;
+        var esDomingoDescanso    = fechaUtc.DayOfWeek == DayOfWeek.Sunday;
+
+        // Código del Trabajo Nicaragua Arto. 62:
+        // En feriados y días de descanso el trabajo extraordinario se remunera con factor 2.0 (pago doble).
+        var factorFinal = request.FactorRecargo;
+        if ((esFeriadoRecuperable || esDomingoDescanso) && factorFinal < 2.0m)
+        {
+            factorFinal = 2.0m;
+        }
+
         // Fórmula Arto. 62 Ley 185 Nicaragua:
-        // MontoPagar = (SalarioMensual / 240) * FactorRecargo * CantidadHoras
-        // 240 = horas laborales promedio al mes (8 horas * 30 días)
-        var montoHora   = empleado.SalarioBaseMensual / 240m;
-        var montoPagar  = Math.Round(montoHora * request.FactorRecargo * request.CantidadHoras, 2);
+        // MontoPagar = (SalarioMensual / horasLaboralesMes) * FactorRecargo * CantidadHoras
+        var montoHora  = empleado.SalarioBaseMensual / horasLaboralesMes;
+        var montoPagar = Math.Round(montoHora * factorFinal * request.CantidadHoras, 2);
+
+        var motivoFinal = request.Motivo;
+        if (feriado != null && !motivoFinal.Contains($"[Feriado: {feriado.Nombre}]", StringComparison.OrdinalIgnoreCase))
+        {
+            motivoFinal = $"{motivoFinal} [Feriado: {feriado.Nombre} - Factor 2.0x]".Trim();
+        }
 
         var horaExtra = new HoraExtra
         {
             IdEmpleado    = request.IdEmpleado,
-            Fecha         = request.Fecha.ToUniversalTime(),
+            Fecha         = fechaUtc,
             CantidadHoras = request.CantidadHoras,
-            Motivo        = request.Motivo,
+            Motivo        = motivoFinal,
             MontoPagar    = montoPagar,
             Estado        = "Pendiente"          // Inicia pendiente de aprobación
         };

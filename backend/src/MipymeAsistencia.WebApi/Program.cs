@@ -1,6 +1,9 @@
 using System.Text;
+using MipymeAsistencia.Application.Common.Interfaces;
 using MipymeAsistencia.Application.DependencyInjection;
 using MipymeAsistencia.Infrastructure.DependencyInjection;
+using MipymeAsistencia.WebApi.Hubs;
+using MipymeAsistencia.WebApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -11,7 +14,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 // ── Swagger con soporte JWT ───────────────────────────────────────────────────
-// Se expone en todos los entornos (Development y Production/Render)
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -21,7 +23,6 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API de control de asistencia y nómina para Mipymes (Nicaragua)"
     });
 
-    // Agrega el botón "Authorize" en Swagger UI para enviar el JWT
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name         = "Authorization",
@@ -52,6 +53,10 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// ── SignalR: notificaciones en tiempo real a la estación de trabajo (2FA) ─────
+builder.Services.AddSignalR();
+builder.Services.AddScoped<INotificadorEstacionService, SignalREstacionService>();
+
 var jwtSecret = builder.Configuration["JwtSettings:Secret"] ?? "SuperSecureJwtSecretKeyForMipymeAsistencia123";
 var issuer = builder.Configuration["JwtSettings:Issuer"] ?? "MipymeAsistencia";
 var audience = builder.Configuration["JwtSettings:Audience"] ?? "MipymeAsistenciaClients";
@@ -74,7 +79,6 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
 
-    // Devuelve ApiResponse consistente cuando el token falta o es inválido
     options.Events = new JwtBearerEvents
     {
         OnChallenge = async ctx =>
@@ -113,22 +117,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-/*using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<MipymeAsistencia.Infrastructure.Persistence.ApplicationDbContext>();
-    await dbContext.Database.MigrateAsync();
-    Console.WriteLine("=== Migraciones aplicadas correctamente ===");
-}*/
-
-// Middleware global de excepciones — debe ser el primero en el pipeline
+// Middleware global de excepciones
 app.UseMiddleware<MipymeAsistencia.WebApi.Middleware.ExceptionHandlingMiddleware>();
 
-// Swagger activo en todos los entornos (incluye Render/Production)
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "MipymeAsistencia API v1");
-    options.RoutePrefix = "swagger";   // accesible en /swagger
+    options.RoutePrefix = "swagger";
 });
 
 app.UseHttpsRedirection();
@@ -137,6 +133,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { status = "ok", app = "MipymeAsistencia" }));
+
+// ── Endpoints SignalR: estación de trabajo para recibir códigos 2FA ──────────
+app.MapHub<EstacionTrabajoHub>("/hubs/estacion-trabajo");
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok", app = "MipymeAsistencia", signalr = true }));
 
 app.Run();

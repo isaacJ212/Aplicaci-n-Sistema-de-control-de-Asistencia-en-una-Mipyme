@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Informe de Asistencia — MipymeAsistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/reset.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
+  <link rel="stylesheet" href="../../assets/css/admin.css" />
+  <style>
+    /* ── Barra de filtros ──────────────────────────────── */
+    .filtros-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      align-items: flex-end;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4) var(--space-5);
+      margin-bottom: var(--space-5);
+    }
+    .filtro-group { display: flex; flex-direction: column; gap: var(--space-1); min-width: 160px; }
+    .filtro-label { font-size: var(--font-size-xs); font-weight: 600;
+                    color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+    .filtros-bar .btn { align-self: flex-end; }
+
+    /* ── Barra de progreso (puntualidad / asistencia) ──── */
+    .progress-wrap { display: flex; align-items: center; gap: var(--space-2); min-width: 110px; }
+    .progress-bar-bg {
+      flex: 1; height: 6px; background: var(--color-border);
+      border-radius: var(--radius-full); overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: var(--radius-full);
+      transition: width .4s ease;
+    }
+    .fill-green  { background: var(--color-success, #22C55E); }
+    .fill-yellow { background: var(--color-warning, #F59E0B); }
+    .fill-red    { background: var(--color-danger,  #EF4444); }
+    .progress-label { font-size: .7rem; font-weight: 700; min-width: 34px; text-align: right; }
+
+    /* ── Chips de estado ───────────────────────────────── */
+    .chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600; }
+    .chip-green  { background:#DCFCE7;color:#166534; }
+    .chip-yellow { background:#FEF9C3;color:#854D0E; }
+    .chip-red    { background:#FEE2E2;color:#991B1B; }
+    .chip-blue   { background:var(--color-primary-light);color:var(--color-primary-dark); }
+
+    /* ── Avatar ───────────────────────────────────────── */
+    .emp-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--color-border); flex-shrink: 0;
+    }
+    .emp-initials {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--color-primary-light); color: var(--color-primary-dark);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── Vacaciones btn ────────────────────────────────── */
+    .btn-vac {
+      padding: 2px 8px; font-size: .7rem; font-weight: 600;
+      background: var(--color-primary-light); color: var(--color-primary-dark);
+      border: 1px solid var(--color-primary); border-radius: var(--radius-full);
+      cursor: pointer; white-space: nowrap;
+    }
+    .btn-vac:hover { background: var(--color-primary); color: #fff; }
+
+    /* ── Modal detalle ─────────────────────────────────── */
+    .detalle-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-6);
+    }
+    .detalle-row { padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); }
+    .detalle-label { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .04em; }
+    .detalle-value { font-size: var(--font-size-sm); font-weight: 500; }
+    .detalle-row.full { grid-column: 1 / -1; }
+
+    @media (max-width: 768px) {
+      .filtro-group { min-width: 100%; }
+      .detalle-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <div id="sidebar-container"></div>
+
+  <main class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Informe de Asistencia</span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="badge-periodo">—</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Control de Asistencia</h1>
+          <p>Revisión de informes, puntualidad y acumulación de vacaciones por empleado.</p>
+        </div>
+        <button class="btn btn-secondary" id="btn-refresh">↻ Actualizar</button>
+      </div>
+
+      <!-- Stats resumen -->
+      <div class="stats-grid" style="margin-bottom:var(--space-5)">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon blue">👥</div></div>
+          <div class="stat-value" id="stat-empleados">—</div>
+          <div class="stat-label">Empleados en período</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+          <div class="stat-value" id="stat-pct-asistencia">—</div>
+          <div class="stat-label">Asistencia promedio</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon green">⏰</div></div>
+          <div class="stat-value" id="stat-pct-puntualidad">—</div>
+          <div class="stat-label">Puntualidad promedio</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon yellow">⚠️</div></div>
+          <div class="stat-value" id="stat-tardanzas">—</div>
+          <div class="stat-label">Total tardanzas</div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros-bar">
+        <div class="filtro-group">
+          <span class="filtro-label">Empleado</span>
+          <select class="form-input" id="f-empleado" style="min-width:200px">
+            <option value="">— Todos —</option>
+          </select>
+        </div>
+        <div class="filtro-group">
+          <span class="filtro-label">Desde</span>
+          <input type="date" class="form-input" id="f-desde" />
+        </div>
+        <div class="filtro-group">
+          <span class="filtro-label">Hasta</span>
+          <input type="date" class="form-input" id="f-hasta" />
+        </div>
+        <button class="btn btn-primary" id="btn-filtrar">🔍 Generar informe</button>
+        <button class="btn btn-ghost" id="btn-limpiar">✕ Limpiar</button>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card" style="padding:0">
+        <div class="table-wrapper" style="border:none">
+          <table class="data-table" id="tabla-informe">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Empleado</th>
+                <th>Cargo</th>
+                <th title="Días laborales en el período">Lab.</th>
+                <th title="Días trabajados">Trab.</th>
+                <th title="Días ausente">Aus.</th>
+                <th title="Días con tardanza">Tard.</th>
+                <th>% Asistencia</th>
+                <th>% Puntualidad</th>
+                <th>Vacaciones disp.</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr><td colspan="11">
+                <div class="empty-state">
+                  <div class="empty-icon">📊</div>
+                  <h3>Selecciona un período y haz clic en "Generar informe"</h3>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══ MODAL DETALLE DE EMPLEADO ═══ -->
+<div class="modal-overlay hidden" id="modal-detalle">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <span class="modal-title" id="det-titulo">Detalle de asistencia</span>
+      <button class="btn btn-ghost btn-sm" id="det-close">✕</button>
+    </div>
+    <div class="modal-body" id="det-body">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="det-cancel">Cerrar</button>
+      <button class="btn btn-primary" id="det-acumular">
+        <span id="det-acumular-text">🌴 Recalcular vacaciones</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initAdminLayout }                        from '../../modules/layout.js';
+import { asistenciaApi, empleadoApi }              from '../../modules/api.js';
+import { toast, formatDate, show, hide, debounce } from '../../modules/utils.js';
+
+await initAdminLayout('informe-asistencia');
+
+/* ── Estado ──────────────────────────────────────────────── */
+const state = {
+  informe:   [],          // último informe cargado
+  empleados: [],          // lista completa para el select
+  detalleEmp: null,       // empleado seleccionado para modal
+};
+
+/* ── Referencias DOM ─────────────────────────────────────── */
+const tbody       = document.getElementById('tbody');
+const fEmpleado   = document.getElementById('f-empleado');
+const fDesde      = document.getElementById('f-desde');
+const fHasta      = document.getElementById('f-hasta');
+const badgePeriodo = document.getElementById('badge-periodo');
+
+/* ── Fecha por defecto: mes actual ───────────────────────── */
+(function initFechas() {
+  const hoy   = new Date();
+  const y     = hoy.getFullYear();
+  const m     = String(hoy.getMonth() + 1).padStart(2, '0');
+  const d     = String(hoy.getDate()).padStart(2, '0');
+  fDesde.value = `${y}-${m}-01`;
+  fHasta.value  = `${y}-${m}-${d}`;
+})();
+
+/* ── Cargar empleados para el select ─────────────────────── */
+async function cargarEmpleados() {
+  try {
+    const emps = await empleadoApi.getAll();
+    state.empleados = Array.isArray(emps) ? emps : [];
+    fEmpleado.innerHTML =
+      '<option value="">— Todos los empleados —</option>' +
+      state.empleados.map(e =>
+        `<option value="${e.idEmpleado}">${e.nombres} ${e.apellidos}</option>`
+      ).join('');
+  } catch { /* silencioso */ }
+}
+
+/* ── Generar informe ─────────────────────────────────────── */
+async function generarInforme() {
+  const idEmp   = fEmpleado.value ? Number(fEmpleado.value) : null;
+  const desde   = fDesde.value;
+  const hasta   = fHasta.value;
+
+  if (!desde || !hasta) { toast('Selecciona el período de fechas.', 'warning'); return; }
+  if (desde > hasta)    { toast('La fecha inicio no puede ser mayor que la fecha fin.', 'warning'); return; }
+
+  tbody.innerHTML = `<tr><td colspan="11">
+    <div class="empty-state"><div class="empty-icon">⏳</div><h3>Generando informe...</h3></div>
+  </td></tr>`;
+
+  try {
+    const data = await asistenciaApi.informe({ idEmpleado: idEmp, fechaDesde: desde, fechaHasta: hasta });
+    state.informe = Array.isArray(data) ? data : [];
+    actualizarStats();
+    renderTabla();
+
+    const f1 = new Date(desde + 'T00:00:00').toLocaleDateString('es-NI', { day:'2-digit', month:'short', year:'numeric' });
+    const f2 = new Date(hasta + 'T00:00:00').toLocaleDateString('es-NI', { day:'2-digit', month:'short', year:'numeric' });
+    badgePeriodo.textContent = `${f1} → ${f2}`;
+  } catch (err) {
+    toast('Error al generar informe: ' + err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="11">
+      <div class="empty-state"><div class="empty-icon">⚠️</div>
+      <h3>Error al cargar</h3><p>${err.message}</p></div></td></tr>`;
+  }
+}
+
+/* ── Stats globales ──────────────────────────────────────── */
+function actualizarStats() {
+  const inf = state.informe;
+  if (!inf.length) {
+    ['stat-empleados','stat-pct-asistencia','stat-pct-puntualidad','stat-tardanzas']
+      .forEach(id => { document.getElementById(id).textContent = '—'; });
+    return;
+  }
+
+  const pctAsis  = (inf.reduce((s, r) => s + r.porcentajeAsistencia, 0)  / inf.length).toFixed(1);
+  const pctPunt  = (inf.reduce((s, r) => s + r.porcentajePuntualidad, 0) / inf.length).toFixed(1);
+  const totTard  = inf.reduce((s, r) => s + r.diasTardanza, 0);
+
+  document.getElementById('stat-empleados').textContent        = inf.length;
+  document.getElementById('stat-pct-asistencia').textContent   = `${pctAsis}%`;
+  document.getElementById('stat-pct-puntualidad').textContent  = `${pctPunt}%`;
+  document.getElementById('stat-tardanzas').textContent        = totTard;
+}
+
+/* ── Render tabla ────────────────────────────────────────── */
+function renderTabla() {
+  if (!state.informe.length) {
+    tbody.innerHTML = `<tr><td colspan="11">
+      <div class="empty-state"><div class="empty-icon">📭</div>
+      <h3>Sin registros para el período seleccionado</h3></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = state.informe.map((r, i) => {
+    const pctA  = r.porcentajeAsistencia;
+    const pctP  = r.porcentajePuntualidad;
+    const colorA = pctA >= 90 ? 'green' : pctA >= 70 ? 'yellow' : 'red';
+    const colorP = pctP >= 90 ? 'green' : pctP >= 70 ? 'yellow' : 'red';
+
+    const ini = r.nombresEmpleado || r.nombreEmpleado || '';
+    const avatar = r.fotoUrl
+      ? `<img class="emp-avatar" src="${r.fotoUrl}" alt="${ini}" />`
+      : `<div class="emp-initials">${ini.split(' ').map(p=>p[0]??'').slice(0,2).join('').toUpperCase()}</div>`;
+
+    // Vacaciones: buscar en lista de empleados
+    const empData = state.empleados.find(e => e.idEmpleado === r.idEmpleado);
+    const vacDisp = empData?.diasVacacionesAcumuladas ?? '—';
+
+    return `
+    <tr>
+      <td class="text-muted">${i + 1}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:var(--space-2)">
+          ${avatar}
+          <span class="font-medium">${r.nombreEmpleado ?? `Empleado #${r.idEmpleado}`}</span>
+        </div>
+      </td>
+      <td style="font-size:var(--font-size-xs);color:var(--color-text-muted)">${r.cargoFuncion ?? '—'}</td>
+      <td class="text-center">${r.diasLaborales}</td>
+      <td class="text-center font-medium">${r.diasTrabajados}</td>
+      <td class="text-center">${r.diasAusente > 0
+        ? `<span class="chip chip-red">${r.diasAusente}</span>`
+        : `<span class="chip chip-green">0</span>`}</td>
+      <td class="text-center">${r.diasTardanza > 0
+        ? `<span class="chip chip-yellow">${r.diasTardanza}</span>`
+        : `<span class="chip chip-green">0</span>`}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill fill-${colorA}" style="width:${pctA}%"></div>
+          </div>
+          <span class="progress-label" style="color:var(--color-${colorA === 'green' ? 'success' : colorA === 'yellow' ? 'warning' : 'danger'}, inherit)">${pctA}%</span>
+        </div>
+      </td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill fill-${colorP}" style="width:${pctP}%"></div>
+          </div>
+          <span class="progress-label">${pctP}%</span>
+        </div>
+      </td>
+      <td class="text-center">
+        <span class="chip chip-blue">🌴 ${vacDisp} d.</span>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button class="btn-icon" title="Ver detalle" data-accion="detalle" data-id="${r.idEmpleado}">👁</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Delegación de clicks en tabla ───────────────────────── */
+tbody.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-accion]');
+  if (!btn) return;
+  const { accion, id } = btn.dataset;
+  if (accion === 'detalle') abrirDetalle(Number(id));
+});
+
+/* ── Modal detalle ───────────────────────────────────────── */
+function abrirDetalle(idEmpleado) {
+  const r = state.informe.find(x => x.idEmpleado === idEmpleado);
+  if (!r) return;
+
+  state.detalleEmp = r;
+  const empData = state.empleados.find(e => e.idEmpleado === idEmpleado);
+  const vacDisp = empData?.diasVacacionesAcumuladas ?? '—';
+
+  document.getElementById('det-titulo').textContent =
+    `📊 ${r.nombreEmpleado ?? `Empleado #${idEmpleado}`}`;
+  document.getElementById('det-acumular').dataset.id = idEmpleado;
+
+  document.getElementById('det-body').innerHTML = `
+    <div class="detalle-grid">
+      <div class="detalle-row">
+        <div class="detalle-label">Cargo</div>
+        <div class="detalle-value">${r.cargoFuncion ?? '—'}</div>
+      </div>
+      <div class="detalle-row">
+        <div class="detalle-label">Días laborales</div>
+        <div class="detalle-value">${r.diasLaborales}</div>
+      </div>
+      <div class="detalle-row">
+        <div class="detalle-label">Días trabajados</div>
+        <div class="detalle-value font-medium">${r.diasTrabajados}</div>
+      </div>
+      <div class="detalle-row">
+        <div class="detalle-label">Días ausente</div>
+        <div class="detalle-value">${r.diasAusente > 0
+          ? `<span class="chip chip-red">${r.diasAusente}</span>`
+          : '<span class="chip chip-green">0</span>'}</div>
+      </div>
+      <div class="detalle-row">
+        <div class="detalle-label">Días A Tiempo</div>
+        <div class="detalle-value"><span class="chip chip-green">${r.diasATiempo}</span></div>
+      </div>
+      <div class="detalle-row">
+        <div class="detalle-label">Días con Tardanza</div>
+        <div class="detalle-value">${r.diasTardanza > 0
+          ? `<span class="chip chip-yellow">${r.diasTardanza}</span>`
+          : '<span class="chip chip-green">0</span>'}</div>
+      </div>
+      <div class="detalle-row">
+        <div class="detalle-label">Total min. tardanza</div>
+        <div class="detalle-value">${r.totalMinutosTardanza} min</div>
+      </div>
+      <div class="detalle-row">
+        <div class="detalle-label">Prom. min. tardanza</div>
+        <div class="detalle-value">${r.promedioMinutosTardanza} min/día</div>
+      </div>
+      <div class="detalle-row full">
+        <div class="detalle-label">% Asistencia</div>
+        <div style="margin-top:var(--space-1)">
+          <div class="progress-wrap" style="max-width:320px">
+            <div class="progress-bar-bg" style="height:10px">
+              <div class="progress-bar-fill fill-${r.porcentajeAsistencia>=90?'green':r.porcentajeAsistencia>=70?'yellow':'red'}"
+                   style="width:${r.porcentajeAsistencia}%;height:100%"></div>
+            </div>
+            <span class="progress-label" style="font-size:.85rem;font-weight:700">${r.porcentajeAsistencia}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="detalle-row full">
+        <div class="detalle-label">% Puntualidad</div>
+        <div style="margin-top:var(--space-1)">
+          <div class="progress-wrap" style="max-width:320px">
+            <div class="progress-bar-bg" style="height:10px">
+              <div class="progress-bar-fill fill-${r.porcentajePuntualidad>=90?'green':r.porcentajePuntualidad>=70?'yellow':'red'}"
+                   style="width:${r.porcentajePuntualidad}%;height:100%"></div>
+            </div>
+            <span class="progress-label" style="font-size:.85rem;font-weight:700">${r.porcentajePuntualidad}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="detalle-row full">
+        <div class="detalle-label">Vacaciones disponibles</div>
+        <div class="detalle-value" id="det-vac-display">
+          <span class="chip chip-blue">🌴 ${vacDisp} días</span>
+          <span style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-left:var(--space-2)">
+            Usa "Recalcular vacaciones" para actualizar según contratación.
+          </span>
+        </div>
+      </div>
+    </div>`;
+
+  show(document.getElementById('modal-detalle'));
+}
+
+/* ── Recalcular vacaciones ───────────────────────────────── */
+document.getElementById('det-acumular').addEventListener('click', async (e) => {
+  const idEmpleado = Number(e.currentTarget.dataset.id);
+  if (!idEmpleado) return;
+
+  const btn = document.getElementById('det-acumular');
+  const txt = document.getElementById('det-acumular-text');
+  btn.disabled = true;
+  txt.textContent = '⏳ Calculando...';
+
+  try {
+    const res = await empleadoApi.acumularVacaciones(idEmpleado);
+    const disp = res?.diasVacacionesDisponibles ?? '—';
+
+    // Actualizar el display en el modal
+    const vacDisplay = document.getElementById('det-vac-display');
+    if (vacDisplay) {
+      vacDisplay.innerHTML = `
+        <span class="chip chip-green">🌴 ${disp} días disponibles</span>
+        <span style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-left:var(--space-2)">
+          ${res?.mesesTrabajados ?? '—'} meses trabajados · ${res?.diasAcumuladosTeoricos ?? '—'} acumulados teóricos · ${res?.diasDescontadosVacaciones ?? '—'} descontados
+        </span>`;
+    }
+
+    // Actualizar en la lista local de empleados
+    const empIdx = state.empleados.findIndex(e => e.idEmpleado === idEmpleado);
+    if (empIdx !== -1) state.empleados[empIdx].diasVacacionesAcumuladas = disp;
+
+    toast(`Vacaciones actualizadas: ${disp} días disponibles.`, 'success');
+    renderTabla(); // refrescar la columna en la tabla
+  } catch (err) {
+    toast('Error al recalcular: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    txt.textContent = '🌴 Recalcular vacaciones';
+  }
+});
+
+/* ── Cerrar modal ────────────────────────────────────────── */
+['det-close', 'det-cancel'].forEach(id =>
+  document.getElementById(id)?.addEventListener('click', () =>
+    hide(document.getElementById('modal-detalle'))));
+document.getElementById('modal-detalle').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-detalle'))
+    hide(document.getElementById('modal-detalle'));
+});
+
+/* ── Botones ─────────────────────────────────────────────── */
+document.getElementById('btn-filtrar').addEventListener('click', generarInforme);
+document.getElementById('btn-refresh').addEventListener('click', generarInforme);
+
+document.getElementById('btn-limpiar').addEventListener('click', () => {
+  fEmpleado.value = '';
+  const hoy = new Date();
+  const y = hoy.getFullYear(), m = String(hoy.getMonth()+1).padStart(2,'0'), d = String(hoy.getDate()).padStart(2,'0');
+  fDesde.value = `${y}-${m}-01`;
+  fHasta.value  = `${y}-${m}-${d}`;
+  state.informe = [];
+  renderTabla();
+  ['stat-empleados','stat-pct-asistencia','stat-pct-puntualidad','stat-tardanzas']
+    .forEach(id => { document.getElementById(id).textContent = '—'; });
+  badgePeriodo.textContent = '—';
+});
+
+/* ── Init ────────────────────────────────────────────────── */
+await cargarEmpleados();
+// Generar informe del mes actual automáticamente
+generarInforme();
+</script>
+</body>
+</html>

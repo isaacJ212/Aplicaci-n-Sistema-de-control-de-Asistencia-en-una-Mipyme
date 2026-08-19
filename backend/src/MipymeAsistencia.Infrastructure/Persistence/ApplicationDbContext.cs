@@ -22,6 +22,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<HistorialPlanilla> HistorialPlanillas => Set<HistorialPlanilla>();
     public DbSet<EvaluacionDesempeno> EvaluacionesDesempeno => Set<EvaluacionDesempeno>();
     public DbSet<EvaluacionRespuesta> EvaluacionRespuestas  => Set<EvaluacionRespuesta>();
+    public DbSet<DiaFeriado> DiasFeriados => Set<DiaFeriado>();
+    public DbSet<ParametroLaboral> ParametrosLaborales => Set<ParametroLaboral>();
+    public DbSet<TablaImpuestoRenta> TablaImpuestoRenta => Set<TablaImpuestoRenta>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -296,6 +299,77 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
             // EsActivo es una propiedad calculada — no se mapea a columna
             entity.Ignore(x => x.EsActivo);
+        });
+
+        modelBuilder.Entity<DiaFeriado>(entity =>
+        {
+            entity.ToTable("dias_feriados");
+            entity.HasKey(x => x.IdDiaFeriado);
+            entity.Property(x => x.IdDiaFeriado).HasColumnName("id_dia_feriado");
+            entity.Property(x => x.Fecha).HasColumnName("fecha").HasColumnType("date");
+            entity.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(100);
+            entity.Property(x => x.Descripcion).HasColumnName("descripcion").HasMaxLength(255);
+            entity.Property(x => x.EsRecuperable).HasColumnName("es_recuperable").HasDefaultValue(true);
+            entity.Property(x => x.EsMovil).HasColumnName("es_movil").HasDefaultValue(false);
+
+            entity.HasIndex(x => x.Fecha).IsUnique();
+
+            entity.HasData(
+                new DiaFeriado { IdDiaFeriado = 1, Fecha = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), Nombre = "Año Nuevo", Descripcion = "Feriado Nacional Obligatorio", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 2, Fecha = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc), Nombre = "Jueves Santo", Descripcion = "Semana Santa", EsRecuperable = true, EsMovil = true },
+                new DiaFeriado { IdDiaFeriado = 3, Fecha = new DateTime(2026, 4, 3, 0, 0, 0, DateTimeKind.Utc), Nombre = "Viernes Santo", Descripcion = "Semana Santa", EsRecuperable = true, EsMovil = true },
+                new DiaFeriado { IdDiaFeriado = 4, Fecha = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día Internacional de los Trabajadores", Descripcion = "Feriado Nacional Obligatorio", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 5, Fecha = new DateTime(2026, 7, 19, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día de la Revolución", Descripcion = "Feriado Nacional", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 6, Fecha = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc), Nombre = "Santo Domingo de Guzmán (Bajada)", Descripcion = "Feriado Local Managua", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 7, Fecha = new DateTime(2026, 8, 10, 0, 0, 0, DateTimeKind.Utc), Nombre = "Santo Domingo de Guzmán (Dejada)", Descripcion = "Feriado Local Managua", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 8, Fecha = new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc), Nombre = "Batalla de San Jacinto", Descripcion = "Fiestas Patrias", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 9, Fecha = new DateTime(2026, 9, 15, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día de la Independencia de Centroamérica", Descripcion = "Fiestas Patrias", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 10, Fecha = new DateTime(2026, 12, 8, 0, 0, 0, DateTimeKind.Utc), Nombre = "Día de la Inmaculada Concepción de María", Descripcion = "Feriado Nacional", EsRecuperable = true, EsMovil = false },
+                new DiaFeriado { IdDiaFeriado = 11, Fecha = new DateTime(2026, 12, 25, 0, 0, 0, DateTimeKind.Utc), Nombre = "Navidad", Descripcion = "Feriado Nacional Obligatorio", EsRecuperable = true, EsMovil = false }
+            );
+        });
+
+        modelBuilder.Entity<ParametroLaboral>(entity =>
+        {
+            entity.ToTable("parametros_laborales");
+            entity.HasKey(x => x.IdParametro);
+            entity.Property(x => x.IdParametro).HasColumnName("id_parametro");
+            entity.Property(x => x.Clave).HasColumnName("clave").HasMaxLength(50);
+            entity.Property(x => x.Valor).HasColumnName("valor").HasPrecision(10, 4);
+            entity.Property(x => x.Descripcion).HasColumnName("descripcion").HasMaxLength(255);
+            entity.Property(x => x.FechaModificacion).HasColumnName("fecha_modificacion").HasDefaultValueSql("NOW()");
+
+            entity.HasIndex(x => x.Clave).IsUnique();
+
+            entity.HasData(
+                new ParametroLaboral { IdParametro = 1, Clave = "INSS_LABORAL", Valor = 7.00m, Descripcion = "Aporte INSS laboral del empleado (%)", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 2, Clave = "INSS_PATRONAL", Valor = 21.50m, Descripcion = "Aporte INSS patronal de la empresa (%)", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 3, Clave = "INATEC", Valor = 2.00m, Descripcion = "Aporte INATEC patronal (%)", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 4, Clave = "HORAS_LABORALES_MES", Valor = 240.00m, Descripcion = "Horas laborales mensuales promedio para cálculo de horas extras y tardanzas", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new ParametroLaboral { IdParametro = 5, Clave = "TASA_PRESTACIONES_MENSUAL", Valor = 2.50m, Descripcion = "Días de provisión mensual para Aguinaldo, Vacaciones e Indemnización", FechaModificacion = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+            );
+        });
+
+        modelBuilder.Entity<TablaImpuestoRenta>(entity =>
+        {
+            entity.ToTable("tabla_impuesto_renta");
+            entity.HasKey(x => x.IdTablaIr);
+            entity.Property(x => x.IdTablaIr).HasColumnName("id_tabla_ir");
+            entity.Property(x => x.DesdeMontoAnual).HasColumnName("desde_monto_anual").HasPrecision(14, 2);
+            entity.Property(x => x.HastaMontoAnual).HasColumnName("hasta_monto_anual").HasPrecision(14, 2);
+            entity.Property(x => x.PorcentajeAplicable).HasColumnName("porcentaje_aplicable").HasPrecision(5, 4);
+            entity.Property(x => x.MontoBaseExceso).HasColumnName("monto_base_exceso").HasPrecision(14, 2);
+            entity.Property(x => x.CuotaFija).HasColumnName("cuota_fija").HasPrecision(14, 2);
+            entity.Property(x => x.AnioVigencia).HasColumnName("anio_vigencia").HasDefaultValue(2026);
+            entity.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
+
+            entity.HasData(
+                new TablaImpuestoRenta { IdTablaIr = 1, DesdeMontoAnual = 0.00m, HastaMontoAnual = 100000.00m, PorcentajeAplicable = 0.00m, MontoBaseExceso = 0.00m, CuotaFija = 0.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 2, DesdeMontoAnual = 100000.01m, HastaMontoAnual = 200000.00m, PorcentajeAplicable = 0.15m, MontoBaseExceso = 100000.00m, CuotaFija = 0.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 3, DesdeMontoAnual = 200000.01m, HastaMontoAnual = 350000.00m, PorcentajeAplicable = 0.20m, MontoBaseExceso = 200000.00m, CuotaFija = 15000.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 4, DesdeMontoAnual = 350000.01m, HastaMontoAnual = 500000.00m, PorcentajeAplicable = 0.25m, MontoBaseExceso = 350000.00m, CuotaFija = 45000.00m, AnioVigencia = 2026, Activo = true },
+                new TablaImpuestoRenta { IdTablaIr = 5, DesdeMontoAnual = 500000.01m, HastaMontoAnual = null, PorcentajeAplicable = 0.30m, MontoBaseExceso = 500000.00m, CuotaFija = 82500.00m, AnioVigencia = 2026, Activo = true }
+            );
         });
 
         base.OnModelCreating(modelBuilder);

@@ -9,6 +9,8 @@ public class PermisoVacacionResponseDto
     public DateTime FechaInicio { get; set; }
     public DateTime FechaFin { get; set; }
     public decimal DiasSolicitados { get; set; }
+    public decimal? HorasSolicitadas { get; set; }
+    public string UnidadTiempo { get; set; } = "Dias";
     public string Motivo { get; set; } = string.Empty;
     public string EstadoSolicitud { get; set; } = string.Empty;
     public DateTime? FechaRespuesta { get; set; }

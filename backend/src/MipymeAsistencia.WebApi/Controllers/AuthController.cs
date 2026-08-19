@@ -2,6 +2,7 @@ using System.Security.Claims;
 using MediatR;
 using MipymeAsistencia.Application.Common.DTOs;
 using MipymeAsistencia.Application.Common.DTOs.Auth;
+using MipymeAsistencia.Application.Common.Interfaces;
 using MipymeAsistencia.Application.Features.Auth.Commands.Login;
 using MipymeAsistencia.Application.Features.Auth.Commands.Logout;
 using MipymeAsistencia.Application.Features.Auth.Commands.RefreshToken;
@@ -18,11 +19,13 @@ namespace MipymeAsistencia.WebApi.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IMediator _mediator;
+    private readonly IMediator          _mediator;
+    private readonly ICodigo2FaService? _codigo2FaService;
 
-    public AuthController(IMediator mediator)
+    public AuthController(IMediator mediator, ICodigo2FaService? codigo2FaService = null)
     {
-        _mediator = mediator;
+        _mediator         = mediator;
+        _codigo2FaService = codigo2FaService;
     }
 
     /// <summary>Autentica un usuario y devuelve JWT + refresh token.</summary>
@@ -88,10 +91,44 @@ public class AuthController : ControllerBase
         var data = await _mediator.Send(new Verify2FaCommand
         {
             Email = request.Email,
-            Code = request.Code
+            Code  = request.Code
         });
 
         return Ok(ApiResponse<LoginResponseDto>.Ok(data, "Validación de dos pasos exitosa."));
+    }
+
+    /// <summary>
+    /// FALLBACK sin SignalR: Devuelve el último código 2FA generado para un email,
+    /// si aún no ha expirado (5 min). Este endpoint es para que la "estación de
+    /// trabajo" (PC / kiosko) consulte el código cuando no puede conectarse por
+    /// SignalR. En entornos con kioscos físicos, este endpoint debería protegerse
+    /// por IP de la sede.
+    /// </summary>
+    [HttpGet("codigo-2fa")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public IActionResult ObtenerCodigo2Fa([FromQuery] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest(ApiResponse<object>.BadRequest("El email es obligatorio."));
+
+        if (_codigo2FaService is null)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                ApiResponse<object>.Unauthorized("Servicio de códigos 2FA no disponible."));
+
+        var codigo = _codigo2FaService.ObtenerUltimo(email);
+
+        if (codigo is null)
+            return NotFound(ApiResponse<object>.NotFound(
+                "No hay un código 2FA activo para este email (expiró o nunca se generó)."));
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            email = email.Trim(),
+            codigo = codigo,
+            generado = true
+        }, "Código 2FA activo recuperado correctamente."));
     }
 
     /// <summary>Activa o desactiva la autenticación en dos pasos del usuario actual.</summary>
@@ -107,7 +144,7 @@ public class AuthController : ControllerBase
 
         var data = await _mediator.Send(new Enable2FaCommand
         {
-            Email = email,
+            Email   = email,
             Enabled = request.Enabled
         });
 
@@ -122,7 +159,6 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Me()
     {
-        // El email viene del claim del JWT validado por el middleware de autenticación
         var email = User.FindFirstValue(ClaimTypes.Email)
                     ?? User.FindFirstValue("sub");
 
