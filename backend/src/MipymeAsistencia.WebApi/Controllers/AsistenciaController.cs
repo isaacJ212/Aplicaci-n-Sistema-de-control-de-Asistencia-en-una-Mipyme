@@ -10,6 +10,7 @@ using MipymeAsistencia.Application.Features.Asistencia.Commands.ValidarQr;
 using MipymeAsistencia.Application.Features.Asistencia.Queries.GetAlertasTardanza;
 using MipymeAsistencia.Application.Features.Asistencia.Queries.GetAllAsistencias;
 using MipymeAsistencia.Application.Features.Asistencia.Queries.GetHistorialAsistencia;
+using MipymeAsistencia.Application.Features.Asistencia.Queries.GetInformeAsistencia;
 using MipymeAsistencia.Application.Features.Asistencia.Queries.GetQrActual;
 using MipymeAsistencia.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -202,5 +203,35 @@ public class AsistenciaController : ControllerBase
         return Ok(ApiResponse<List<AlertaTardanzaDto>>.Ok(
             data,
             $"{data.Count} empleado(s) con tardanzas · {reincidentes} reincidente(s)."));
+    }
+
+    
+    [HttpGet("informe")]
+    [Authorize(Roles = "Admin,Analista")]
+    [ProducesResponseType(typeof(ApiResponse<List<InformeAsistenciaDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetInforme(
+        [FromQuery] int?      idEmpleado  = null,
+        [FromQuery] DateTime? fechaDesde  = null,
+        [FromQuery] DateTime? fechaHasta  = null)
+    {
+        var hoy    = DateTime.UtcNow.Date;
+        var desde  = fechaDesde?.Date  ?? new DateTime(hoy.Year, hoy.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var hasta  = fechaHasta?.Date  ?? hoy;
+
+        if (desde > hasta)
+            return BadRequest(ApiResponse<object>.BadRequest(
+                "La fecha de inicio no puede ser posterior a la fecha final."));
+
+        var data = await _mediator.Send(new GetInformeAsistenciaQuery
+        {
+            IdEmpleado = idEmpleado,
+            FechaDesde = desde,
+            FechaHasta = hasta,
+        });
+
+        return Ok(ApiResponse<List<InformeAsistenciaDto>>.Ok(
+            data, $"Informe generado para {data.Count} empleado(s) · {desde:dd/MM/yyyy} – {hasta:dd/MM/yyyy}."));
     }
 }
