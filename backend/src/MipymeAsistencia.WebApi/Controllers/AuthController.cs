@@ -36,10 +36,15 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
+        var ip = GetClientIpAddress();
+        var mac = Request.Headers.TryGetValue("X-Device-MAC", out var macHeader) ? macHeader.ToString() : null;
+
         var data = await _mediator.Send(new LoginCommand
         {
-            Email    = request.Email,
-            Password = request.Password
+            Email      = request.Email,
+            Password   = request.Password,
+            IpOrigen   = ip,
+            MacAddress = mac
         });
 
         return Ok(ApiResponse<LoginResponseDto>.Ok(data, "Inicio de sesión exitoso."));
@@ -88,13 +93,29 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Verify2Fa([FromBody] Verify2FaRequestDto request)
     {
+        var ip = !string.IsNullOrWhiteSpace(request.IpOrigen) ? request.IpOrigen : GetClientIpAddress();
+        var mac = !string.IsNullOrWhiteSpace(request.MacAddress) ? request.MacAddress : (Request.Headers.TryGetValue("X-Device-MAC", out var macHeader) ? macHeader.ToString() : null);
+
         var data = await _mediator.Send(new Verify2FaCommand
         {
-            Email = request.Email,
-            Code  = request.Code
+            Email      = request.Email,
+            Code       = request.Code,
+            IpOrigen   = ip,
+            MacAddress = mac
         });
 
         return Ok(ApiResponse<LoginResponseDto>.Ok(data, "Validación de dos pasos exitosa."));
+    }
+
+    private string GetClientIpAddress()
+    {
+        if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwarded))
+        {
+            var ip = forwarded.ToString().Split(',')[0].Trim();
+            if (!string.IsNullOrWhiteSpace(ip)) return ip;
+        }
+
+        return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
     }
 
     /// <summary>
