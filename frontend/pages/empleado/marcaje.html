@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="../../assets/css/empleado.css" />
   <link rel="stylesheet" href="../../assets/css/empleado-pages.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -162,22 +163,36 @@
 <div class="modal-overlay hidden" id="modal-escanear">
   <div class="modal modal-max-560">
     <div class="modal-header">
-      <span class="modal-title">📷 Escanea el QR del kiosco</span>
+      <span class="modal-title">📷 Escaneo de Código QR</span>
       <button class="btn btn-ghost btn-sm" id="escanear-close">✕</button>
     </div>
     <div class="modal-body">
+
+      <!-- Selector de cámaras disponibles -->
+      <div id="camera-select-container" style="display:none;margin-bottom:10px">
+        <label class="form-label" style="font-size:0.75rem;margin-bottom:4px">Cámara activa:</label>
+        <select id="scanner-camera-select" class="form-input" style="font-size:0.85rem;padding:6px 10px"></select>
+      </div>
 
       <div id="scanner-container" class="scanner-wrapper">
         <div id="html5qr-reader" class="scanner-inner"></div>
         <div id="scanner-placeholder" class="scanner-placeholder">
           <div class="icon">📷</div>
-          <p class="scanner-placeholder-title"><strong>Preparando cámara...</strong></p>
-          <p class="scanner-placeholder-note">Acepta los permisos de cámara cuando el navegador lo pida.</p>
+          <p class="scanner-placeholder-title"><strong>Iniciando cámara...</strong></p>
+          <p class="scanner-placeholder-note">Acepta los permisos cuando el navegador lo solicite.</p>
         </div>
       </div>
 
       <div id="scanner-status" class="scanner-status">
         Esperando lectura de QR...
+      </div>
+
+      <!-- Acciones de soporte / Fallback de archivo -->
+      <div style="display:flex;justify-content:center;gap:10px;margin-top:12px">
+        <input type="file" id="scanner-file-input" accept="image/*" style="display:none" />
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-subir-qr-img">
+          📁 Subir o tomar foto de QR
+        </button>
       </div>
 
       <div class="card card-info mt-4">
@@ -226,9 +241,7 @@ const state = {
   tipoMarcaje:   null,   // 'Entrada' | 'InicioAlmuerzo' | 'FinAlmuerzo' | 'Salida'
 };
 
-/* ══════════════════════════════════════════════════════════
-   RELOJ EN TOPBAR
-══════════════════════════════════════════════════════════ */
+
 function actualizarReloj() {
   const now = new Date();
   document.getElementById('reloj-topbar').textContent =
@@ -288,9 +301,7 @@ async function inicializar() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   GEOLOCALIZACIÓN
-══════════════════════════════════════════════════════════ */
+
 async function obtenerGPS() {
   const pos = await AsistenciaGPS.obtenerUbicacion(8000);
   if (pos) {
@@ -325,9 +336,7 @@ function calcularDistancia() {
     `${dist} m ${enRango ? '✅' : '⚠️'}`;
 }
 
-/* ══════════════════════════════════════════════════════════
-   LÓGICA DE BOTONES SEGÚN ESTADO DEL TURNO
-══════════════════════════════════════════════════════════ */
+
 function actualizarBotones() {
   const a = state.asistenciaHoy;
   const btnE = document.getElementById('btn-entrada');
@@ -407,9 +416,7 @@ function actualizarTurno() {
   sub.textContent    = `Entrada: ${a.horaEntrada?.toString().slice(0,5)} · ${a.estadoAsistencia}${extra}`;
 }
 
-/* ══════════════════════════════════════════════════════════
-   ABRIR MODAL DE MARCAJE
-══════════════════════════════════════════════════════════ */
+
 function abrirModalMarcaje(tipo) {
   state.tipoMarcaje = tipo;
 
@@ -448,9 +455,7 @@ function abrirModalMarcaje(tipo) {
   show(document.getElementById('modal-marcaje'));
 }
 
-/* ══════════════════════════════════════════════════════════
-   LISTENERS DE BOTONES
-══════════════════════════════════════════════════════════ */
+
 document.getElementById('btn-entrada').addEventListener('click',
   () => abrirModalMarcaje('Entrada'));
 
@@ -462,9 +467,7 @@ document.getElementById('btn-almuerzo').addEventListener('click', () => {
 document.getElementById('btn-salida').addEventListener('click',
   () => abrirModalMarcaje('Salida'));
 
-/* ══════════════════════════════════════════════════════════
-   CONFIRMAR MARCAJE → POST /asistencia/registrar
-══════════════════════════════════════════════════════════ */
+
 document.getElementById('marcaje-confirm').addEventListener('click', async () => {
   const lat = parseFloat(document.getElementById('f-lat').value);
   const lon = parseFloat(document.getElementById('f-lon').value);
@@ -517,24 +520,20 @@ document.getElementById('modal-marcaje').addEventListener('click', e => {
     hide(document.getElementById('modal-marcaje'));
 });
 
-/* ==========================================================
-   ESCANEO QR CON CAMARA — Flujo automatico (Fase 3)
-   Identifica el empleado por JWT, valida el QR escaneado
-   contra el token activo de la sede y registra la accion
-   segun el historial del dia (Entrada -> Almuerzo -> Salida).
-========================================================== */
 const scannerState = {
   scanner: null,
 };
 
-async function abrirModalEscanear() {
+async function abrirModalEscanear(cameraId = null) {
   await cargarHtml5QrCode();
 
   const statusEl = document.getElementById('scanner-status');
   const placeholder = document.getElementById('scanner-placeholder');
+  const camSelectContainer = document.getElementById('camera-select-container');
+  const camSelect = document.getElementById('scanner-camera-select');
   placeholder.style.display = 'none';
 
-  statusEl.textContent = 'Encendiendo cámara y obteniendo tu ubicación GPS...';
+  statusEl.textContent = 'Iniciando cámara y obteniendo ubicación GPS...';
   document.getElementById('escanear-reintentar').classList.add('hidden');
 
   show(document.getElementById('modal-escanear'));
@@ -545,7 +544,18 @@ async function abrirModalEscanear() {
 
   scannerState.scanner = new AsistenciaScanner({
     containerId: 'html5qr-reader',
-    videoConstraints: { facingMode: { ideal: 'environment' } },
+
+    onCamerasFound: (cameras) => {
+      if (cameras && cameras.length > 1) {
+        camSelect.innerHTML = cameras.map((c, i) =>
+          `<option value="${c.id}">${c.label || 'Cámara ' + (i + 1)}</option>`
+        ).join('');
+        if (cameraId) camSelect.value = cameraId;
+        camSelectContainer.style.display = 'block';
+      } else {
+        camSelectContainer.style.display = 'none';
+      }
+    },
 
     onStatus: (msg, level = 'info') => {
       const classes = {
@@ -587,22 +597,58 @@ async function abrirModalEscanear() {
 
     onError: (err) => {
       statusEl.innerHTML =
-        '<div class="status-error">❌ Error al registrar</div>' +
+        '<div class="status-error">❌ Error al registrar marcaje</div>' +
         '<div class="text-xs mt-2">' + (err.message || String(err)) + '</div>';
       mostrarBotonReintentar();
     },
   });
 
   try {
-    await scannerState.scanner.iniciar();
+    await scannerState.scanner.iniciar(cameraId);
   } catch (err) {
     statusEl.innerHTML =
-      '<div class="status-error">No se pudo acceder a la cámara</div>' +
+      '<div class="status-error">No se pudo iniciar la cámara</div>' +
       '<div class="text-xs mt-2">' + err.message +
-      '<br>Verifica los permisos del navegador o usa el marcaje manual.</div>';
+      '<br><br>💡 <em>Tip:</em> Si tu navegador bloquea la cámara web o estás en red local HTTP, puedes usar el botón <strong>"Subir o tomar foto de QR"</strong> o el marcaje manual.</div>';
     mostrarBotonReintentar();
   }
 }
+
+// Selector de cámara
+document.getElementById('scanner-camera-select')?.addEventListener('change', async (e) => {
+  const chosenCamId = e.target.value;
+  await scannerState.scanner?.detener();
+  abrirModalEscanear(chosenCamId);
+});
+
+// Botón de subir archivo de foto
+document.getElementById('btn-subir-qr-img')?.addEventListener('click', () => {
+  document.getElementById('scanner-file-input')?.click();
+});
+
+document.getElementById('scanner-file-input')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (!scannerState.scanner) {
+    scannerState.scanner = new AsistenciaScanner({
+      containerId: 'html5qr-reader',
+      onStatus: (msg, level = 'info') => {
+        document.getElementById('scanner-status').innerHTML = `<span>${msg}</span>`;
+      },
+      onSuccess: (result, meta) => {
+        toast('✅ Marcaje realizado con éxito.', 'success');
+        state.asistenciaHoy = result;
+        actualizarBotones();
+        actualizarTurno();
+        detenerScannerYCerrar();
+      },
+      onError: (err) => {
+        toast(err.message, 'error');
+      }
+    });
+  }
+  await scannerState.scanner.escanearArchivo(file);
+});
 
 function mostrarBotonReintentar() {
   const btn = document.getElementById('escanear-reintentar');
@@ -620,7 +666,7 @@ function detenerScannerYCerrar() {
   hide(document.getElementById('modal-escanear'));
 }
 
-document.getElementById('btn-escanear-qr').addEventListener('click', abrirModalEscanear);
+document.getElementById('btn-escanear-qr').addEventListener('click', () => abrirModalEscanear());
 
 ['escanear-close','escanear-cancel'].forEach(function(id) {
   var el = document.getElementById(id);
@@ -633,9 +679,7 @@ document.getElementById('modal-escanear').addEventListener('click', function(e) 
   }
 });
 
-/* ══════════════════════════════════════════════════════════
-   INIT
-══════════════════════════════════════════════════════════ */
+
 inicializar();
 </script>
 </body>
